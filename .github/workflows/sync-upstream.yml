@@ -1,4 +1,4 @@
-name: Sync upstream
+name: Force sync upstream
 run-name: Sync pjy02/frontend@${{ inputs.upstream_ref }} into main
 
 on:
@@ -47,7 +47,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch and merge upstream
+      - name: Fetch upstream snapshot
         id: sync
         shell: bash
         env:
@@ -77,12 +77,12 @@ jobs:
           echo "before_sha=${before_sha}" >> "${GITHUB_OUTPUT}"
           echo "upstream_sha=${upstream_sha}" >> "${GITHUB_OUTPUT}"
 
-          if git merge-base --is-ancestor "${upstream_sha}" HEAD; then
+          if [[ "${before_sha}" == "${upstream_sha}" ]]; then
             echo "has_changes=false" >> "${GITHUB_OUTPUT}"
             {
               echo "## Upstream sync"
               echo
-              echo "The deployment repository already contains \`${UPSTREAM_REPOSITORY}@${UPSTREAM_REF}\`."
+              echo "The deployment repository already exactly matches \`${UPSTREAM_REPOSITORY}@${UPSTREAM_REF}\`."
               echo
               echo "- Target: \`${TARGET_BRANCH}@${before_sha}\`"
               echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
@@ -91,57 +91,19 @@ jobs:
           fi
 
           echo "has_changes=true" >> "${GITHUB_OUTPUT}"
-          merge_args=(--no-ff --no-edit)
-          first_sync=false
-
-          if ! git merge-base HEAD "${upstream_sha}" >/dev/null 2>&1; then
-            merge_args+=(--allow-unrelated-histories)
-            first_sync=true
-          fi
-
-          set +e
-          git merge "${merge_args[@]}" "${upstream_sha}"
-          merge_status=$?
-          set -e
-
-          if [[ ${merge_status} -ne 0 ]]; then
-            conflicts="$(git diff --name-only --diff-filter=U || true)"
-            {
-              echo "## Upstream sync failed"
-              echo
-              echo "The upstream changes could not be merged automatically. Nothing was pushed."
-              echo
-              echo "- Target: \`${TARGET_BRANCH}@${before_sha}\`"
-              echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
-              if [[ -n "${conflicts}" ]]; then
-                echo
-                echo "### Conflicting files"
-                echo '```text'
-                echo "${conflicts}"
-                echo '```'
-              fi
-            } >> "${GITHUB_STEP_SUMMARY}"
-            git merge --abort || true
-            exit "${merge_status}"
-          fi
-
-          after_sha="$(git rev-parse HEAD)"
-          echo "after_sha=${after_sha}" >> "${GITHUB_OUTPUT}"
-          echo "first_sync=${first_sync}" >> "${GITHUB_OUTPUT}"
+          git reset --hard "${upstream_sha}"
 
           {
-            echo "## Upstream changes merged"
+            echo "## Upstream snapshot prepared"
             echo
-            echo "The merge is local until all enabled checks pass."
+            echo "The local checkout now exactly matches upstream. The remote branch is unchanged until all enabled checks pass."
             echo
-            echo "- Target before merge: \`${TARGET_BRANCH}@${before_sha}\`"
+            echo "- Target before sync: \`${TARGET_BRANCH}@${before_sha}\`"
             echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
-            echo "- Merge commit: \`${after_sha}\`"
-            echo "- First history linkage: \`${first_sync}\`"
             echo
             echo "### Change summary"
             echo '```text'
-            git diff --stat "${before_sha}..${after_sha}"
+            git diff --stat "${before_sha}..${upstream_sha}"
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -174,10 +136,16 @@ jobs:
           BEFORE_SHA: ${{ steps.sync.outputs.before_sha }}
         run: git diff --check "${BEFORE_SHA}..HEAD"
 
-      - name: Push synchronized main
+      - name: Mirror upstream to main
         if: steps.sync.outputs.has_changes == 'true'
         shell: bash
-        run: git push origin "HEAD:${TARGET_BRANCH}"
+        env:
+          BEFORE_SHA: ${{ steps.sync.outputs.before_sha }}
+        run: |
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${BEFORE_SHA}" \
+            origin \
+            "HEAD:refs/heads/${TARGET_BRANCH}"
 
       - name: Record result
         if: steps.sync.outputs.has_changes == 'true'
@@ -189,7 +157,7 @@ jobs:
             echo
             echo "## Sync completed"
             echo
-            echo "- Pushed branch: \`${TARGET_BRANCH}\`"
+            echo "- Mirrored branch: \`${TARGET_BRANCH}\`"
             echo "- Checks enabled: \`${CHECKS_ENABLED}\`"
             echo "- Vercel can now deploy the new \`${TARGET_BRANCH}\` commit."
           } >> "${GITHUB_STEP_SUMMARY}"
