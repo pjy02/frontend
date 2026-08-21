@@ -17,7 +17,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@workspace/ui/components/chart";
-import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
 import {
   Select,
@@ -41,10 +40,6 @@ import {
   queryTicketWaitReply,
   queryUserStatistics,
 } from "@workspace/ui/services/admin/console";
-import {
-  filterServerTrafficLog,
-  filterUserSubscribeTrafficLog,
-} from "@workspace/ui/services/admin/log";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import {
@@ -63,7 +58,7 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { AnimatePresence, animate, motion } from "motion/react";
+import { animate, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -79,13 +74,12 @@ import { Display } from "@/components/display";
 import { useAdminMotion } from "@/components/motion-provider";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
-import { useServerStore } from "@/stores/server";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 
 type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
-type TrafficPeriod = "today" | "yesterday" | "custom";
+type TrafficPeriod = "today" | "yesterday";
 type TrafficLimit = 5 | 8 | 10 | 20;
 
 type TrafficSourceItem = {
@@ -120,13 +114,6 @@ type TrafficRankingDataset = {
   currentTotal: number;
   previousTotal: number;
 };
-
-type TrafficDateResult = {
-  items: TrafficSourceItem[];
-  total: number;
-};
-
-const TRAFFIC_QUERY_SIZE = 200;
 
 function getDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -173,53 +160,61 @@ function AnimatedNumber({
   return <span className={className}>{format(displayed)}</span>;
 }
 
-function createTodayTrafficRanking(
+function createTrafficRanking(
   server: API.ServerTotalDataResponse | undefined,
-  type: TrafficType
+  type: TrafficType,
+  period: TrafficPeriod
 ): TrafficRankingDataset {
   if (type === "nodes") {
+    const today = (server?.server_traffic_ranking_today || []).map((item) => ({
+      id: item.server_id,
+      name: item.name,
+      sid: item.server_id,
+      upload: item.upload,
+      download: item.download,
+    }));
+    const yesterday = (server?.server_traffic_ranking_yesterday || []).map(
+      (item) => ({
+        id: item.server_id,
+        name: item.name,
+        sid: item.server_id,
+        upload: item.upload,
+        download: item.download,
+      })
+    );
     return createTrafficRankingDataset(
-      (server?.server_traffic_ranking_today || []).map((item) => ({
-        id: item.server_id,
-        name: item.name,
-        sid: item.server_id,
-        upload: item.upload,
-        download: item.download,
-      })),
-      (server?.server_traffic_ranking_yesterday || []).map((item) => ({
-        id: item.server_id,
-        name: item.name,
-        sid: item.server_id,
-        upload: item.upload,
-        download: item.download,
-      }))
+      period === "today" ? today : yesterday,
+      period === "today" ? yesterday : today
     );
   }
 
+  const today = (server?.user_traffic_ranking_today || []).map((item) => ({
+    id: item.sid,
+    name: `UID ${item.uid}`,
+    sid: item.sid,
+    uid: item.uid,
+    upload: item.upload,
+    download: item.download,
+  }));
+  const yesterday = (server?.user_traffic_ranking_yesterday || []).map(
+    (item) => ({
+      id: item.sid,
+      name: `UID ${item.uid}`,
+      sid: item.sid,
+      uid: item.uid,
+      upload: item.upload,
+      download: item.download,
+    })
+  );
   return createTrafficRankingDataset(
-    (server?.user_traffic_ranking_today || []).map((item) => ({
-      id: item.sid,
-      name: `UID ${item.uid}`,
-      sid: item.sid,
-      uid: item.uid,
-      upload: item.upload,
-      download: item.download,
-    })),
-    (server?.user_traffic_ranking_yesterday || []).map((item) => ({
-      id: item.sid,
-      name: `UID ${item.uid}`,
-      sid: item.sid,
-      uid: item.uid,
-      upload: item.upload,
-      download: item.download,
-    }))
+    period === "today" ? today : yesterday,
+    period === "today" ? yesterday : today
   );
 }
 
 function createTrafficRankingDataset(
   current: TrafficSourceItem[],
-  previous: TrafficSourceItem[],
-  resolveName?: (item: TrafficSourceItem) => string
+  previous: TrafficSourceItem[]
 ): TrafficRankingDataset {
   const sortedCurrent = [...current].sort(
     (left, right) =>
@@ -255,7 +250,7 @@ function createTrafficRankingDataset(
       const previousRank = previousRankById.get(item.id);
       return {
         ...item,
-        name: item.name || resolveName?.(item) || `#${item.id}`,
+        name: item.name || `#${item.id}`,
         total,
         previousUpload: previousItem?.upload || 0,
         previousDownload: previousItem?.download || 0,
@@ -272,47 +267,6 @@ function createTrafficRankingDataset(
         isNew: previousRank === undefined,
       };
     }),
-  };
-}
-
-async function queryTrafficDate(
-  type: TrafficType,
-  date: string
-): Promise<TrafficDateResult> {
-  if (type === "nodes") {
-    const response = await filterServerTrafficLog({
-      date,
-      page: 1,
-      size: TRAFFIC_QUERY_SIZE,
-    });
-    const list = response.data.data?.list || [];
-    return {
-      total: response.data.data?.total || list.length,
-      items: list.map((item) => ({
-        id: item.server_id,
-        sid: item.server_id,
-        upload: item.upload,
-        download: item.download,
-      })),
-    };
-  }
-
-  const response = await filterUserSubscribeTrafficLog({
-    date,
-    page: 1,
-    size: TRAFFIC_QUERY_SIZE,
-  });
-  const list = response.data.data?.list || [];
-  return {
-    total: response.data.data?.total || list.length,
-    items: list.map((item) => ({
-      id: item.subscribe_id,
-      name: `UID ${item.user_id}`,
-      sid: item.subscribe_id,
-      uid: item.user_id,
-      upload: item.upload,
-      download: item.download,
-    })),
   };
 }
 
@@ -386,17 +340,6 @@ export default function Statistics() {
   const [trafficType, setTrafficType] = useState<TrafficType>("nodes");
   const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("today");
   const [trafficLimit, setTrafficLimit] = useState<TrafficLimit>(8);
-  const [trafficCustomDate, setTrafficCustomDate] = useState(getDateKey);
-  const servers = useServerStore((state) => state.servers);
-  const serversLoaded = useServerStore((state) => state.loaded);
-  const fetchServers = useServerStore((state) => state.fetchServers);
-
-  const historicalTrafficDate =
-    trafficPeriod === "yesterday"
-      ? shiftDateKey(getDateKey(), -1)
-      : trafficCustomDate;
-  const previousTrafficDate = shiftDateKey(historicalTrafficDate, -1);
-  const usesHistoricalTraffic = trafficPeriod !== "today";
 
   const serverQuery = useQuery({
     queryKey: ["queryServerTotalData"],
@@ -426,25 +369,6 @@ export default function Statistics() {
       return data.data;
     },
   });
-  const currentTrafficDateQuery = useQuery({
-    enabled: usesHistoricalTraffic,
-    queryKey: ["queryDashboardTrafficDate", trafficType, historicalTrafficDate],
-    queryFn: () => queryTrafficDate(trafficType, historicalTrafficDate),
-    staleTime: 60_000,
-  });
-  const previousTrafficDateQuery = useQuery({
-    enabled: usesHistoricalTraffic,
-    queryKey: ["queryDashboardTrafficDate", trafficType, previousTrafficDate],
-    queryFn: () => queryTrafficDate(trafficType, previousTrafficDate),
-    staleTime: 60_000,
-  });
-
-  useEffect(() => {
-    if (usesHistoricalTraffic && trafficType === "nodes" && !serversLoaded) {
-      fetchServers();
-    }
-  }, [fetchServers, serversLoaded, trafficType, usesHistoricalTraffic]);
-
   const server = serverQuery.data;
   const pendingTickets = ticketQuery.data || 0;
   const offlineServers = server?.offline_servers || 0;
@@ -455,15 +379,9 @@ export default function Statistics() {
     range === "month" ? revenueQuery.data?.monthly : revenueQuery.data?.all;
   const selectedUsers =
     range === "month" ? userQuery.data?.monthly : userQuery.data?.all;
-  const isRefreshing = [
-    serverQuery,
-    ticketQuery,
-    revenueQuery,
-    userQuery,
-    ...(usesHistoricalTraffic
-      ? [currentTrafficDateQuery, previousTrafficDateQuery]
-      : []),
-  ].some((query) => query.isFetching);
+  const isRefreshing = [serverQuery, ticketQuery, revenueQuery, userQuery].some(
+    (query) => query.isFetching
+  );
   const updatedAt = Math.max(
     serverQuery.dataUpdatedAt,
     ticketQuery.dataUpdatedAt,
@@ -471,29 +389,11 @@ export default function Statistics() {
     userQuery.dataUpdatedAt
   );
 
-  const currentTraffic = usesHistoricalTraffic
-    ? createTrafficRankingDataset(
-        currentTrafficDateQuery.data?.items || [],
-        previousTrafficDateQuery.data?.items || [],
-        (item) =>
-          trafficType === "nodes"
-            ? servers.find((serverItem) => serverItem.id === item.id)?.name ||
-              `#${item.id}`
-            : `UID ${item.uid}`
-      )
-    : createTodayTrafficRanking(server, trafficType);
-  const trafficLoading = usesHistoricalTraffic
-    ? currentTrafficDateQuery.isLoading || previousTrafficDateQuery.isLoading
-    : serverQuery.isLoading;
-  const trafficError = usesHistoricalTraffic
-    ? currentTrafficDateQuery.isError || previousTrafficDateQuery.isError
-    : serverQuery.isError;
-  const trafficSourceTotal = usesHistoricalTraffic
-    ? currentTrafficDateQuery.data?.total || 0
-    : currentTraffic.items.length;
-  const trafficSourceTruncated = usesHistoricalTraffic
-    ? trafficSourceTotal > (currentTrafficDateQuery.data?.items.length || 0)
-    : false;
+  const currentTraffic = createTrafficRanking(
+    server,
+    trafficType,
+    trafficPeriod
+  );
 
   return (
     <div className="space-y-5">
@@ -628,20 +528,18 @@ export default function Statistics() {
 
       <TrafficRanking
         activeDate={
-          trafficPeriod === "today" ? getDateKey() : historicalTrafficDate
+          trafficPeriod === "today"
+            ? getDateKey()
+            : shiftDateKey(getDateKey(), -1)
         }
-        customDate={trafficCustomDate}
         data={currentTraffic}
         limit={trafficLimit}
-        loading={trafficLoading}
-        onCustomDateChange={setTrafficCustomDate}
+        loading={serverQuery.isLoading}
         onLimitChange={setTrafficLimit}
         onPeriodChange={setTrafficPeriod}
         onTypeChange={setTrafficType}
         period={trafficPeriod}
-        serverError={trafficError}
-        sourceTotal={trafficSourceTotal}
-        sourceTruncated={trafficSourceTruncated}
+        serverError={serverQuery.isError}
         systemTotal={
           trafficPeriod === "today"
             ? (server?.today_upload || 0) + (server?.today_download || 0)
@@ -1263,38 +1161,30 @@ function PendingRow({
 
 function TrafficRanking({
   activeDate,
-  customDate,
   data,
   limit,
   loading,
-  onCustomDateChange,
   onLimitChange,
   onPeriodChange,
   onTypeChange,
   period,
   serverError,
-  sourceTotal,
-  sourceTruncated,
   systemTotal,
   trafficType,
 }: {
   activeDate: string;
-  customDate: string;
   data: TrafficRankingDataset;
   limit: TrafficLimit;
   loading: boolean;
-  onCustomDateChange: (value: string) => void;
   onLimitChange: (value: TrafficLimit) => void;
   onPeriodChange: (period: TrafficPeriod) => void;
   onTypeChange: (type: TrafficType) => void;
   period: TrafficPeriod;
   serverError: boolean;
-  sourceTotal: number;
-  sourceTruncated: boolean;
   systemTotal?: number;
   trafficType: TrafficType;
 }) {
-  const { t, i18n } = useTranslation("dashboard");
+  const { t } = useTranslation("dashboard");
   const { reducedMotion } = useAdminMotion();
   const visibleData = data.items.slice(0, limit);
   const visibleTotal = visibleData.reduce((sum, item) => sum + item.total, 0);
@@ -1307,19 +1197,10 @@ function TrafficRanking({
       : 0;
   const shareBase = systemTotal || data.currentTotal;
   const visibleShare = shareBase ? (visibleTotal / shareBase) * 100 : 0;
-  const previousDate = shiftDateKey(activeDate, -1);
-  const formatDateLabel = (value: string) =>
-    new Date(`${value}T12:00:00`).toLocaleDateString(i18n.language, {
-      month: "short",
-      day: "numeric",
-    });
   const currentLabel =
-    period === "today" ? t("today", "Today") : formatDateLabel(activeDate);
+    period === "today" ? t("today", "Today") : t("yesterday", "Yesterday");
   const previousLabel =
-    period === "today"
-      ? t("yesterday", "Yesterday")
-      : formatDateLabel(previousDate);
-  const datasetKey = `${trafficType}-${activeDate}`;
+    period === "today" ? t("yesterday", "Yesterday") : t("today", "Today");
 
   return (
     <section className="dashboard-section">
@@ -1351,23 +1232,8 @@ function TrafficRanking({
                 <TabsTrigger value="yesterday">
                   {t("yesterday", "Yesterday")}
                 </TabsTrigger>
-                <TabsTrigger value="custom">
-                  {t("overview.customDate", "Custom")}
-                </TabsTrigger>
               </TabsList>
             </Tabs>
-            {period === "custom" ? (
-              <Input
-                aria-label={t("overview.customDate", "Custom date")}
-                className="h-9 w-full sm:w-40"
-                max={getDateKey()}
-                onInput={(event) =>
-                  onCustomDateChange(event.currentTarget.value || getDateKey())
-                }
-                type="date"
-                value={customDate}
-              />
-            ) : null}
             <Select
               onValueChange={(value) =>
                 onLimitChange(Number(value) as TrafficLimit)
@@ -1494,30 +1360,19 @@ function TrafficRanking({
                   </div>
                 </div>
               </div>
-              {sourceTruncated ? (
-                <div className="border-b bg-amber-500/8 px-5 py-2.5 text-amber-800 text-xs dark:text-amber-300">
-                  {t(
-                    "overview.rankingTruncated",
-                    "The API reports {{total}} records. This dashboard calculated the ranking from the first {{loaded}} records; use traffic logs for the complete list.",
-                    { loaded: data.items.length, total: sourceTotal }
-                  )}
-                </div>
-              ) : null}
               <ol className="dashboard-traffic-list divide-y">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {visibleData.map((item, index) => (
-                    <TrafficRankingRow
-                      currentLabel={currentLabel}
-                      index={index}
-                      item={item}
-                      key={`${datasetKey}-${item.id}`}
-                      previousLabel={previousLabel}
-                      reducedMotion={reducedMotion}
-                      selectedDate={activeDate}
-                      trafficType={trafficType}
-                    />
-                  ))}
-                </AnimatePresence>
+                {visibleData.map((item, index) => (
+                  <TrafficRankingRow
+                    currentLabel={currentLabel}
+                    index={index}
+                    item={item}
+                    key={`${trafficType}-${item.id}`}
+                    previousLabel={previousLabel}
+                    reducedMotion={reducedMotion}
+                    selectedDate={activeDate}
+                    trafficType={trafficType}
+                  />
+                ))}
               </ol>
             </>
           )}
@@ -1641,13 +1496,22 @@ function TrafficRankingRow({
     <motion.li
       animate={{ opacity: 1, y: 0 }}
       className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
-      exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
       initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-      layout={!reducedMotion}
+      layout={reducedMotion ? false : "position"}
       transition={{
-        delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
-        duration: reducedMotion ? 0 : 0.24,
-        ease: [0.2, 0, 0, 1],
+        layout: {
+          duration: reducedMotion ? 0 : 0.24,
+          ease: [0.2, 0, 0, 1],
+        },
+        opacity: {
+          delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
+          duration: reducedMotion ? 0 : 0.2,
+        },
+        y: {
+          delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
+          duration: reducedMotion ? 0 : 0.24,
+          ease: [0.2, 0, 0, 1],
+        },
       }}
     >
       <Tooltip delayDuration={100}>

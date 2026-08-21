@@ -422,66 +422,6 @@ createServer(async (request, response) => {
     return;
   }
 
-  if (url.pathname === "/v1/admin/log/server/traffic/list") {
-    const date = url.searchParams.get("date") || "2026-08-21";
-    const day = Number(date.slice(-2)) || 1;
-    const list = [
-      { server_id: 42, upload: 5 + (day % 3), download: 15 + (day % 5) },
-      { server_id: 43, upload: 4 + (day % 4), download: 12 + (day % 3) },
-      { server_id: 44, upload: 3 + (day % 2), download: 9 + (day % 4) },
-      { server_id: 45, upload: 2 + (day % 5), download: 7 + (day % 2) },
-    ].map((item) => ({
-      ...item,
-      date,
-      details: true,
-      download: item.download * 1_073_741_824,
-      upload: item.upload * 1_073_741_824,
-      total: (item.upload + item.download) * 1_073_741_824,
-    }));
-    send(response, 200, {
-      code: 200,
-      data: { list, total: list.length },
-    });
-    return;
-  }
-
-  if (url.pathname === "/v1/admin/log/subscribe/traffic/list") {
-    const date = url.searchParams.get("date") || "2026-08-21";
-    const day = Number(date.slice(-2)) || 1;
-    const list = [
-      {
-        subscribe_id: 101,
-        user_id: 7,
-        upload: 3 + (day % 3),
-        download: 9 + (day % 4),
-      },
-      {
-        subscribe_id: 102,
-        user_id: 8,
-        upload: 2 + (day % 4),
-        download: 7 + (day % 3),
-      },
-      {
-        subscribe_id: 103,
-        user_id: 9,
-        upload: 1 + (day % 2),
-        download: 5 + (day % 5),
-      },
-    ].map((item) => ({
-      ...item,
-      date,
-      details: true,
-      download: item.download * 1_073_741_824,
-      upload: item.upload * 1_073_741_824,
-      total: (item.upload + item.download) * 1_073_741_824,
-    }));
-    send(response, 200, {
-      code: 200,
-      data: { list, total: list.length },
-    });
-    return;
-  }
-
   if (/^\/v1\/admin\/log\/.+\/list$/.test(url.pathname)) {
     send(response, 200, {
       code: 200,
