@@ -505,17 +505,37 @@ function renderGroupCard(
   );
 }
 
-export default function ServerForm(props: {
-  trigger: string;
+interface ServerFormProps {
+  trigger?: string;
   title: string;
   loading?: boolean;
   initialValues?: Partial<API.Server>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSubmit: (values: Partial<API.Server>) => Promise<boolean> | boolean;
-}) {
-  const { trigger, title, loading, initialValues, onSubmit } = props;
+}
+
+export default function ServerForm(props: ServerFormProps) {
+  const {
+    trigger,
+    title,
+    loading,
+    initialValues,
+    open: controlledOpen,
+    onOpenChange,
+    onSubmit,
+  } = props;
   const { t } = useTranslation("servers");
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [accordionValue, setAccordionValue] = useState<string>();
+  const open = controlledOpen ?? internalOpen;
+
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) {
+      setInternalOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
+  };
 
   const { isProtocolUsedInNodes } = useNode();
   const PROTOCOL_FIELDS = useProtocolFields();
@@ -529,7 +549,7 @@ export default function ServerForm(props: {
       address: "",
       country: "",
       city: "",
-      protocols: [] as any[],
+      protocols: PROTOCOLS.map((type) => getProtocolDefaultConfig(type)),
       ...initialValues,
     },
   });
@@ -745,25 +765,27 @@ export default function ServerForm(props: {
 
   return (
     <WorkspaceDialog onOpenChange={setOpen} open={open}>
-      <WorkspaceDialogTrigger asChild>
-        <Button
-          onClick={() => {
-            if (!initialValues) {
-              const full = PROTOCOLS.map((t) => getProtocolDefaultConfig(t));
-              form.reset({
-                name: "",
-                address: "",
-                country: "",
-                city: "",
-                protocols: full,
-              });
-            }
-            setOpen(true);
-          }}
-        >
-          {trigger}
-        </Button>
-      </WorkspaceDialogTrigger>
+      {trigger ? (
+        <WorkspaceDialogTrigger asChild>
+          <Button
+            onClick={() => {
+              if (!initialValues) {
+                const full = PROTOCOLS.map((t) => getProtocolDefaultConfig(t));
+                form.reset({
+                  name: "",
+                  address: "",
+                  country: "",
+                  city: "",
+                  protocols: full,
+                });
+              }
+              setOpen(true);
+            }}
+          >
+            {trigger}
+          </Button>
+        </WorkspaceDialogTrigger>
+      ) : null}
       <WorkspaceDialogContent size="xl">
         <WorkspaceDialogHeader>
           <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>

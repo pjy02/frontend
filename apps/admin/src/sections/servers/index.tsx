@@ -1,5 +1,6 @@
 "use client";
 
+import { Link, useSearch } from "@tanstack/react-router";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
@@ -14,10 +15,9 @@ import {
   filterServerList,
   getServerNodeConfig,
   resetSortWithServer,
-  updateServer,
   updateServerNodeConfig,
 } from "@workspace/ui/services/admin/server";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -27,7 +27,6 @@ import { useServer } from "@/stores/server";
 import DynamicMultiplier from "./dynamic-multiplier";
 import OnlineUsersCell from "./online-users-cell";
 import ServerConfig from "./server-config";
-import ServerForm from "./server-form";
 import ServerInstall from "./server-install";
 import ServerNodeConfig from "./server-node-config";
 
@@ -86,10 +85,10 @@ function RegionIpCell({
 
 export default function Servers() {
   const { t } = useTranslation("servers");
+  const routeSearch = useSearch({ strict: false });
   const { isServerReferencedByNodes } = useNode();
   const { fetchServers } = useServer();
 
-  const [loading, setLoading] = useState(false);
   const ref = useRef<ProTableActions>(null);
 
   return (
@@ -110,33 +109,15 @@ export default function Servers() {
         action={ref}
         actions={{
           render: (row) => [
-            <ServerForm
-              initialValues={row}
-              key="edit"
-              loading={loading}
-              onSubmit={async (values) => {
-                setLoading(true);
-                try {
-                  await updateServer({
-                    id: row.id,
-                    ...(values as unknown as Omit<
-                      API.UpdateServerRequest,
-                      "id"
-                    >),
-                  });
-                  toast.success(t("updated", "Updated"));
-                  ref.current?.refresh();
-                  fetchServers();
-                  setLoading(false);
-                  return true;
-                } catch {
-                  setLoading(false);
-                  return false;
-                }
-              }}
-              title={t("drawerEditTitle", "Edit Server")}
-              trigger={t("edit", "Edit")}
-            />,
+            <Button asChild key="edit">
+              <Link
+                params={{ serverId: String(row.id) }}
+                search={routeSearch}
+                to="/dashboard/servers/$serverId"
+              >
+                {t("edit", "Edit")}
+              </Link>
+            </Button>,
             <ServerInstall key="install" server={row} />,
             <ServerNodeConfig key="node-config" server={row} />,
             <ConfirmButton
@@ -166,7 +147,6 @@ export default function Servers() {
             <Button
               key="copy"
               onClick={async () => {
-                setLoading(true);
                 const {
                   id: _id,
                   created_at: _created_at,
@@ -182,34 +162,30 @@ export default function Servers() {
                   address: others.address as string,
                   protocols: (others.protocols as API.Protocol[]) || [],
                 };
-                try {
-                  const [createResp, configResp] = await Promise.all([
-                    createServer(body),
-                    getServerNodeConfig({ server_id: row.id }),
-                  ]);
-                  const newServerId = createResp.data?.data?.id;
-                  const override = configResp.data?.data?.override;
+                const [createResp, configResp] = await Promise.all([
+                  createServer(body),
+                  getServerNodeConfig({ server_id: row.id }),
+                ]);
+                const newServerId = createResp.data?.data?.id;
+                const override = configResp.data?.data?.override;
 
-                  if (newServerId && override) {
-                    await updateServerNodeConfig({
-                      server_id: newServerId,
-                      inherit_ip_strategy: override.inherit_ip_strategy,
-                      ip_strategy: override.ip_strategy,
-                      inherit_dns: override.inherit_dns,
-                      dns: override.dns || [],
-                      inherit_block: override.inherit_block,
-                      block: override.block || [],
-                      inherit_outbound: override.inherit_outbound,
-                      outbound: override.outbound || [],
-                    });
-                  }
-
-                  toast.success(t("copied", "Copied"));
-                  ref.current?.refresh();
-                  fetchServers();
-                } finally {
-                  setLoading(false);
+                if (newServerId && override) {
+                  await updateServerNodeConfig({
+                    server_id: newServerId,
+                    inherit_ip_strategy: override.inherit_ip_strategy,
+                    ip_strategy: override.ip_strategy,
+                    inherit_dns: override.inherit_dns,
+                    dns: override.dns || [],
+                    inherit_block: override.inherit_block,
+                    block: override.block || [],
+                    inherit_outbound: override.inherit_outbound,
+                    outbound: override.outbound || [],
+                  });
                 }
+
+                toast.success(t("copied", "Copied"));
+                ref.current?.refresh();
+                fetchServers();
               }}
               variant="outline"
             >
@@ -345,27 +321,11 @@ export default function Servers() {
           title: t("inventoryTitle", "Server inventory"),
           toolbar: (
             <div className="flex gap-2">
-              <ServerForm
-                loading={loading}
-                onSubmit={async (values) => {
-                  setLoading(true);
-                  try {
-                    await createServer(
-                      values as unknown as API.CreateServerRequest
-                    );
-                    toast.success(t("created", "Created"));
-                    ref.current?.refresh();
-                    fetchServers();
-                    setLoading(false);
-                    return true;
-                  } catch {
-                    setLoading(false);
-                    return false;
-                  }
-                }}
-                title={t("drawerCreateTitle", "Create Server")}
-                trigger={t("create", "Create")}
-              />
+              <Button asChild>
+                <Link search={routeSearch} to="/dashboard/servers/new">
+                  {t("create", "Create")}
+                </Link>
+              </Button>
             </div>
           ),
         }}

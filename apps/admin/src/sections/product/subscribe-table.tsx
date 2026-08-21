@@ -1,5 +1,6 @@
 "use client";
 
+import { Link, useSearch } from "@tanstack/react-router";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Switch } from "@workspace/ui/components/switch";
@@ -26,6 +27,7 @@ import SubscribeForm from "./subscribe-form";
 
 export default function SubscribeTable() {
   const { t } = useTranslation("product");
+  const routeSearch = useSearch({ strict: false });
   const [loading, setLoading] = useState(false);
   const ref = useRef<ProTableActions>(null);
   const { fetchSubscribes } = useSubscribe();
@@ -34,31 +36,15 @@ export default function SubscribeTable() {
       action={ref}
       actions={{
         render: (row) => [
-          <SubscribeForm<API.SubscribeItem>
-            initialValues={row}
-            key="edit"
-            loading={loading}
-            onSubmit={async (values) => {
-              setLoading(true);
-              try {
-                await updateSubscribe({
-                  ...row,
-                  ...values,
-                } as API.UpdateSubscribeRequest);
-                toast.success(t("updateSuccess"));
-                ref.current?.refresh();
-                fetchSubscribes();
-                setLoading(false);
-                return true;
-              } catch {
-                setLoading(false);
-
-                return false;
-              }
-            }}
-            title={t("editSubscribe")}
-            trigger={t("edit")}
-          />,
+          <Button asChild key="edit">
+            <Link
+              params={{ productId: String(row.id) }}
+              search={routeSearch}
+              to="/dashboard/product/$productId"
+            >
+              {t("edit")}
+            </Link>
+          </Button>,
           <ConfirmButton
             cancelText={t("cancel")}
             confirmText={t("confirm")}

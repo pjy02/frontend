@@ -58,8 +58,10 @@ interface SubscribeFormProps<T> {
   onSubmit: (data: T) => Promise<boolean> | boolean;
   initialValues?: T;
   loading?: boolean;
-  trigger: string;
+  trigger?: string;
   title: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const defaultValues = {
@@ -87,13 +89,23 @@ export default function SubscribeForm<T extends Record<string, any>>({
   loading,
   trigger,
   title,
+  open: controlledOpen,
+  onOpenChange,
 }: Readonly<SubscribeFormProps<T>>) {
   const { common } = useGlobalStore();
   const { currency } = common;
 
   const { t } = useTranslation("product");
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const open = controlledOpen ?? internalOpen;
+
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) {
+      setInternalOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
+  };
 
   const formSchema = z.object({
     name: z.string(),
@@ -268,16 +280,18 @@ export default function SubscribeForm<T extends Record<string, any>>({
 
   return (
     <WorkspaceDialog onOpenChange={setOpen} open={open}>
-      <WorkspaceDialogTrigger asChild>
-        <Button
-          onClick={() => {
-            form.reset();
-            setOpen(true);
-          }}
-        >
-          {trigger}
-        </Button>
-      </WorkspaceDialogTrigger>
+      {trigger ? (
+        <WorkspaceDialogTrigger asChild>
+          <Button
+            onClick={() => {
+              form.reset();
+              setOpen(true);
+            }}
+          >
+            {trigger}
+          </Button>
+        </WorkspaceDialogTrigger>
+      ) : null}
       <WorkspaceDialogContent size="xl">
         <WorkspaceDialogHeader>
           <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>

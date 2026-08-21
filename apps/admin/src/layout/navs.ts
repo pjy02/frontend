@@ -253,9 +253,11 @@ export function findNavByUrl(navs: NavItem[], url: string) {
     path: NavItem[] = []
   ): NavItem[] {
     for (const item of items) {
+      const normalizedItemUrl = item.url?.replace(/\/+$/, "");
       if (
         item.url === currentUrl ||
-        (item.url && matchDynamicRoute(item.url, currentUrl))
+        (item.url && matchDynamicRoute(item.url, currentUrl)) ||
+        (normalizedItemUrl && currentUrl.startsWith(`${normalizedItemUrl}/`))
       ) {
         return [...path, item];
       }
