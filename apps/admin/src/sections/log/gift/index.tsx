@@ -1,20 +1,15 @@
 "use client";
 
-import { useSearch } from "@tanstack/react-router";
-import { Badge } from "@workspace/ui/components/badge";
-import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import { filterGiftLog } from "@workspace/ui/services/admin/log";
 import { useTranslation } from "react-i18next";
-import { Display } from "@/components/display";
+import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";
+import { LogTypeChip } from "@/sections/log/components/log-display";
+import { LogPage } from "@/sections/log/components/log-page";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
-import { formatDate } from "@/utils/common";
 
 export default function GiftLogPage() {
   const { t } = useTranslation("log");
-  const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
-
-  const today = new Date().toISOString().split("T")[0];
 
   const getGiftTypeText = (type: number) => {
     const typeText = t(`type.${type}`, { defaultValue: "" });
@@ -24,12 +19,8 @@ export default function GiftLogPage() {
     return typeText;
   };
 
-  const initialFilters = {
-    date: sp.date || today,
-    user_id: sp.user_id ? Number(sp.user_id) : undefined,
-  };
   return (
-    <ProTable<API.GiftLog, { search?: string }>
+    <LogPage<API.GiftLog, { date?: string; user_id?: number }>
       columns={[
         {
           accessorKey: "user",
@@ -56,47 +47,45 @@ export default function GiftLogPage() {
           accessorKey: "amount",
           header: t("column.amount", "Amount"),
           cell: ({ row }) => (
-            <Display type="currency" value={row.original.amount} />
+            <MoneyValue emphasis="strong" value={row.original.amount} />
           ),
         },
         {
           accessorKey: "balance",
           header: t("column.balance", "Balance"),
-          cell: ({ row }) => (
-            <Display type="currency" value={row.original.balance} />
-          ),
+          cell: ({ row }) => <MoneyValue value={row.original.balance} />,
         },
         {
           accessorKey: "type",
           header: t("column.type", "Type"),
           cell: ({ row }) => (
-            <Badge>{getGiftTypeText(row.original.type)}</Badge>
+            <LogTypeChip>{getGiftTypeText(row.original.type)}</LogTypeChip>
           ),
         },
         { accessorKey: "remark", header: t("column.remark", "Remark") },
         {
           accessorKey: "timestamp",
           header: t("column.time", "Time"),
-          cell: ({ row }) => formatDate(row.original.timestamp),
+          cell: ({ row }) => <DateTimeValue value={row.original.timestamp} />,
         },
       ]}
-      header={{ title: t("title.gift", "Gift Log") }}
-      initialFilters={initialFilters}
+      description={t(
+        "description.gift",
+        "Inspect gifts, affected subscriptions, balances, and related orders."
+      )}
+      filterTypes={{ date: "string", user_id: "number" }}
+      load={(pagination, filter) =>
+        filterGiftLog({
+          ...pagination,
+          date: filter.date,
+          user_id: filter.user_id,
+        })
+      }
       params={[
         { key: "date", type: "date" },
         { key: "user_id", placeholder: t("column.userId", "User ID") },
       ]}
-      request={async (pagination, filter) => {
-        const { data } = await filterGiftLog({
-          page: pagination.page,
-          size: pagination.size,
-          date: (filter as any)?.date,
-          user_id: (filter as any)?.user_id,
-        });
-        const list = (data?.data?.list || []) as any[];
-        const total = Number(data?.data?.total || list.length);
-        return { list, total };
-      }}
+      title={t("title.gift", "Gift Log")}
     />
   );
 }

@@ -1,27 +1,21 @@
 "use client";
 
-import { Link, useSearch } from "@tanstack/react-router";
-import { Badge } from "@workspace/ui/components/badge";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import { filterServerTrafficLog } from "@workspace/ui/services/admin/log";
-import { formatBytes } from "@workspace/ui/utils/formatting";
 import { useTranslation } from "react-i18next";
+import {
+  LogTypeChip,
+  TrafficValue,
+} from "@/sections/log/components/log-display";
+import { LogPage } from "@/sections/log/components/log-page";
 import { useServer } from "@/stores/server";
 
 export default function ServerTrafficLogPage() {
   const { t } = useTranslation("log");
-  const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
   const { getServerName } = useServer();
-
-  const today = new Date().toISOString().split("T")[0];
-
-  const initialFilters = {
-    date: sp.date || today,
-    server_id: sp.server_id ? Number(sp.server_id) : undefined,
-  };
   return (
-    <ProTable<API.ServerTrafficLog, { date?: string; server_id?: number }>
+    <LogPage<API.ServerTrafficLog, { date?: string; server_id?: number }>
       actions={{
         render: (row) => [
           <Button asChild key="detail">
@@ -40,7 +34,7 @@ export default function ServerTrafficLogPage() {
           header: t("column.server", "Server"),
           cell: ({ row }) => (
             <div className="flex items-center gap-2">
-              <Badge>{row.original.server_id}</Badge>
+              <LogTypeChip>{row.original.server_id}</LogTypeChip>
               <span>{getServerName(row.original.server_id)}</span>
             </div>
           ),
@@ -48,37 +42,37 @@ export default function ServerTrafficLogPage() {
         {
           accessorKey: "upload",
           header: t("column.upload", "Upload"),
-          cell: ({ row }) => formatBytes(row.original.upload),
+          cell: ({ row }) => <TrafficValue value={row.original.upload} />,
         },
         {
           accessorKey: "download",
           header: t("column.download", "Download"),
-          cell: ({ row }) => formatBytes(row.original.download),
+          cell: ({ row }) => <TrafficValue value={row.original.download} />,
         },
         {
           accessorKey: "total",
           header: t("column.total", "Total"),
-          cell: ({ row }) => formatBytes(row.original.total),
+          cell: ({ row }) => <TrafficValue value={row.original.total} />,
         },
         { accessorKey: "date", header: t("column.date", "Date") },
       ]}
-      header={{ title: t("title.serverTraffic", "Server Traffic Log") }}
-      initialFilters={initialFilters}
+      description={t(
+        "description.serverTraffic",
+        "Compare daily upload and download totals across servers."
+      )}
+      filterTypes={{ date: "string", server_id: "number" }}
+      load={(pagination, filter) =>
+        filterServerTrafficLog({
+          ...pagination,
+          date: filter.date,
+          server_id: filter.server_id,
+        })
+      }
       params={[
         { key: "date", type: "date" },
         { key: "server_id", placeholder: t("column.serverId", "Server ID") },
       ]}
-      request={async (pagination, filter) => {
-        const { data } = await filterServerTrafficLog({
-          page: pagination.page,
-          size: pagination.size,
-          date: (filter as any)?.date,
-          server_id: (filter as any)?.server_id,
-        });
-        const list = (data?.data?.list || []) as any[];
-        const total = Number(data?.data?.total || list.length);
-        return { list, total };
-      }}
+      title={t("title.serverTraffic", "Server Traffic Log")}
     />
   );
 }

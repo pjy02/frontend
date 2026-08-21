@@ -1,28 +1,17 @@
 "use client";
 
-import { Link, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import { filterUserSubscribeTrafficLog } from "@workspace/ui/services/admin/log";
-import { formatBytes } from "@workspace/ui/utils/formatting";
 import { useTranslation } from "react-i18next";
+import { TrafficValue } from "@/sections/log/components/log-display";
+import { LogPage } from "@/sections/log/components/log-page";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
 
 export default function SubscribeTrafficLogPage() {
   const { t } = useTranslation("log");
-  const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
-
-  const today = new Date().toISOString().split("T")[0];
-
-  const initialFilters = {
-    date: sp.date || today,
-    user_id: sp.user_id ? Number(sp.user_id) : undefined,
-    user_subscribe_id: sp.user_subscribe_id
-      ? Number(sp.user_subscribe_id)
-      : undefined,
-  };
   return (
-    <ProTable<
+    <LogPage<
       API.UserSubscribeTrafficLog,
       { date?: string; user_id?: number; user_subscribe_id?: number }
     >
@@ -62,25 +51,40 @@ export default function SubscribeTrafficLogPage() {
         {
           accessorKey: "upload",
           header: t("column.upload", "Upload"),
-          cell: ({ row }) => formatBytes(row.original.upload),
+          cell: ({ row }) => <TrafficValue value={row.original.upload} />,
         },
         {
           accessorKey: "download",
           header: t("column.download", "Download"),
-          cell: ({ row }) => formatBytes(row.original.download),
+          cell: ({ row }) => <TrafficValue value={row.original.download} />,
         },
         {
           accessorKey: "total",
           header: t("column.total", "Total"),
-          cell: ({ row }) => formatBytes(row.original.total),
+          cell: ({ row }) => <TrafficValue value={row.original.total} />,
         },
         {
           accessorKey: "date",
           header: t("column.date", "Date"),
         },
       ]}
-      header={{ title: t("title.subscribeTraffic", "Subscribe Traffic Log") }}
-      initialFilters={initialFilters}
+      description={t(
+        "description.subscribeTraffic",
+        "Compare daily traffic consumption by user and subscription."
+      )}
+      filterTypes={{
+        date: "string",
+        user_id: "number",
+        user_subscribe_id: "number",
+      }}
+      load={(pagination, filter) =>
+        filterUserSubscribeTrafficLog({
+          ...pagination,
+          date: filter.date,
+          user_id: filter.user_id,
+          user_subscribe_id: filter.user_subscribe_id,
+        })
+      }
       params={[
         { key: "date", type: "date" },
         { key: "user_id", placeholder: t("column.userId", "User ID") },
@@ -89,19 +93,7 @@ export default function SubscribeTrafficLogPage() {
           placeholder: t("column.subscribeId", "Subscribe ID"),
         },
       ]}
-      request={async (pagination, filter) => {
-        const { data } = await filterUserSubscribeTrafficLog({
-          page: pagination.page,
-          size: pagination.size,
-          date: (filter as any)?.date,
-          user_id: (filter as any)?.user_id,
-          user_subscribe_id: (filter as any)?.user_subscribe_id,
-        });
-        const list =
-          ((data?.data?.list || []) as API.UserSubscribeTrafficLog[]) || [];
-        const total = Number(data?.data?.total || list.length);
-        return { list, total };
-      }}
+      title={t("title.subscribeTraffic", "Subscribe Traffic Log")}
     />
   );
 }

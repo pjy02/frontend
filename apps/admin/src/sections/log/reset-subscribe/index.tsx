@@ -1,19 +1,15 @@
 "use client";
 
-import { useSearch } from "@tanstack/react-router";
-import { Badge } from "@workspace/ui/components/badge";
-import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import { filterResetSubscribeLog } from "@workspace/ui/services/admin/log";
 import { useTranslation } from "react-i18next";
+import { DateTimeValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";
+import { LogTypeChip } from "@/sections/log/components/log-display";
+import { LogPage } from "@/sections/log/components/log-page";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
-import { formatDate } from "@/utils/common";
 
 export default function ResetSubscribeLogPage() {
   const { t } = useTranslation("log");
-  const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
-
-  const today = new Date().toISOString().split("T")[0];
 
   const getResetSubscribeTypeText = (type: number) => {
     const typeText = t(`type.${type}`, { defaultValue: "" });
@@ -23,14 +19,8 @@ export default function ResetSubscribeLogPage() {
     return typeText;
   };
 
-  const initialFilters = {
-    date: sp.date || today,
-    user_subscribe_id: sp.user_subscribe_id
-      ? Number(sp.user_subscribe_id)
-      : undefined,
-  };
   return (
-    <ProTable<
+    <LogPage<
       API.ResetSubscribeLog,
       { date?: string; user_subscribe_id?: number }
     >
@@ -55,7 +45,9 @@ export default function ResetSubscribeLogPage() {
           accessorKey: "type",
           header: t("column.type", "Type"),
           cell: ({ row }) => (
-            <Badge>{getResetSubscribeTypeText(row.original.type)}</Badge>
+            <LogTypeChip>
+              {getResetSubscribeTypeText(row.original.type)}
+            </LogTypeChip>
           ),
         },
         {
@@ -66,11 +58,21 @@ export default function ResetSubscribeLogPage() {
         {
           accessorKey: "timestamp",
           header: t("column.time", "Time"),
-          cell: ({ row }) => formatDate(row.original.timestamp),
+          cell: ({ row }) => <DateTimeValue value={row.original.timestamp} />,
         },
       ]}
-      header={{ title: t("title.resetSubscribe", "Reset Subscribe Log") }}
-      initialFilters={initialFilters}
+      description={t(
+        "description.resetSubscribe",
+        "Review subscription resets, their source orders, and affected accounts."
+      )}
+      filterTypes={{ date: "string", user_subscribe_id: "number" }}
+      load={(pagination, filter) =>
+        filterResetSubscribeLog({
+          ...pagination,
+          date: filter.date,
+          user_subscribe_id: filter.user_subscribe_id,
+        })
+      }
       params={[
         { key: "date", type: "date" },
         {
@@ -78,17 +80,7 @@ export default function ResetSubscribeLogPage() {
           placeholder: t("column.subscribeId", "Subscribe ID"),
         },
       ]}
-      request={async (pagination, filter) => {
-        const { data } = await filterResetSubscribeLog({
-          page: pagination.page,
-          size: pagination.size,
-          date: (filter as any)?.date,
-          user_subscribe_id: (filter as any)?.user_subscribe_id,
-        });
-        const list = (data?.data?.list || []) as any[];
-        const total = Number(data?.data?.total || list.length);
-        return { list, total };
-      }}
+      title={t("title.resetSubscribe", "Reset Subscribe Log")}
     />
   );
 }
