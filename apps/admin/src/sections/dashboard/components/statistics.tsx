@@ -401,12 +401,23 @@ export default function Statistics() {
         actions={
           <>
             <Tabs
+              className="dashboard-range-tabs"
               onValueChange={(value) => setRange(value as DashboardRange)}
               value={range}
             >
-              <TabsList className="h-9">
-                <TabsTrigger value="month">{t("month", "Month")}</TabsTrigger>
-                <TabsTrigger value="total">{t("total", "Total")}</TabsTrigger>
+              <TabsList className="dashboard-range-tabs__list h-9">
+                <TabsTrigger
+                  className="dashboard-range-tabs__trigger"
+                  value="month"
+                >
+                  {t("month", "Month")}
+                </TabsTrigger>
+                <TabsTrigger
+                  className="dashboard-range-tabs__trigger"
+                  value="total"
+                >
+                  {t("total", "Total")}
+                </TabsTrigger>
               </TabsList>
             </Tabs>
             <SystemLogsDialog />
