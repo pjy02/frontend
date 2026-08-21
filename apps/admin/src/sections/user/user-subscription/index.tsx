@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
@@ -20,10 +19,12 @@ import {
   toggleUserSubscribeStatus,
   updateUserSubscribe,
 } from "@workspace/ui/services/admin/user";
+import { MoreVertical, Pencil, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Display } from "@/components/display";
+import { StatusChip, type StatusChipTone } from "@/components/status-chip";
 import { useGlobalStore } from "@/stores/global";
 import { formatDate } from "@/utils/common";
 import { SubscriptionDetail } from "./subscription-detail";
@@ -56,7 +57,7 @@ export default function UserSubscription({ userId }: { userId: number }) {
               return true;
             }}
             title={t("editSubscription", "Edit Subscription")}
-            trigger={t("edit", "Edit")}
+            trigger={<Pencil />}
           />,
           <RowMoreActions
             key="more"
@@ -89,36 +90,33 @@ export default function UserSubscription({ userId }: { userId: number }) {
 
             const statusMap: Record<
               number,
-              {
-                label: string;
-                variant: "default" | "secondary" | "destructive" | "outline";
-              }
+              { label: string; tone: StatusChipTone }
             > = {
-              0: { label: t("statusPending", "Pending"), variant: "outline" },
-              1: { label: t("statusActive", "Active"), variant: "default" },
+              0: { label: t("statusPending", "Pending"), tone: "warning" },
+              1: { label: t("statusActive", "Active"), tone: "success" },
               2: {
                 label: t("statusFinished", "Finished"),
-                variant: "secondary",
+                tone: "neutral",
               },
               3: {
                 label: t("statusExpired", "Expired"),
-                variant: "destructive",
+                tone: "danger",
               },
               4: {
                 label: t("statusDeducted", "Deducted"),
-                variant: "secondary",
+                tone: "info",
               },
               5: {
                 label: t("statusStopped", "Stopped"),
-                variant: "destructive",
+                tone: "danger",
               },
             };
             const statusInfo = statusMap[displayStatus] || {
               label: "Unknown",
-              variant: "outline",
+              tone: "neutral" as const,
             };
             return (
-              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+              <StatusChip tone={statusInfo.tone}>{statusInfo.label}</StatusChip>
             );
           },
         },
@@ -187,7 +185,16 @@ export default function UserSubscription({ userId }: { userId: number }) {
         },
       ]}
       header={{
-        title: t("subscriptionList", "Subscription List"),
+        title: (
+          <div>
+            <div className="font-medium">
+              {t("subscriptionList", "Subscription List")}
+            </div>
+            <div className="mt-0.5 font-normal text-muted-foreground text-xs">
+              {t("subscriptionListHint", "Plans assigned to this user")}
+            </div>
+          </div>
+        ),
         toolbar: (
           <SubscriptionForm
             key="create"
@@ -204,7 +211,12 @@ export default function UserSubscription({ userId }: { userId: number }) {
               return true;
             }}
             title={t("createSubscription", "Create Subscription")}
-            trigger={t("add", "Add")}
+            trigger={
+              <>
+                <Plus />
+                {t("add", "Add")}
+              </>
+            }
           />
         ),
       }}
@@ -244,7 +256,14 @@ function RowMoreActions({
     <div className="inline-flex">
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">{t("more", "More")}</Button>
+          <Button
+            aria-label={t("more", "More")}
+            className="size-8 rounded-full"
+            size="icon"
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem

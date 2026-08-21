@@ -7,24 +7,28 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
   useSidebar,
 } from "@workspace/ui/components/sidebar";
-import { Icon } from "@workspace/ui/composed/icon";
 import { cn } from "@workspace/ui/lib/utils";
+import { ChevronDown } from "lucide-react";
 import React, { useState } from "react";
 import { useGlobalStore } from "@/stores/global";
+import packageJson from "../../../../package.json";
 import { type NavItem, useNavs } from "./navs";
 
-function hasChildren(obj: any): obj is { items: any[] } {
-  return (
-    obj && Array.isArray((obj as any).items) && (obj as any).items.length > 0
-  );
+function hasChildren(item: NavItem): item is NavItem & { items: NavItem[] } {
+  return Boolean(item.items?.length);
 }
 
 export function SidebarLeft({
@@ -35,137 +39,137 @@ export function SidebarLeft({
   const navs = useNavs();
   const pathname = useLocation({ select: (location) => location.pathname });
   const { state, isMobile } = useSidebar();
-
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  React.useEffect(() => {
-    setOpenGroups((prev) => {
-      const next: Record<string, boolean> = { ...prev };
-      navs.forEach((nav) => {
-        if (hasChildren(nav) && next[nav.title] === undefined) {
-          next[nav.title] = nav.defaultOpen ?? true;
-        }
-      });
-      return next;
-    });
-  }, [navs]);
+  const normalize = (path: string) =>
+    path.endsWith("/") && path !== "/" ? path.replace(/\/+$/, "") : path;
 
-  const handleToggleGroup = (title: string) => {
-    setOpenGroups((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const normalize = (p: string) =>
-    p.endsWith("/") && p !== "/" ? p.replace(/\/+$/, "") : p;
   const isActiveUrl = (url: string) => {
-    const path = normalize(pathname);
+    const currentPath = normalize(pathname);
     const target = normalize(url);
-    if (target === "/dashboard") return path === target;
-    if (path === target) return true;
-    return path.startsWith(`${target}/`);
+    if (target === "/dashboard") return currentPath === target;
+    return currentPath === target || currentPath.startsWith(`${target}/`);
   };
 
   const isGroupActive = (nav: NavItem) =>
-    (hasChildren(nav) && nav.items?.some((i: any) => isActiveUrl(i.url))) ||
-    ("url" in nav && nav.url ? isActiveUrl(nav.url as string) : false);
+    hasChildren(nav)
+      ? nav.items.some((item) => item.url && isActiveUrl(item.url))
+      : Boolean(nav.url && isActiveUrl(nav.url));
 
   React.useEffect(() => {
-    setOpenGroups((prev) => {
-      const next: Record<string, boolean> = { ...prev };
-      navs.forEach((nav) => {
-        if (hasChildren(nav) && isGroupActive(nav)) next[nav.title] = true;
-      });
+    setOpenGroups((current) => {
+      const next = { ...current };
+      for (const nav of navs) {
+        if (!hasChildren(nav)) continue;
+        if (isGroupActive(nav)) {
+          next[nav.title] = true;
+        } else if (next[nav.title] === undefined) {
+          next[nav.title] = nav.defaultOpen ?? true;
+        }
+      }
       return next;
     });
   }, [pathname, navs]);
 
-  const renderCollapsedFlyout = (nav: NavItem) => {
-    const ParentButton = (
-      <SidebarMenuButton
-        aria-label={nav.title}
-        className="h-8 justify-center"
-        isActive={false}
-        size="sm"
-      >
-        {"url" in nav && nav.url ? (
-          <Link to={nav.url as string}>
-            {"icon" in nav && (nav as any).icon ? (
-              <Icon className="size-4" icon={(nav as any).icon} />
-            ) : null}
-          </Link>
-        ) : "icon" in nav && (nav as any).icon ? (
-          <Icon className="size-4" icon={(nav as any).icon} />
-        ) : null}
-      </SidebarMenuButton>
-    );
+  const renderCollapsedItem = (nav: NavItem) => {
+    const NavIcon = nav.icon;
 
-    if (!hasChildren(nav)) return ParentButton;
+    if (!hasChildren(nav) && nav.url) {
+      return (
+        <SidebarMenuButton
+          asChild
+          className="mx-auto size-10 justify-center rounded-lg"
+          isActive={isActiveUrl(nav.url)}
+          tooltip={nav.title}
+        >
+          <Link to={nav.url}>
+            {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+            <span className="sr-only">{nav.title}</span>
+          </Link>
+        </SidebarMenuButton>
+      );
+    }
 
     return (
-      <HoverCard closeDelay={200} openDelay={40}>
-        <HoverCardTrigger asChild>{ParentButton}</HoverCardTrigger>
+      <HoverCard closeDelay={160} openDelay={80}>
+        <HoverCardTrigger asChild>
+          <SidebarMenuButton
+            aria-label={nav.title}
+            className="mx-auto size-10 justify-center rounded-lg"
+            isActive={isGroupActive(nav)}
+          >
+            {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+            <span className="sr-only">{nav.title}</span>
+          </SidebarMenuButton>
+        </HoverCardTrigger>
         <HoverCardContent
           align="start"
-          avoidCollisions
-          className="z-[9999] w-64 p-0"
+          className="z-[60] w-64 overflow-hidden p-0"
           collisionPadding={8}
           side="right"
           sideOffset={10}
         >
-          <div className="flex items-center gap-2 border-b px-3 py-2">
-            {"icon" in nav && (nav as any).icon ? (
-              <Icon className="size-4" icon={(nav as any).icon} />
+          <div className="flex items-center gap-2 border-b px-3 py-2.5">
+            {NavIcon ? (
+              <NavIcon className="size-4 text-muted-foreground" />
             ) : null}
-            <span className="truncate font-medium text-muted-foreground text-xs">
-              {nav.title}
-            </span>
+            <span className="truncate font-semibold text-sm">{nav.title}</span>
           </div>
-
-          <ul className="p-1">
-            {nav.items?.map((item: any) => (
-              <li key={item.title}>
+          <div className="p-1.5">
+            {nav.items?.map((item) => {
+              const ItemIcon = item.icon;
+              return (
                 <Link
-                  className={[
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
-                    isActiveUrl(item.url)
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/60",
-                  ].join(" ")}
-                  to={item.url}
+                  className={cn(
+                    "flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
+                    item.url && isActiveUrl(item.url)
+                      ? "bg-accent font-medium text-accent-foreground"
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  key={item.title}
+                  to={item.url || "/dashboard"}
                 >
-                  {item.icon && <Icon className="size-4" icon={item.icon} />}
+                  {ItemIcon ? (
+                    <ItemIcon className="size-4 text-muted-foreground" />
+                  ) : null}
                   <span className="truncate">{item.title}</span>
                 </Link>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </HoverCardContent>
       </HoverCard>
     );
   };
 
   return (
-    <Sidebar className="border-r-0" collapsible="icon" {...props}>
-      <SidebarHeader className="p-2">
+    <Sidebar className="admin-sidebar" collapsible="icon" {...props}>
+      <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-10" size="sm">
-              <Link to="/">
-                <div className="flex aspect-square size-6 items-center justify-center rounded-lg">
+            <SidebarMenuButton
+              asChild
+              className="h-11 rounded-lg px-2 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
+              size="lg"
+              tooltip={site.site_name || "PPanel"}
+            >
+              <Link to="/dashboard">
+                <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white ring-1 ring-sidebar-border dark:bg-white/10">
                   <img
-                    alt="logo"
-                    className="size-full"
-                    height={24}
+                    alt=""
+                    className="size-7 object-contain"
+                    height={28}
                     src={site.site_logo || "/favicon.svg"}
-                    width={24}
+                    width={28}
                   />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-xs">
-                    {site.site_name}
-                  </span>
-                  <span className="truncate text-xs opacity-70">
-                    {site.site_desc}
-                  </span>
+                <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
+                  <div className="truncate font-semibold text-[13px]">
+                    {site.site_name || "PPanel"}
+                  </div>
+                  <div className="mt-0.5 truncate text-sidebar-foreground/60 text-xs">
+                    {site.site_desc || "Admin Console"}
+                  </div>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -173,122 +177,113 @@ export function SidebarLeft({
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="py-2">
+      <SidebarContent className="px-2 py-3">
         <SidebarMenu>
           {!isMobile && state === "collapsed"
             ? navs.map((nav) => (
-                <SidebarMenuItem className="mx-auto" key={nav.title}>
-                  {renderCollapsedFlyout(nav)}
+                <SidebarMenuItem className="py-0.5" key={nav.title}>
+                  {renderCollapsedItem(nav)}
                 </SidebarMenuItem>
               ))
             : navs.map((nav) => {
-                if (hasChildren(nav)) {
-                  const isOpen = openGroups[nav.title] ?? false;
+                const NavIcon = nav.icon;
+
+                if (!hasChildren(nav)) {
                   return (
-                    <SidebarGroup className={cn("py-1")} key={nav.title}>
+                    <SidebarMenuItem className="mb-1" key={nav.title}>
                       <SidebarMenuButton
-                        className={cn(
-                          "mb-2 flex h-8 w-full items-center justify-between hover:bg-accent/60 hover:text-accent-foreground"
-                        )}
-                        isActive={false}
-                        onClick={() => handleToggleGroup(nav.title)}
-                        size="sm"
-                        style={{ fontWeight: 500 }}
-                        tabIndex={0}
+                        asChild={Boolean(nav.url)}
+                        className="relative h-10 rounded-lg px-3"
+                        isActive={isGroupActive(nav)}
+                        tooltip={nav.title}
                       >
-                        <span className="flex min-w-0 items-center gap-2">
-                          {"icon" in nav && (nav as any).icon ? (
-                            <Icon
-                              className="size-4 shrink-0"
-                              icon={(nav as any).icon}
-                            />
-                          ) : null}
-                          <span className="truncate text-sm">{nav.title}</span>
-                        </span>
-                        <Icon
-                          className={`ml-2 size-4 transition-transform ${isOpen ? "" : "-rotate-90"}`}
-                          icon="mdi:chevron-down"
-                        />
+                        {nav.url ? (
+                          <Link to={nav.url}>
+                            {NavIcon ? (
+                              <NavIcon className="size-[18px]" />
+                            ) : null}
+                            <span>{nav.title}</span>
+                          </Link>
+                        ) : (
+                          <>
+                            {NavIcon ? (
+                              <NavIcon className="size-[18px]" />
+                            ) : null}
+                            <span>{nav.title}</span>
+                          </>
+                        )}
                       </SidebarMenuButton>
-                      {isOpen && (
-                        <SidebarGroupContent className="px-4">
-                          <SidebarMenu>
-                            {nav.items?.map((item: any) => (
-                              <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton
-                                  asChild
-                                  className="h-8"
-                                  isActive={isActiveUrl(item.url)}
-                                  size="sm"
-                                  tooltip={item.title}
-                                >
-                                  <Link to={item.url}>
-                                    {item.icon && (
-                                      <Icon
-                                        className="size-4"
-                                        icon={item.icon}
-                                      />
-                                    )}
-                                    <span className="text-sm">
-                                      {item.title}
-                                    </span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            ))}
-                          </SidebarMenu>
-                        </SidebarGroupContent>
-                      )}
-                    </SidebarGroup>
+                    </SidebarMenuItem>
                   );
                 }
 
+                const isOpen = openGroups[nav.title] ?? false;
                 return (
-                  <SidebarGroup className="py-1" key={nav.title}>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            asChild={"url" in nav && !!(nav as any).url}
-                            className="h-8"
-                            isActive={
-                              "url" in nav && (nav as any).url
-                                ? isActiveUrl((nav as any).url)
-                                : false
-                            }
-                            size="sm"
-                            tooltip={nav.title}
-                          >
-                            {"url" in nav && (nav as any).url ? (
-                              <Link to={(nav as any).url}>
-                                {"icon" in nav && (nav as any).icon ? (
-                                  <Icon
-                                    className="size-4"
-                                    icon={(nav as any).icon}
-                                  />
-                                ) : null}
-                                <span className="text-sm">{nav.title}</span>
-                              </Link>
-                            ) : (
-                              <>
-                                {"icon" in nav && (nav as any).icon ? (
-                                  <Icon
-                                    className="size-4"
-                                    icon={(nav as any).icon}
-                                  />
-                                ) : null}
-                                <span className="text-sm">{nav.title}</span>
-                              </>
-                            )}
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarMenu>
-                    </SidebarGroupContent>
+                  <SidebarGroup className="p-0 pb-1" key={nav.title}>
+                    <SidebarMenuButton
+                      aria-expanded={isOpen}
+                      className="relative h-10 rounded-lg px-3"
+                      isActive={isGroupActive(nav)}
+                      onClick={() =>
+                        setOpenGroups((current) => ({
+                          ...current,
+                          [nav.title]: !isOpen,
+                        }))
+                      }
+                    >
+                      {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+                      <span className="min-w-0 flex-1 truncate">
+                        {nav.title}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 text-sidebar-foreground/60 transition-transform duration-200",
+                          !isOpen && "-rotate-90"
+                        )}
+                      />
+                    </SidebarMenuButton>
+                    {isOpen ? (
+                      <SidebarGroupContent>
+                        <SidebarMenuSub className="my-1 border-sidebar-border/70">
+                          {nav.items.map((item) => {
+                            const ItemIcon = item.icon;
+                            return (
+                              <SidebarMenuSubItem key={item.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  className="relative h-9 rounded-lg"
+                                  isActive={Boolean(
+                                    item.url && isActiveUrl(item.url)
+                                  )}
+                                >
+                                  <Link to={item.url || "/dashboard"}>
+                                    {ItemIcon ? (
+                                      <ItemIcon className="size-4" />
+                                    ) : null}
+                                    <span>{item.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </SidebarGroupContent>
+                    ) : null}
                   </SidebarGroup>
                 );
               })}
         </SidebarMenu>
       </SidebarContent>
+
+      <SidebarFooter className="border-sidebar-border border-t px-3 py-3">
+        <div className="flex items-center gap-2 px-2 text-sidebar-foreground/60 text-xs group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <span className="size-2 rounded-full bg-emerald-500" />
+          <span className="truncate group-data-[collapsible=icon]:hidden">
+            PPanel Console · v{packageJson.version}
+          </span>
+        </div>
+      </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

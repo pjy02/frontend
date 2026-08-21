@@ -36,6 +36,23 @@
     transform 160ms ease;
 }
 
+.dashboard-page .admin-page-header {
+  margin-bottom: 0;
+}
+
+.dashboard-card {
+  border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  background: var(--card);
+}
+
+.dashboard-metric:hover {
+  border-color: color-mix(in srgb, var(--foreground) 16%, var(--border));
+}
+
+.dashboard-page [data-slot="progress-indicator"] {
+  background: var(--admin-success);
+}
+
 .dashboard-card:has(a:hover) {
   border-color: color-mix(in oklab, var(--primary) 25%, var(--border));
 }

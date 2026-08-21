@@ -15,6 +15,7 @@ import {
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { useTranslation } from "react-i18next";
 import { Display } from "@/components/display";
+import { StatusChip } from "@/components/status-chip";
 import { formatDate } from "@/utils/common";
 
 export function UserSubscribeDetail({
@@ -43,10 +44,10 @@ export function UserSubscribeDetail({
   const totalTraffic = data?.traffic || 0;
 
   const subscribeContent = (
-    <div className="space-y-4">
+    <div className="space-y-4 text-sm">
       <div>
         <h3 className="mb-2 font-medium text-sm">{t("subscriptionInfo")}</h3>
-        <div className="rounded-lg bg-muted/30 p-3">
+        <div className="rounded-xl border bg-muted/20 p-4">
           <ul className="grid gap-3">
             <li className="flex items-center justify-between font-semibold">
               <span className="text-muted-foreground">
@@ -75,6 +76,16 @@ export function UserSubscribeDetail({
                     : `${formatBytes(usedTraffic)} / ${formatBytes(totalTraffic)}`
                   : "--"}
               </span>
+            </li>
+            <li className="space-y-1.5">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width]"
+                  style={{
+                    width: `${totalTraffic > 0 ? Math.min((usedTraffic / totalTraffic) * 100, 100) : 0}%`,
+                  }}
+                />
+              </div>
             </li>
             <li className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("startTime")}</span>
@@ -141,7 +152,9 @@ export function UserSubscribeDetail({
             {data?.subscribe?.name || t("loading")}
           </Button>
         </HoverCardTrigger>
-        <HoverCardContent className="w-96">{subscribeContent}</HoverCardContent>
+        <HoverCardContent className="w-96 rounded-xl p-4">
+          {subscribeContent}
+        </HoverCardContent>
       </HoverCard>
     );
   }
@@ -176,8 +189,19 @@ export function UserDetail({ id }: { id: number }) {
           </Link>
         </Button>
       </HoverCardTrigger>
-      <HoverCardContent>
-        <div className="grid gap-3">
+      <HoverCardContent className="w-80 rounded-xl p-4">
+        <div className="grid gap-4">
+          <div className="flex items-center justify-between border-b pb-3">
+            <div>
+              <div className="font-medium">{identifier || `User ${id}`}</div>
+              <div className="text-muted-foreground text-xs">ID {id}</div>
+            </div>
+            <StatusChip tone={data?.enable ? "success" : "neutral"}>
+              {data?.enable
+                ? t("enabled", "Enabled")
+                : t("disabled", "Disabled")}
+            </StatusChip>
+          </div>
           <ul className="grid gap-3">
             <li className="flex items-center justify-between font-semibold">
               <span className="text-muted-foreground">ID</span>

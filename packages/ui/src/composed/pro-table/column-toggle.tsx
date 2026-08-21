@@ -13,13 +13,23 @@ import type { ReactNode } from "react";
 
 interface ColumnToggleProps<TData> {
   table: Table<TData>;
+  title?: string;
 }
 
-export function ColumnToggle<TData>({ table }: ColumnToggleProps<TData>) {
+export function ColumnToggle<TData>({
+  table,
+  title,
+}: ColumnToggleProps<TData>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="outline">
+        <Button
+          aria-label={title || "Choose columns"}
+          className="size-8"
+          size="icon"
+          title={title || "Choose columns"}
+          variant="ghost"
+        >
           <ListTodoIcon />
         </Button>
       </DropdownMenuTrigger>

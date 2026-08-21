@@ -188,13 +188,16 @@ export default function SystemVersionCard() {
       <CardContent className="space-y-2 p-5">
         <div className="flex flex-1 flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center">
-            <Icon className="mr-2 h-4 w-4 text-green-600" icon="mdi:web" />
+            <Icon
+              className="mr-2 h-4 w-4 text-muted-foreground"
+              icon="mdi:web"
+            />
             <span className="font-medium text-sm">
               {t("webVersion", "Web Version")}
             </span>
           </div>
           <div className="flex w-full items-center justify-end space-x-2 sm:w-auto">
-            <Badge>V{packageJson.version}</Badge>
+            <Badge variant="outline">V{packageJson.version}</Badge>
             <AlertDialog onOpenChange={setOpenUpdateWeb} open={openUpdateWeb}>
               <AlertDialogTrigger asChild>
                 <Button
@@ -246,17 +249,20 @@ export default function SystemVersionCard() {
 
         <div className="flex flex-1 flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center">
-            <Icon className="mr-2 h-4 w-4 text-blue-600" icon="mdi:server" />
+            <Icon
+              className="mr-2 h-4 w-4 text-muted-foreground"
+              icon="mdi:server"
+            />
             <span className="font-medium text-sm">
               {t("serverVersion", "Server Version")}
             </span>
           </div>
           <div className="flex w-full items-center justify-end space-x-2 sm:w-auto">
-            <Badge>
+            <Badge variant="outline">
               V
               {moduleConfig?.service_version ||
                 serverVersionInfo?.current_version ||
-                "1.0.0"}
+                "—"}
             </Badge>
             <AlertDialog
               onOpenChange={setOpenUpdateServer}

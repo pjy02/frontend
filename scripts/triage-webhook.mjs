@@ -5,7 +5,9 @@ const webhookUrl = process.env.AUTOMATION_WEBHOOK_URL;
 const webhookSecret = process.env.AUTOMATION_WEBHOOK_SECRET;
 
 if (!(webhookUrl && webhookSecret)) {
-  console.error("AUTOMATION_WEBHOOK_URL and AUTOMATION_WEBHOOK_SECRET are required");
+  console.error(
+    "AUTOMATION_WEBHOOK_URL and AUTOMATION_WEBHOOK_SECRET are required"
+  );
   process.exit(1);
 }
 
@@ -26,7 +28,11 @@ const payload = {
   repo: "perfect-panel/frontend",
   source: "github-actions",
   trigger: {
-    kind: isPullRequest ? "pull_request" : githubEventName === "push" ? "push" : "issue",
+    kind: isPullRequest
+      ? "pull_request"
+      : githubEventName === "push"
+        ? "push"
+        : "issue",
     eventName: githubEventName,
     eventAction: process.env.GITHUB_EVENT_ACTION || "",
   },

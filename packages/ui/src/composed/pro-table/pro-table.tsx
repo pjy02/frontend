@@ -19,6 +19,7 @@ import {
 } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -28,18 +29,14 @@ import {
   TableRow,
 } from "@workspace/ui/components/table";
 import Empty from "@workspace/ui/composed/empty";
-import {
-  ColumnFilter,
-  type IParams,
-} from "@workspace/ui/composed/pro-table/column-filter";
+import type { IParams } from "@workspace/ui/composed/pro-table/column-filter";
 import { ColumnHeader } from "@workspace/ui/composed/pro-table/column-header";
-import { ColumnToggle } from "@workspace/ui/composed/pro-table/column-toggle";
+import { DataToolbar } from "@workspace/ui/composed/pro-table/data-toolbar";
 import { Pagination } from "@workspace/ui/composed/pro-table/pagination";
 import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { cn } from "@workspace/ui/lib/utils";
-import { useSize } from "ahooks";
-import { GripVertical, ListRestart, Loader, RefreshCcw } from "lucide-react";
+import { GripVertical, TriangleAlert } from "lucide-react";
 import type React from "react";
 import {
   Fragment,
@@ -48,6 +45,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ProTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -77,6 +75,11 @@ export interface ProTableProps<TData, TValue> {
     textRowsPerPage: string;
     textPageOf: (current: number, total: number) => string;
     selectedRowsText: (total: number) => string;
+    refresh: string;
+    reset: string;
+    columns: string;
+    fetchError: string;
+    retry: string;
   }>;
   empty?: React.ReactNode;
   onSort?: (
@@ -107,6 +110,7 @@ export function ProTable<
   onSort,
   initialFilters,
 }: ProTableProps<TData, TValue>) {
+  const { t } = useTranslation("components");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
     if (initialFilters) {
@@ -125,7 +129,9 @@ export function ProTable<
     pageIndex: 0,
     pageSize: 10,
   });
-  const loading = useRef(false);
+  const requestIdRef = useRef(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   const table = useReactTable({
     data,
@@ -191,8 +197,9 @@ export function ProTable<
   });
 
   const fetchData = async () => {
-    if (loading.current) return;
-    loading.current = true;
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setFetchError(false);
     try {
       const response = await request(
         {
@@ -203,12 +210,19 @@ export function ProTable<
           columnFilters.map((item) => [item.id, item.value])
         ) as TValue
       );
-      setData(response.list);
-      setRowCount(response.total);
+      if (requestId === requestIdRef.current) {
+        setData(response.list);
+        setRowCount(response.total);
+      }
     } catch (error) {
       console.log("Fetch data error:", error);
+      if (requestId === requestIdRef.current) {
+        setFetchError(true);
+      }
     } finally {
-      loading.current = false;
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
   const reset = async () => {
@@ -219,9 +233,6 @@ export function ProTable<
     table.resetRowSelection();
     table.resetPagination();
   };
-  const ref = useRef<HTMLDivElement>(null);
-  const size = useSize(ref);
-
   useImperativeHandle(action, () => ({
     refresh: fetchData,
     reset,
@@ -242,33 +253,25 @@ export function ProTable<
   const selectedCount = selectedRows.length;
 
   return (
-    <div className="flex flex-col gap-4" ref={ref}>
+    <div className="flex min-w-0 flex-col gap-4">
       {!header?.hidden && (
-        <div className="flex flex-wrap-reverse items-center justify-between gap-4">
-          <div>
-            {params ? (
-              <ColumnFilter
-                filters={Object.fromEntries(
-                  columnFilters.map((item) => [item.id, item.value])
-                )}
-                params={params}
-                table={table}
-              />
-            ) : (
-              header?.title
-            )}
-          </div>
-          <div className="flex flex-1 items-center justify-end gap-2">
-            <Button onClick={fetchData} size="icon" variant="outline">
-              <RefreshCcw />
-            </Button>
-            <ColumnToggle table={table} />
-            <Button onClick={reset} size="icon" variant="outline">
-              <ListRestart />
-            </Button>
-            {header?.toolbar}
-          </div>
-        </div>
+        <DataToolbar
+          filters={Object.fromEntries(
+            columnFilters.map((item) => [item.id, item.value])
+          )}
+          labels={{
+            columns: texts?.columns || t("table.columns", "Choose columns"),
+            refresh: texts?.refresh || t("table.refresh", "Refresh data"),
+            reset: texts?.reset || t("table.reset", "Reset table"),
+          }}
+          loading={isLoading}
+          onRefresh={fetchData}
+          onReset={reset}
+          params={params}
+          table={table}
+          title={header?.title}
+          toolbar={header?.toolbar}
+        />
       )}
 
       {selectedCount > 0 && actions?.batchRender && (
@@ -283,15 +286,10 @@ export function ProTable<
         </Alert>
       )}
 
-      <div
-        className="relative w-auto overflow-x-auto rounded-md border"
-        style={{
-          width: size?.width,
-        }}
-      >
+      <div className="relative min-w-0 overflow-hidden rounded-xl border bg-card">
         <ProTableWrapper data={data} onSort={onSort} setData={setData}>
           <Table className="w-full">
-            <TableHeader>
+            <TableHeader className="bg-muted/45">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
@@ -352,6 +350,7 @@ export function ProTable<
                 ) : (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
+                      className="h-13"
                       data-state={row.getIsSelected() && "selected"}
                       key={row.id}
                     >
@@ -369,9 +368,45 @@ export function ProTable<
                     </TableRow>
                   ))
                 )
+              ) : isLoading ? (
+                Array.from(
+                  { length: Math.min(pagination.pageSize, 6) },
+                  (_, rowIndex) => (
+                    <TableRow className="h-13" key={`skeleton-${rowIndex}`}>
+                      {table.getVisibleLeafColumns().map((column) => (
+                        <TableCell key={column.id}>
+                          <Skeleton className="h-4 w-[72%] min-w-12" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                )
+              ) : fetchError ? (
+                <TableRow>
+                  <TableCell
+                    className="py-20"
+                    colSpan={table.getVisibleLeafColumns().length}
+                  >
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="grid size-10 place-items-center rounded-full bg-destructive/10 text-destructive">
+                        <TriangleAlert className="size-5" />
+                      </div>
+                      <p className="font-medium text-sm">
+                        {texts?.fetchError ||
+                          t("table.loadError", "Unable to load data")}
+                      </p>
+                      <Button onClick={fetchData} size="sm" variant="outline">
+                        {texts?.retry || t("table.retry", "Try again")}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : (
                 <TableRow>
-                  <TableCell className="py-24" colSpan={columns.length + 2}>
+                  <TableCell
+                    className="py-24"
+                    colSpan={table.getVisibleLeafColumns().length}
+                  >
                     {empty || <Empty />}
                   </TableCell>
                 </TableRow>
@@ -379,14 +414,8 @@ export function ProTable<
             </TableBody>
           </Table>
         </ProTableWrapper>
-
-        {loading.current && (
-          <div className="absolute top-0 z-20 flex h-full w-full items-center justify-center bg-muted/80">
-            <Loader className="h-4 w-4 animate-spin" />
-          </div>
-        )}
       </div>
-      {rowCount > 0 && <Pagination table={table} />}
+      {rowCount > 0 && <Pagination table={table} total={rowCount} />}
     </div>
   );
 }

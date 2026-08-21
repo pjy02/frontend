@@ -57,7 +57,10 @@ test("builds openapi adaptation context from a push event and only includes chan
         "docs/public/swagger/nested/ignored.json",
       ],
       modified: ["docs/public/swagger/user.json", "README.md"],
-      removed: ["docs/public/swagger/legacy.json", "docs/public/swagger/openapi.yaml"],
+      removed: [
+        "docs/public/swagger/legacy.json",
+        "docs/public/swagger/openapi.yaml",
+      ],
     },
     commits: [
       {

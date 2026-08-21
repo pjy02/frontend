@@ -13,6 +13,7 @@ import ReactDOM from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 // Styles
 import "@workspace/ui/globals.css";
+import "./styles/admin-theme.css";
 import { DirectionProvider } from "@workspace/ui/integrations/direction";
 import { LanguageProvider } from "@workspace/ui/integrations/language";
 import { ThemeProvider } from "@workspace/ui/integrations/theme";
@@ -35,6 +36,10 @@ initializeI18n({
 fetchInitialConfig();
 
 window.logout = Logout;
+
+// Scope the console design tokens to the admin application, including portals
+// rendered directly under document.body.
+document.documentElement.classList.add("admin-console");
 
 // Create a new router instance
 const TanStackQueryProviderContext = TanStackQueryContext();

@@ -23,7 +23,7 @@
     "i18n:extract": "turbo i18n:extract",
     "i18n:sync": "turbo i18n:sync",
     "i18n:status": "turbo i18n:status",
-    "prepare": "husky && npx gitmoji -i",
+    "prepare": "husky",
     "release": "semantic-release"
   },
   "overrides": {

@@ -12,6 +12,7 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -22,7 +23,7 @@ import { AreaCodeSelect } from "@workspace/ui/composed/area-code-select";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -32,7 +33,7 @@ interface UserFormProps<T> {
   onSubmit: (data: T) => Promise<boolean> | boolean;
   initialValues?: T;
   loading?: boolean;
-  trigger: string;
+  trigger: ReactNode;
   title: string;
   update?: boolean;
 }
@@ -92,21 +93,27 @@ export default function UserForm<T extends Record<string, any>>({
           {trigger}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[500px] max-w-full gap-0 md:max-w-screen-md">
-        <SheetHeader>
+      <SheetContent className="w-[680px] max-w-full gap-0 md:max-w-[680px]">
+        <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>
+            {t(
+              "createUserDescription",
+              "Set the account identity, referral rules and opening balances."
+            )}
+          </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))]">
+        <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
             <form
-              className="space-y-4 px-6 pt-4"
+              className="grid grid-cols-1 gap-5 px-6 py-5 sm:grid-cols-2"
               onSubmit={form.handleSubmit(handleSubmit)}
             >
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>{t("userEmail", "Email")}</FormLabel>
                     <FormControl>
                       <EnhancedInput
@@ -126,7 +133,7 @@ export default function UserForm<T extends Record<string, any>>({
                 control={form.control}
                 name="telephone"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>{t("telephone", "Phone")}</FormLabel>
                     <FormControl>
                       <EnhancedInput
@@ -269,7 +276,7 @@ export default function UserForm<T extends Record<string, any>>({
                 control={form.control}
                 name="only_first_purchase"
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between space-x-2">
+                  <FormItem className="flex min-h-16 items-center justify-between rounded-xl border bg-muted/20 px-4 sm:col-span-2">
                     <FormLabel>
                       {t("onlyFirstPurchase", "First Purchase Only")}
                     </FormLabel>
@@ -376,15 +383,13 @@ export default function UserForm<T extends Record<string, any>>({
                 control={form.control}
                 name="is_admin"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex min-h-16 items-center justify-between rounded-xl border bg-muted/20 px-4 sm:col-span-2">
                     <FormLabel>{t("manager", "Administrator")}</FormLabel>
                     <FormControl>
-                      <div className="pt-2">
-                        <Switch
-                          checked={!!field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </div>
+                      <Switch
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -393,7 +398,7 @@ export default function UserForm<T extends Record<string, any>>({
             </form>
           </Form>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <SheetFooter className="flex-row justify-end gap-2 border-t bg-background px-6 py-4">
           <Button
             disabled={loading}
             onClick={() => {

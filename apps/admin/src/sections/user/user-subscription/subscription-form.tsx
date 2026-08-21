@@ -12,6 +12,7 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -83,23 +84,37 @@ export function SubscriptionForm({
     <Sheet onOpenChange={setOpen} open={open}>
       <SheetTrigger asChild>
         <Button
+          aria-label={title}
+          className={initialData ? "size-8 rounded-full" : undefined}
           onClick={() => {
             form.reset();
             setOpen(true);
           }}
+          size={initialData ? "icon" : "default"}
+          title={initialData ? title : undefined}
+          variant={initialData ? "ghost" : "default"}
         >
           {trigger}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right">
-        <SheetHeader>
+      <SheetContent
+        className="w-[560px] max-w-full gap-0 md:max-w-[560px]"
+        side="right"
+      >
+        <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>
+            {t(
+              "subscriptionFormDescription",
+              "Configure plan limits, current usage and expiration."
+            )}
+          </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))] px-4">
-          <div className="pr-4">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-6 py-5">
             <Form {...form}>
               <form
-                className="mt-4 space-y-4"
+                className="space-y-5"
                 onSubmit={form.handleSubmit(handleSubmit)}
               >
                 <FormField
@@ -239,7 +254,7 @@ export function SubscriptionForm({
             </Form>
           </div>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <SheetFooter className="flex-row justify-end gap-2 border-t bg-background px-6 py-4">
           <Button
             disabled={loading}
             onClick={() => {

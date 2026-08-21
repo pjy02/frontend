@@ -3,6 +3,7 @@
 import type { Table } from "@tanstack/react-table";
 import { Input } from "@workspace/ui/components/input";
 import { Combobox } from "@workspace/ui/composed/combobox";
+import { Search } from "lucide-react";
 
 export interface IParams {
   key: string;
@@ -43,12 +44,12 @@ export function ColumnFilter<TData>({
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {params.map((param) => {
         if (param.options || param.type === "select") {
           return (
             <Combobox
-              className="min-w-32 max-w-48"
+              className="h-9 min-w-36 max-w-52 rounded-lg bg-background"
               key={param.key}
               onChange={(value) => {
                 updateFilter(param.key, value);
@@ -69,7 +70,7 @@ export function ColumnFilter<TData>({
                 : "";
           return (
             <Input
-              className="block min-w-32"
+              className="block h-9 min-w-36 rounded-lg bg-background"
               key={param.key}
               onChange={(event) => {
                 const v = event.target.value;
@@ -81,14 +82,28 @@ export function ColumnFilter<TData>({
             />
           );
         }
+        const isSearch = param.key === "search";
         return (
-          <Input
-            className="min-w-32"
+          <div
+            className={
+              isSearch ? "relative min-w-60 flex-1 sm:max-w-80" : "min-w-36"
+            }
             key={param.key}
-            onChange={(event) => updateFilter(param.key, event.target.value)}
-            placeholder={param.placeholder || "Search..."}
-            value={filters[param.key] || ""}
-          />
+          >
+            {isSearch ? (
+              <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
+            ) : null}
+            <Input
+              className={
+                isSearch
+                  ? "h-9 rounded-lg bg-background pl-9"
+                  : "h-9 rounded-lg bg-background"
+              }
+              onChange={(event) => updateFilter(param.key, event.target.value)}
+              placeholder={param.placeholder || "Search..."}
+              value={filters[param.key] || ""}
+            />
+          </div>
         );
       })}
     </div>

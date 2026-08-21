@@ -19,7 +19,7 @@ test("release workflow ignores documentation and automation-only paths", async (
   ]) {
     assert.match(
       workflow,
-      new RegExp(`['\"]${ignoredPath.replaceAll("*", "\\*")}['\"]`),
+      new RegExp(`['"]${ignoredPath.replaceAll("*", "\\*")}['"]`),
       `release workflow must ignore ${ignoredPath}`
     );
   }

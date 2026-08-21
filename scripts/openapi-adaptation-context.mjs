@@ -31,7 +31,11 @@ function changedFilesFor(kind) {
     (commit) => commit[kind] || []
   );
   const headFiles = headCommit?.[kind] || [];
-  return unique([...commitFiles, ...headFiles].filter((file) => swaggerJsonPattern.test(file)));
+  return unique(
+    [...commitFiles, ...headFiles].filter((file) =>
+      swaggerJsonPattern.test(file)
+    )
+  );
 }
 
 const added = changedFilesFor("added");
@@ -46,9 +50,11 @@ const report = {
   sourceBranch,
   beforeSha,
   afterSha,
-  commitUrl: headCommit?.url || (afterSha && event.repository?.html_url
-    ? `${event.repository.html_url}/commit/${afterSha}`
-    : null),
+  commitUrl:
+    headCommit?.url ||
+    (afterSha && event.repository?.html_url
+      ? `${event.repository.html_url}/commit/${afterSha}`
+      : null),
   triggerCommit: headCommit
     ? {
         sha: headCommit.id || headCommit.sha || afterSha,

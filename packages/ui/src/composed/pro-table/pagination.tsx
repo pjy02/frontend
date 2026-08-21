@@ -7,32 +7,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronsLeftIcon,
-  ChevronsRightIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface PaginationProps<TData> {
   table: Table<TData>;
+  total?: number;
 }
 
-export function Pagination<TData>({ table }: PaginationProps<TData>) {
+export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
   const { t } = useTranslation("components");
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageCount = Math.max(table.getPageCount(), 1);
+  const pageSize = table.getState().pagination.pageSize;
+  const start = total ? pageIndex * pageSize + 1 : 0;
+  const end = total ? Math.min((pageIndex + 1) * pageSize, total) : 0;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex-1 whitespace-nowrap text-center text-muted-foreground sm:text-left">
-        {t("pagination.pageInfo", "Page {{page}} of {{total}}", {
-          page: table.getState().pagination.pageIndex + 1,
-          total: table.getPageCount(),
-        })}
+    <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="whitespace-nowrap text-muted-foreground text-sm">
+        {total !== undefined
+          ? t("pagination.rangeInfo", "{{start}}–{{end}} of {{total}}", {
+              start,
+              end,
+              total,
+            })
+          : t("pagination.pageInfo", "Page {{page}} of {{total}}", {
+              page: pageIndex + 1,
+              total: pageCount,
+            })}
       </div>
-      <div className="flex flex-grow items-center justify-center gap-2 sm:justify-end">
-        <div className="flex items-center space-x-2">
-          <p className="font-medium">
+      <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+        <div className="flex items-center gap-2">
+          <p className="whitespace-nowrap text-muted-foreground text-sm">
             {t("pagination.rowsPerPage", "Rows per page")}
           </p>
           <Select
@@ -41,7 +48,7 @@ export function Pagination<TData>({ table }: PaginationProps<TData>) {
             }}
             value={`${table.getState().pagination.pageSize}`}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-[72px] rounded-lg">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
@@ -53,59 +60,31 @@ export function Pagination<TData>({ table }: PaginationProps<TData>) {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          className="hidden lg:flex"
-          disabled={!table.getCanPreviousPage()}
-          onClick={() => table.setPageIndex(0)}
-          size="icon"
-          variant="outline"
-        >
-          <span className="sr-only">Go to first page</span>
-          <ChevronsLeftIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          disabled={!table.getCanPreviousPage()}
-          onClick={() => table.previousPage()}
-          size="icon"
-          variant="outline"
-        >
-          <span className="sr-only">Go to previous page</span>
-          <ChevronLeftIcon className="h-4 w-4" />
-        </Button>
-        <Select
-          onValueChange={(value) => table.setPageIndex(Number(value) - 1)}
-          value={`${table.getState().pagination.pageIndex + 1}`}
-        >
-          <SelectTrigger className="w-[70px]">
-            <SelectValue placeholder="Select page number" />
-          </SelectTrigger>
-          <SelectContent className="w-12">
-            {Array.from({ length: table.getPageCount() }, (_, i) => (
-              <SelectItem key={i} value={`${i + 1}`}>
-                {i + 1}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          disabled={!table.getCanNextPage()}
-          onClick={() => table.nextPage()}
-          size="icon"
-          variant="outline"
-        >
-          <span className="sr-only">Go to next page</span>
-          <ChevronRightIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          className="hidden lg:flex"
-          disabled={!table.getCanNextPage()}
-          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-          size="icon"
-          variant="outline"
-        >
-          <span className="sr-only">Go to last page</span>
-          <ChevronsRightIcon className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            aria-label="Go to previous page"
+            className="size-8 rounded-full"
+            disabled={!table.getCanPreviousPage()}
+            onClick={() => table.previousPage()}
+            size="icon"
+            variant="ghost"
+          >
+            <ChevronLeftIcon className="size-4" />
+          </Button>
+          <span className="min-w-20 text-center font-medium text-sm">
+            {pageIndex + 1} / {pageCount}
+          </span>
+          <Button
+            aria-label="Go to next page"
+            className="size-8 rounded-full"
+            disabled={!table.getCanNextPage()}
+            onClick={() => table.nextPage()}
+            size="icon"
+            variant="ghost"
+          >
+            <ChevronRightIcon className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

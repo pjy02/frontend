@@ -1,0 +1,81 @@
+"use client";
+
+import type { Table } from "@tanstack/react-table";
+import { Button } from "@workspace/ui/components/button";
+import {
+  ColumnFilter,
+  type IParams,
+} from "@workspace/ui/composed/pro-table/column-filter";
+import { ColumnToggle } from "@workspace/ui/composed/pro-table/column-toggle";
+import { ListRestart, RefreshCcw } from "lucide-react";
+import type { ReactNode } from "react";
+
+interface DataToolbarProps<TData> {
+  table: Table<TData>;
+  params?: IParams[];
+  filters?: Record<string, unknown>;
+  title?: ReactNode;
+  toolbar?: ReactNode | ReactNode[];
+  loading?: boolean;
+  onRefresh: () => void;
+  onReset: () => void;
+  labels?: Partial<{
+    refresh: string;
+    reset: string;
+    columns: string;
+  }>;
+}
+
+export function DataToolbar<TData>({
+  table,
+  params,
+  filters,
+  title,
+  toolbar,
+  loading,
+  onRefresh,
+  onReset,
+  labels,
+}: DataToolbarProps<TData>) {
+  return (
+    <div className="rounded-xl border bg-card p-3 shadow-none">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0 flex-1">
+          {params?.length ? (
+            <ColumnFilter filters={filters} params={params} table={table} />
+          ) : title ? (
+            <div className="px-1 font-medium text-sm">{title}</div>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-lg border bg-background p-0.5">
+            <Button
+              aria-label={labels?.refresh || "Refresh data"}
+              className="size-8"
+              disabled={loading}
+              onClick={onRefresh}
+              size="icon"
+              title={labels?.refresh || "Refresh data"}
+              variant="ghost"
+            >
+              <RefreshCcw className={loading ? "animate-spin" : undefined} />
+            </Button>
+            <ColumnToggle table={table} title={labels?.columns} />
+            <Button
+              aria-label={labels?.reset || "Reset table"}
+              className="size-8"
+              onClick={onReset}
+              size="icon"
+              title={labels?.reset || "Reset table"}
+              variant="ghost"
+            >
+              <ListRestart />
+            </Button>
+          </div>
+          {toolbar}
+        </div>
+      </div>
+    </div>
+  );
+}

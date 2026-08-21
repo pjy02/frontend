@@ -1,4 +1,15 @@
 {
+  "admin": {
+    "search": {
+      "description": "Search and open an admin page",
+      "empty": "No matching page found",
+      "inputPlaceholder": "Search pages and settings...",
+      "open": "Search admin pages",
+      "placeholder": "Search pages and settings",
+      "title": "Admin search"
+    },
+    "timezone": "Timezone"
+  },
   "empty": {
     "tips": {
       "0": "Imagine this space filled with exciting content! For now, you'll have to use your imagination...",
@@ -55,7 +66,15 @@
   "language": "Language",
   "pagination": {
     "pageInfo": "Page {{page}} of {{total}}",
+    "rangeInfo": "{{start}}–{{end}} of {{total}}",
     "rowsPerPage": "Rows per page"
+  },
+  "table": {
+    "columns": "Choose columns",
+    "loadError": "Unable to load data",
+    "refresh": "Refresh data",
+    "reset": "Reset table",
+    "retry": "Try again"
   },
   "theme": {
     "dark": "Dark",

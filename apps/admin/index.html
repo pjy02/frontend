@@ -13,12 +13,12 @@
     <link rel="manifest" href="/site.webmanifest">
     <meta
       name="theme-color"
-      content="#FFFFFF"
+      content="#F8FAFD"
       media="(prefers-color-scheme: light)"
     >
     <meta
       name="theme-color"
-      content="#000000"
+      content="#111315"
       media="(prefers-color-scheme: dark)"
     >
 
@@ -54,10 +54,10 @@
     <!-- Splash screen shown until React commits its first content into #app -->
     <style>
     html {
-      background-color: oklch(1 0 0);
+      background-color: #f8fafd;
     }
     html.dark {
-      background-color: oklch(0.141 0.005 285.823);
+      background-color: #111315;
     }
     #splash {
       position: fixed;
@@ -72,14 +72,14 @@
     #splash .spinner {
       width: 2.5rem;
       height: 2.5rem;
-      border: 3px solid oklch(0.92 0.004 286.32);
-      border-top-color: oklch(0.61 0.11 222);
+      border: 3px solid #e3e7ed;
+      border-top-color: #4285f4;
       border-radius: 50%;
       animation: splash-spin 0.8s linear infinite;
     }
     html.dark #splash .spinner {
-      border-color: oklch(1 0 0 / 10%);
-      border-top-color: oklch(0.71 0.13 215);
+      border-color: #303134;
+      border-top-color: #8ab4f8;
     }
     @keyframes splash-spin {
       to {

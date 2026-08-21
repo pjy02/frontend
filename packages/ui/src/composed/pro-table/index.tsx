@@ -1,3 +1,4 @@
+export { DataToolbar } from "@workspace/ui/composed/pro-table/data-toolbar";
 export {
   ProTable,
   type ProTableActions,

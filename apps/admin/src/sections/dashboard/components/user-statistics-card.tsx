@@ -68,7 +68,7 @@ export function UserStatisticsCard() {
   return (
     <Tabs defaultValue="today">
       <Card className="dashboard-card h-full gap-0 overflow-hidden border-border/70 pb-0 shadow-none">
-        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 sm:!flex-row sm:items-center sm:justify-between">
+        <CardHeader className="sm:!flex-row flex flex-col gap-4 border-b px-5 py-4 sm:items-center sm:justify-between">
           <CardTitle className="text-base">
             {t("userTitle", "User Statistics")}
           </CardTitle>
@@ -84,8 +84,8 @@ export function UserStatisticsCard() {
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
             ) : UserStatistics?.today.register ||
-            UserStatistics?.today.new_order_users ||
-            UserStatistics?.today.renewal_order_users ? (
+              UserStatistics?.today.new_order_users ||
+              UserStatistics?.today.renewal_order_users ? (
               <ChartContainer
                 className="mx-auto max-h-80"
                 config={UserStatisticsConfig}
@@ -191,7 +191,7 @@ export function UserStatisticsCard() {
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
             ) : UserStatistics?.monthly.list &&
-            UserStatistics?.monthly.list.length > 0 ? (
+              UserStatistics?.monthly.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
                 config={UserStatisticsConfig}
@@ -291,7 +291,8 @@ export function UserStatisticsCard() {
           <CardContent className="h-72 p-5 sm:h-80">
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
-            ) : UserStatistics?.all.list && UserStatistics?.all.list.length > 0 ? (
+            ) : UserStatistics?.all.list &&
+              UserStatistics?.all.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
                 config={UserStatisticsConfig}

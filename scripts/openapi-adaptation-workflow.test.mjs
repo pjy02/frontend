@@ -11,7 +11,10 @@ test("openapi adaptation workflow triggers only for main pushes that touch swagg
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /dry_run:/);
   assert.match(workflow, /push:\n\s+branches: \[main\]/);
-  assert.match(workflow, /paths:\n\s+- ['"]docs\/public\/swagger\/\*\.json['"]/);
+  assert.match(
+    workflow,
+    /paths:\n\s+- ['"]docs\/public\/swagger\/\*\.json['"]/
+  );
   assert.doesNotMatch(workflow, /^\s+pull_request(?:_target)?:/m);
 });
 
@@ -40,8 +43,14 @@ test("openapi adaptation workflow sends only automation webhook context and meta
   assert.match(workflow, /AUTOMATION_EVENT_TYPE: openapi\.adapt/);
   assert.match(workflow, /AUTOMATION_DRY_RUN:/);
   assert.match(workflow, /GITHUB_EVENT_NAME: \$\{\{ github\.event_name \}\}/);
-  assert.match(workflow, /GITHUB_EVENT_ACTION: \$\{\{ github\.event\.action \|\| '' \}\}/);
-  assert.match(workflow, /GITHUB_DELIVERY: \$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
+  assert.match(
+    workflow,
+    /GITHUB_EVENT_ACTION: \$\{\{ github\.event\.action \|\| '' \}\}/
+  );
+  assert.match(
+    workflow,
+    /GITHUB_DELIVERY: \$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+  );
   assert.match(workflow, /GITHUB_SHA: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /GITHUB_REF: \$\{\{ github\.ref \}\}/);
   assert.match(workflow, /GITHUB_EVENT_PATH: \$\{\{ github\.event_path \}\}/);

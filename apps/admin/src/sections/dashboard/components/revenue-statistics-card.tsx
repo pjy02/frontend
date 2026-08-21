@@ -70,7 +70,7 @@ export function RevenueStatisticsCard() {
   return (
     <Tabs defaultValue="today">
       <Card className="dashboard-card h-full gap-0 overflow-hidden border-border/70 pb-0 shadow-none">
-        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 sm:!flex-row sm:items-center sm:justify-between">
+        <CardHeader className="sm:!flex-row flex flex-col gap-4 border-b px-5 py-4 sm:items-center sm:justify-between">
           <CardTitle className="text-base">
             {t("revenueTitle", "Revenue Statistics")}
           </CardTitle>
@@ -85,7 +85,7 @@ export function RevenueStatisticsCard() {
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
             ) : RevenueStatistics?.today.new_order_amount ||
-            RevenueStatistics?.today.renewal_order_amount ? (
+              RevenueStatistics?.today.renewal_order_amount ? (
               <ChartContainer
                 className="mx-auto max-h-80"
                 config={IncomeStatisticsConfig}
@@ -200,7 +200,7 @@ export function RevenueStatisticsCard() {
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
             ) : RevenueStatistics?.monthly.list &&
-            RevenueStatistics?.monthly.list.length > 0 ? (
+              RevenueStatistics?.monthly.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
                 config={IncomeStatisticsConfig}
@@ -342,7 +342,7 @@ export function RevenueStatisticsCard() {
             {isLoading ? (
               <Skeleton className="h-full w-full rounded-lg" />
             ) : RevenueStatistics?.all.list &&
-            RevenueStatistics?.all.list.length > 0 ? (
+              RevenueStatistics?.all.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
                 config={IncomeStatisticsConfig}
