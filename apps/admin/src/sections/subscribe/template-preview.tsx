@@ -2,18 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
+import { MonacoEditor } from "@workspace/ui/composed/editor/monaco-editor";
+import { Icon } from "@workspace/ui/composed/icon";
+import { previewSubscribeTemplate } from "@workspace/ui/services/admin/application";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@workspace/ui/components/sheet";
-import { MonacoEditor } from "@workspace/ui/composed/editor/monaco-editor";
-import { Icon } from "@workspace/ui/composed/icon";
-import { previewSubscribeTemplate } from "@workspace/ui/services/admin/application";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+} from "@/components/settings-workspace";
 
 interface TemplatePreviewProps {
   applicationId: number;
@@ -92,25 +92,32 @@ export function TemplatePreview({
           {t("templatePreview.preview", "Preview")}
         </Button>
       </SheetTrigger>
-      <SheetHeader>
-        <SheetTitle />
-      </SheetHeader>
-      <SheetContent className="w-[800px] max-w-[90vw] pt-10 md:max-w-screen-md">
+      <SheetContent
+        className="w-[800px] max-w-[90vw] md:max-w-screen-md"
+        size="lg"
+      >
+        <SheetHeader>
+          <SheetTitle>
+            {t("templatePreview.title", "Template Preview")}
+          </SheetTitle>
+        </SheetHeader>
         {isLoading ? (
-          <div className="flex items-center justify-center">
+          <div className="flex min-h-0 flex-1 items-center justify-center">
             <Icon className="h-6 w-6 animate-spin" icon="mdi:loading" />
             <span className="ml-2">
               {t("templatePreview.loading", "Loading...")}
             </span>
           </div>
         ) : (
-          <MonacoEditor
-            language={mapLanguage(output_format)}
-            readOnly
-            showLineNumbers
-            title={t("templatePreview.title", "Template Preview")}
-            value={getDisplayContent()}
-          />
+          <div className="min-h-0 flex-1 p-5">
+            <MonacoEditor
+              language={mapLanguage(output_format)}
+              readOnly
+              showLineNumbers
+              title={t("templatePreview.title", "Template Preview")}
+              value={getDisplayContent()}
+            />
+          </div>
         )}
       </SheetContent>
     </Sheet>

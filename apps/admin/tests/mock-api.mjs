@@ -26,6 +26,47 @@ const serverFixture = {
   sort: 1,
 };
 
+const nodeFixture = {
+  id: 84,
+  name: "Tokyo VLESS mobile layout verification node",
+  server_id: 42,
+  protocol: "vless",
+  address: "mobile-node-with-a-long-hostname.example.com",
+  port: 44_443,
+  tags: ["premium", "tokyo", "edge"],
+  enabled: true,
+  sort: 1,
+};
+
+const userFixture = {
+  id: 7,
+  avatar: "",
+  balance: 12_500,
+  commission: 230,
+  referral_percentage: 10,
+  only_first_purchase: false,
+  gift_amount: 500,
+  telegram: 0,
+  refer_code: "GOOGLE7",
+  referer_id: 0,
+  enable: true,
+  enable_balance_notify: true,
+  enable_login_notify: true,
+  enable_subscribe_notify: true,
+  enable_trade_notify: true,
+  auth_methods: [
+    {
+      auth_type: "email",
+      auth_identifier: "mobile.acceptance@example.com",
+      verified: true,
+    },
+  ],
+  user_devices: [],
+  rules: [],
+  created_at: 1_724_544_000,
+  updated_at: 1_724_544_000,
+};
+
 function send(response, status, payload) {
   response.writeHead(status, {
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
@@ -66,7 +107,10 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/server/node/list") {
-    send(response, 200, { code: 200, data: { list: [], total: 0 } });
+    send(response, 200, {
+      code: 200,
+      data: { list: [nodeFixture], total: 1 },
+    });
     return;
   }
 
@@ -75,11 +119,42 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/v1/admin/server/node_config") {
+    const config = {
+      inherit_ip_strategy: true,
+      ip_strategy: "prefer_ipv4",
+      inherit_dns: true,
+      dns: [],
+      inherit_block: true,
+      block: [],
+      inherit_outbound: true,
+      outbound: [],
+    };
+    send(response, 200, {
+      code: 200,
+      data: { override: config, effective: config },
+    });
+    return;
+  }
+
   if (url.pathname === "/v1/admin/user/current") {
     send(response, 200, {
       code: 200,
       data: { id: 1, email: "admin@example.com", name: "Admin" },
     });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/user/list") {
+    send(response, 200, {
+      code: 200,
+      data: { list: [userFixture], total: 1 },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/user/detail") {
+    send(response, 200, { code: 200, data: userFixture });
     return;
   }
 

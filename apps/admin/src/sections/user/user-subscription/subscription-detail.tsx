@@ -1,12 +1,4 @@
 import { Button } from "@workspace/ui/components/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
@@ -18,6 +10,14 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { IpLink } from "@/components/ip-link";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { StatusChip } from "@/components/status-chip";
 import { formatDate } from "@/utils/common";
 
@@ -38,7 +38,7 @@ export function SubscriptionDetail({
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent
         className="w-[820px] max-w-full gap-0 md:max-w-[820px]"
-        side="right"
+        size="lg"
       >
         <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{t("onlineDevices", "Online Devices")}</SheetTitle>

@@ -17,6 +17,7 @@ interface DataToolbarProps<TData> {
   title?: ReactNode;
   toolbar?: ReactNode | ReactNode[];
   loading?: boolean;
+  mobileCards?: boolean;
   onRefresh: () => void;
   onReset: () => void;
   labels?: Partial<{
@@ -33,12 +34,16 @@ export function DataToolbar<TData>({
   title,
   toolbar,
   loading,
+  mobileCards,
   onRefresh,
   onReset,
   labels,
 }: DataToolbarProps<TData>) {
   return (
-    <div className="rounded-xl border bg-card p-3 shadow-none">
+    <div
+      className="rounded-xl border bg-card p-3 shadow-none"
+      data-slot="data-toolbar"
+    >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0 flex-1">
           {params?.length ? (
@@ -61,7 +66,9 @@ export function DataToolbar<TData>({
             >
               <RefreshCcw className={loading ? "animate-spin" : undefined} />
             </Button>
-            <ColumnToggle table={table} title={labels?.columns} />
+            <div className={mobileCards ? "hidden md:block" : undefined}>
+              <ColumnToggle table={table} title={labels?.columns} />
+            </div>
             <Button
               aria-label={labels?.reset || "Reset table"}
               className="size-8"

@@ -9,15 +9,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { AreaCodeSelect } from "@workspace/ui/composed/area-code-select";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -27,6 +18,15 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { useGlobalStore } from "@/stores/global";
 
 interface UserFormProps<T> {
@@ -93,7 +93,10 @@ export default function UserForm<T extends Record<string, any>>({
           {trigger}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[680px] max-w-full gap-0 md:max-w-[680px]">
+      <SheetContent
+        className="w-[680px] max-w-full gap-0 md:max-w-[680px]"
+        size="md"
+      >
         <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>

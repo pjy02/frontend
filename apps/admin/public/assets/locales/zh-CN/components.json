@@ -72,9 +72,11 @@
   "table": {
     "columns": "选择显示列",
     "loadError": "暂时无法加载数据",
+    "moreActions": "更多操作",
     "refresh": "刷新数据",
     "reset": "重置表格",
-    "retry": "重试"
+    "retry": "重试",
+    "selectRow": "选择行"
   },
   "theme": {
     "dark": "深色",

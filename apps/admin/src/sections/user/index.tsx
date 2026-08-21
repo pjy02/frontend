@@ -8,14 +8,6 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Switch } from "@workspace/ui/components/switch";
 import {
@@ -49,6 +41,14 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Display } from "@/components/display";
 import { PageHeader } from "@/components/page-header";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { StatusChip } from "@/components/status-chip";
 import { useSubscribe } from "@/stores/subscribe";
 import { formatDate } from "@/utils/common";
@@ -434,7 +434,7 @@ function ProfileSheet({
       </SheetTrigger>
       <SheetContent
         className="admin-user-sheet w-[760px] max-w-full gap-0 md:max-w-[760px]"
-        side="right"
+        size="md"
       >
         <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{t("userProfile", "User Profile")}</SheetTitle>
@@ -463,7 +463,7 @@ function ProfileSheet({
                   : t("disabled", "Disabled")}
               </StatusChip>
             </div>
-            <Tabs className="min-h-0 flex-1" defaultValue="basic">
+            <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="basic">
               <TabsList className="mx-6 mt-4 grid w-[calc(100%-3rem)] grid-cols-3">
                 <TabsTrigger value="basic">
                   {t("basicInfoTitle", "Basic Info")}
@@ -475,7 +475,7 @@ function ProfileSheet({
                   {t("authMethodsTitle", "Auth Methods")}
                 </TabsTrigger>
               </TabsList>
-              <ScrollArea className="h-[calc(100dvh-198px)]">
+              <ScrollArea className="min-h-0 flex-1">
                 <div className="p-6 pt-4">
                   <TabsContent className="mt-0" value="basic">
                     <BasicInfoForm refetch={refetchAll} user={user} />
@@ -520,7 +520,7 @@ function SubscriptionSheet({ userId }: { userId: number }) {
       </SheetTrigger>
       <SheetContent
         className="w-[1100px] max-w-full gap-0 md:max-w-[1100px]"
-        side="right"
+        size="xl"
       >
         <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{t("subscriptionList", "Subscriptions")}</SheetTitle>

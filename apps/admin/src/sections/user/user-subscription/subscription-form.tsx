@@ -9,15 +9,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { DatePicker } from "@workspace/ui/composed/date-picker";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -27,6 +18,15 @@ import { type ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { useSubscribe } from "@/stores/subscribe";
 
 interface Props {
@@ -99,7 +99,7 @@ export function SubscriptionForm({
       </SheetTrigger>
       <SheetContent
         className="w-[560px] max-w-full gap-0 md:max-w-[560px]"
-        side="right"
+        size="md"
       >
         <SheetHeader className="border-b px-6 py-5">
           <SheetTitle>{title}</SheetTitle>

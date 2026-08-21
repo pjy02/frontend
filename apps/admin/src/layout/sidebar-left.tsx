@@ -42,6 +42,17 @@ export function SidebarLeft({
   const pathname = useLocation({ select: (location) => location.pathname });
   const { state, isMobile, setOpenMobile } = useSidebar();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollEdges, setScrollEdges] = useState({ up: false, down: false });
+
+  const updateScrollEdges = React.useCallback(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    setScrollEdges({
+      up: element.scrollTop > 4,
+      down: element.scrollTop + element.clientHeight < element.scrollHeight - 4,
+    });
+  }, []);
 
   const normalize = (path: string) =>
     path.endsWith("/") && path !== "/" ? path.replace(/\/+$/, "") : path;
@@ -78,6 +89,20 @@ export function SidebarLeft({
       return next;
     });
   }, [pathname, navs]);
+
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(updateScrollEdges);
+    const element = scrollRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return () => cancelAnimationFrame(frame);
+    }
+    const observer = new ResizeObserver(updateScrollEdges);
+    observer.observe(element);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [openGroups, state, updateScrollEdges]);
 
   const renderCollapsedItem = (nav: NavItem) => {
     const NavIcon = nav.icon;
@@ -186,7 +211,13 @@ export function SidebarLeft({
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent
+        className="admin-sidebar-scroll px-2 py-3"
+        data-can-scroll-down={scrollEdges.down}
+        data-can-scroll-up={scrollEdges.up}
+        onScroll={updateScrollEdges}
+        ref={scrollRef}
+      >
         <SidebarMenu>
           {!isMobile && state === "collapsed"
             ? navs.map((nav) => (
@@ -231,8 +262,12 @@ export function SidebarLeft({
                   <SidebarGroup className="p-0 pb-1" key={nav.title}>
                     <SidebarMenuButton
                       aria-expanded={isOpen}
-                      className="relative h-10 rounded-lg px-3"
-                      isActive={isGroupActive(nav)}
+                      className={cn(
+                        "relative h-10 rounded-lg px-3",
+                        isGroupActive(nav) &&
+                          "font-semibold text-sidebar-accent-foreground"
+                      )}
+                      isActive={false}
                       onClick={() =>
                         setOpenGroups((current) => ({
                           ...current,

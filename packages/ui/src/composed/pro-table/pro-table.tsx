@@ -19,6 +19,11 @@ import {
 } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   Table,
@@ -36,15 +41,14 @@ import { Pagination } from "@workspace/ui/composed/pro-table/pagination";
 import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { cn } from "@workspace/ui/lib/utils";
-import { GripVertical, ShieldX, TriangleAlert } from "lucide-react";
-import type React from "react";
 import {
-  Fragment,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+  GripVertical,
+  MoreHorizontal,
+  ShieldX,
+  TriangleAlert,
+} from "lucide-react";
+import type React from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export interface ProTableProps<TData, TValue> {
@@ -66,6 +70,10 @@ export interface ProTableProps<TData, TValue> {
     render?: (row: TData) => React.ReactNode[];
     batchRender?: (rows: TData[]) => React.ReactNode[];
   };
+  mobile?: {
+    render: (row: TData) => React.ReactNode;
+    getAriaLabel?: (row: TData) => string;
+  };
   action?: React.Ref<ProTableActions | undefined>;
   texts?: Partial<{
     actions: string;
@@ -81,6 +89,7 @@ export interface ProTableProps<TData, TValue> {
     fetchError: string;
     permissionDenied: string;
     retry: string;
+    moreActions: string;
   }>;
   empty?: React.ReactNode;
   onSort?: (
@@ -110,6 +119,7 @@ export function ProTable<
   empty,
   onSort,
   initialFilters,
+  mobile,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -165,11 +175,12 @@ export function ProTable<
               id: "actions",
               header: texts?.actions,
               cell: ({ row }) => (
-                <div className="flex items-center justify-end gap-2">
-                  {actions?.render?.(row.original).map((item, index) => (
-                    <Fragment key={index}>{item}</Fragment>
-                  ))}
-                </div>
+                <RowActions
+                  items={actions?.render?.(row.original) || []}
+                  moreLabel={
+                    texts?.moreActions || t("table.moreActions", "More actions")
+                  }
+                />
               ),
               enableSorting: false,
               enableHiding: false,
@@ -284,6 +295,7 @@ export function ProTable<
             reset: texts?.reset || t("table.reset", "Reset table"),
           }}
           loading={isLoading}
+          mobileCards={Boolean(mobile)}
           onRefresh={fetchData}
           onReset={reset}
           params={params}
@@ -294,18 +306,115 @@ export function ProTable<
       )}
 
       {selectedCount > 0 && actions?.batchRender && (
-        <Alert className="flex items-center justify-between">
+        <Alert className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <AlertTitle className="m-0">
             {texts?.selectedRowsText?.(selectedCount) ||
               `Selected ${selectedCount} rows`}
           </AlertTitle>
-          <AlertDescription className="flex gap-2">
+          <AlertDescription className="flex flex-wrap justify-end gap-2">
             {actions.batchRender(selectedRows)}
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="relative min-w-0 overflow-hidden rounded-xl border bg-card">
+      {mobile ? (
+        <div className="grid gap-3 md:hidden">
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => {
+              const rowActions = actions?.render?.(row.original) || [];
+              return (
+                <article
+                  aria-label={mobile.getAriaLabel?.(row.original)}
+                  className="overflow-hidden rounded-xl border bg-card"
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  key={row.id}
+                >
+                  <div className="p-4">{mobile.render(row.original)}</div>
+                  {(actions?.batchRender || rowActions.length > 0) && (
+                    <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+                      {actions?.batchRender ? (
+                        <Checkbox
+                          aria-label={t("table.selectRow", "Select row")}
+                          checked={row.getIsSelected()}
+                          onCheckedChange={(value) =>
+                            row.toggleSelected(!!value)
+                          }
+                        />
+                      ) : (
+                        <span />
+                      )}
+                      <RowActions
+                        items={rowActions}
+                        moreLabel={
+                          texts?.moreActions ||
+                          t("table.moreActions", "More actions")
+                        }
+                      />
+                    </div>
+                  )}
+                </article>
+              );
+            })
+          ) : isLoading ? (
+            Array.from({ length: 3 }, (_, index) => (
+              <div
+                className="space-y-3 rounded-xl border bg-card p-4"
+                key={`mobile-skeleton-${index}`}
+              >
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            ))
+          ) : fetchError ? (
+            <div
+              className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-center"
+              role="alert"
+            >
+              <div
+                className={cn(
+                  "grid size-10 place-items-center rounded-full",
+                  fetchError === "forbidden"
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                    : "bg-destructive/10 text-destructive"
+                )}
+              >
+                {fetchError === "forbidden" ? (
+                  <ShieldX className="size-5" />
+                ) : (
+                  <TriangleAlert className="size-5" />
+                )}
+              </div>
+              <p className="font-medium text-sm">
+                {fetchError === "forbidden"
+                  ? texts?.permissionDenied ||
+                    t(
+                      "table.permissionDenied",
+                      "You do not have permission to view this data"
+                    )
+                  : texts?.fetchError ||
+                    t("table.loadError", "Unable to load data")}
+              </p>
+              {fetchError === "error" ? (
+                <Button onClick={fetchData} size="sm" variant="outline">
+                  {texts?.retry || t("table.retry", "Try again")}
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-card py-10">
+              {empty || <Empty />}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "relative min-w-0 overflow-hidden rounded-xl border bg-card",
+          mobile && "hidden md:block"
+        )}
+      >
         <ProTableWrapper data={data} onSort={onSort} setData={setData}>
           <Table className="w-full">
             <TableHeader className="bg-muted/45">
@@ -486,12 +595,54 @@ function createSelectColumn<TData, TValue>(): ColumnDef<TData, TValue> {
   };
 }
 
+function RowActions({
+  items,
+  moreLabel,
+}: {
+  items: React.ReactNode[];
+  moreLabel: string;
+}) {
+  const visibleItems = items.filter(Boolean);
+  if (visibleItems.length === 0) return null;
+
+  const [primary, ...secondary] = visibleItems;
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <div className="[&_[data-slot=button]]:h-8 [&_[data-slot=button]]:px-3">
+        {primary}
+      </div>
+      {secondary.length > 0 ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              aria-label={moreLabel}
+              size="icon-sm"
+              title={moreLabel}
+              variant="ghost"
+            >
+              <MoreHorizontal />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-52 rounded-xl p-1.5 [&_[data-slot=button]]:h-9 [&_[data-slot=button]]:w-full [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:px-3"
+            sideOffset={6}
+          >
+            <div className="grid gap-1">{secondary}</div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
+    </div>
+  );
+}
+
 function getTableHeaderClass(columnId: string) {
   if (["sortable", "selected"].includes(columnId)) {
     return "sticky left-0 z-10 bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [&:has([role=checkbox])]:pr-2";
   }
   if (columnId === "actions") {
-    return "sticky right-0 z-10 text-right bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+    return "sticky right-0 z-10 w-[116px] min-w-[116px] text-right bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   return "truncate";
 }
@@ -501,7 +652,7 @@ function getTableCellClass(columnId: string) {
     return "sticky left-0 bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   if (columnId === "actions") {
-    return "sticky right-0 bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+    return "sticky right-0 w-[116px] min-w-[116px] bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   return "truncate";
 }

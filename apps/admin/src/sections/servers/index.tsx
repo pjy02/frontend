@@ -53,7 +53,7 @@ function PctBar({ value }: { value: number }) {
                       ? "w-[10%]"
                       : "w-0";
   return (
-    <div className="min-w-24">
+    <div className="min-w-20 sm:min-w-24">
       <div className="text-xs leading-none">{v}%</div>
       <div className="h-1.5 w-full rounded bg-muted">
         <div className={cn("h-1.5 rounded bg-primary", widthClass)} />
@@ -328,6 +328,90 @@ export default function Servers() {
               </Button>
             </div>
           ),
+        }}
+        mobile={{
+          getAriaLabel: (row) => String(row.name || row.id),
+          render: (row) => {
+            const offline = row.status?.status === "offline";
+            const protocols = (row.protocols || []).filter(
+              (protocol) => protocol.enable
+            );
+            const onlineUsers = Array.isArray(row.status?.online)
+              ? row.status.online.length
+              : Number(row.status?.online || 0);
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge className="shrink-0">{row.id}</Badge>
+                      <h2 className="truncate font-semibold text-base">
+                        {row.name || t("notAvailable", "Not Available")}
+                      </h2>
+                    </div>
+                    <p className="mt-1 text-muted-foreground text-sm">
+                      {[row.country, row.city].filter(Boolean).join(" · ") ||
+                        t("notAvailable", "Not Available")}
+                    </p>
+                  </div>
+                  <StatusChip tone={offline ? "neutral" : "success"}>
+                    {offline ? t("offline", "Offline") : t("online", "Online")}
+                  </StatusChip>
+                </div>
+
+                <div className="rounded-lg bg-muted/45 px-3 py-2 font-mono text-sm [overflow-wrap:anywhere]">
+                  {row.address || t("notAvailable", "Not Available")}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {protocols.length ? (
+                    protocols.map((protocol, index) => (
+                      <Badge
+                        key={`${protocol.type}-${protocol.port}-${index}`}
+                        variant="outline"
+                      >
+                        {protocol.type} · {protocol.port} ·{" "}
+                        {Number(protocol.ratio || 1).toFixed(2)}x
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 border-y py-3">
+                  <div className="min-w-0 space-y-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      {t("cpu", "CPU")}
+                    </span>
+                    <PctBar value={Number(row.status?.cpu || 0)} />
+                  </div>
+                  <div className="min-w-0 space-y-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      {t("memory", "Memory")}
+                    </span>
+                    <PctBar value={Number(row.status?.mem || 0)} />
+                  </div>
+                  <div className="min-w-0 space-y-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      {t("disk", "Disk")}
+                    </span>
+                    <PctBar value={Number(row.status?.disk || 0)} />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {t("onlineUsers", "Online Users")}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {onlineUsers}
+                  </span>
+                </div>
+              </div>
+            );
+          },
         }}
         onSort={async (source, target, items) => {
           const sourceIndex = items.findIndex(

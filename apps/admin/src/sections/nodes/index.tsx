@@ -238,6 +238,83 @@ export default function Nodes() {
           />
         ),
       }}
+      mobile={{
+        getAriaLabel: (row) => String(row.name || row.id),
+        render: (row) => (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Badge className="shrink-0">{row.id}</Badge>
+                  <h2 className="truncate font-semibold text-base">
+                    {row.name || "—"}
+                  </h2>
+                </div>
+                <p className="mt-1 break-all font-mono text-muted-foreground text-sm">
+                  {row.address || "—"}:{row.port || "—"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  aria-label={t("enabled", "Enabled")}
+                  checked={row.enabled}
+                  onCheckedChange={async (value) => {
+                    await toggleNodeStatus({ id: row.id, enable: value });
+                    toast.success(
+                      value
+                        ? t("enabled_on", "Enabled")
+                        : t("enabled_off", "Disabled")
+                    );
+                    ref.current?.refresh();
+                    fetchNodes();
+                    fetchTags();
+                  }}
+                />
+                <StatusChip
+                  dot={false}
+                  tone={row.enabled ? "success" : "neutral"}
+                >
+                  {row.enabled
+                    ? t("enabled_on", "Enabled")
+                    : t("enabled_off", "Disabled")}
+                </StatusChip>
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-lg bg-muted/40 p-3 text-sm">
+              <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+                <span className="text-muted-foreground">
+                  {t("server", "Server")}
+                </span>
+                <span className="min-w-0 break-all text-right font-medium">
+                  {getServerName(row.server_id)} ·{" "}
+                  {getServerAddress(row.server_id)}
+                </span>
+              </div>
+              <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+                <span className="text-muted-foreground">
+                  {t("protocol", "Protocol")}
+                </span>
+                <span className="text-right font-medium">
+                  {row.protocol}:{getProtocolPort(row.server_id, row.protocol)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {(row.tags || []).length ? (
+                row.tags.map((tag) => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-muted-foreground text-sm">—</span>
+              )}
+            </div>
+          </div>
+        ),
+      }}
       onSort={async (source, target, items) => {
         // NOTE: `items` is the current page's items from ProTable.
         // Avoid mutating it in-place, and persist sort changes reliably.

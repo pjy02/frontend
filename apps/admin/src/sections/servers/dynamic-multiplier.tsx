@@ -4,15 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { ArrayInput } from "@workspace/ui/composed/dynamic-Inputs";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
@@ -22,6 +13,15 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 
 export default function DynamicMultiplier() {
   const { t } = useTranslation("servers");
@@ -53,38 +53,47 @@ export default function DynamicMultiplier() {
   return (
     <Sheet onOpenChange={setOpen} open={open}>
       <SheetTrigger asChild>
-        <Card>
-          <CardContent>
-            <div className="flex cursor-pointer items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Icon
-                    className="h-5 w-5 text-primary"
-                    icon="mdi:clock-time-eight"
-                  />
+        <button
+          aria-label={t(
+            "server_config.dynamic_multiplier",
+            "Dynamic multiplier"
+          )}
+          className="w-full rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          type="button"
+        >
+          <Card className="h-full">
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Icon
+                      className="h-5 w-5 text-primary"
+                      icon="mdi:clock-time-eight"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {t(
+                        "server_config.dynamic_multiplier",
+                        "Dynamic multiplier"
+                      )}
+                    </p>
+                    <p className="truncate text-muted-foreground text-sm">
+                      {t(
+                        "server_config.dynamic_multiplier_desc",
+                        "Define time slots and multipliers to adjust traffic accounting."
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium">
-                    {t(
-                      "server_config.dynamic_multiplier",
-                      "Dynamic multiplier"
-                    )}
-                  </p>
-                  <p className="truncate text-muted-foreground text-sm">
-                    {t(
-                      "server_config.dynamic_multiplier_desc",
-                      "Define time slots and multipliers to adjust traffic accounting."
-                    )}
-                  </p>
-                </div>
+                <Icon className="size-6" icon="mdi:chevron-right" />
               </div>
-              <Icon className="size-6" icon="mdi:chevron-right" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </button>
       </SheetTrigger>
 
-      <SheetContent className="w-[600px] max-w-full md:max-w-3xl">
+      <SheetContent className="w-[600px] max-w-full md:max-w-3xl" size="md">
         <SheetHeader>
           <SheetTitle>
             {t("server_config.dynamic_multiplier", "Dynamic multiplier")}
@@ -96,7 +105,7 @@ export default function DynamicMultiplier() {
             )}
           </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-60px-env(safe-area-inset-top))] px-6">
+        <ScrollArea className="min-h-0 flex-1 px-6">
           <div className="space-y-4 pt-4">
             <ArrayInput<API.TimePeriod>
               fields={[

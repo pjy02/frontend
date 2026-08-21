@@ -72,9 +72,11 @@
   "table": {
     "columns": "Choose columns",
     "loadError": "Unable to load data",
+    "moreActions": "More actions",
     "refresh": "Refresh data",
     "reset": "Reset table",
-    "retry": "Try again"
+    "retry": "Try again",
+    "selectRow": "Select row"
   },
   "theme": {
     "dark": "Dark",
