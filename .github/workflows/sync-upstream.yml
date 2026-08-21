@@ -1,0 +1,195 @@
+name: Sync upstream
+run-name: Sync pjy02/frontend@${{ inputs.upstream_ref }} into main
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: Branch or tag to sync from pjy02/frontend
+        required: true
+        default: main
+        type: string
+      run_checks:
+        description: Run checks, tests, and build before pushing
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: pjy02/frontend
+  TARGET_BRANCH: main
+  HUSKY: '0'
+  CI: 'true'
+
+jobs:
+  sync:
+    name: Sync upstream into main
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout deployment repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and merge upstream
+        id: sync
+        shell: bash
+        env:
+          UPSTREAM_REF: ${{ inputs.upstream_ref }}
+          UPSTREAM_TOKEN: ${{ secrets.UPSTREAM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${UPSTREAM_REF}" == -* ]] || ! git check-ref-format "refs/sync/${UPSTREAM_REF}" >/dev/null; then
+            echo "Invalid upstream branch or tag: ${UPSTREAM_REF}" >&2
+            exit 2
+          fi
+
+          before_sha="$(git rev-parse HEAD)"
+          git remote remove upstream 2>/dev/null || true
+
+          if [[ -n "${UPSTREAM_TOKEN}" ]]; then
+            git remote add upstream "https://x-access-token:${UPSTREAM_TOKEN}@github.com/${UPSTREAM_REPOSITORY}.git"
+          else
+            git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          fi
+
+          git fetch --no-tags upstream "${UPSTREAM_REF}"
+          git remote set-url upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          upstream_sha="$(git rev-parse FETCH_HEAD)"
+
+          echo "before_sha=${before_sha}" >> "${GITHUB_OUTPUT}"
+          echo "upstream_sha=${upstream_sha}" >> "${GITHUB_OUTPUT}"
+
+          if git merge-base --is-ancestor "${upstream_sha}" HEAD; then
+            echo "has_changes=false" >> "${GITHUB_OUTPUT}"
+            {
+              echo "## Upstream sync"
+              echo
+              echo "The deployment repository already contains \`${UPSTREAM_REPOSITORY}@${UPSTREAM_REF}\`."
+              echo
+              echo "- Target: \`${TARGET_BRANCH}@${before_sha}\`"
+              echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+
+          echo "has_changes=true" >> "${GITHUB_OUTPUT}"
+          merge_args=(--no-ff --no-edit)
+          first_sync=false
+
+          if ! git merge-base HEAD "${upstream_sha}" >/dev/null 2>&1; then
+            merge_args+=(--allow-unrelated-histories)
+            first_sync=true
+          fi
+
+          set +e
+          git merge "${merge_args[@]}" "${upstream_sha}"
+          merge_status=$?
+          set -e
+
+          if [[ ${merge_status} -ne 0 ]]; then
+            conflicts="$(git diff --name-only --diff-filter=U || true)"
+            {
+              echo "## Upstream sync failed"
+              echo
+              echo "The upstream changes could not be merged automatically. Nothing was pushed."
+              echo
+              echo "- Target: \`${TARGET_BRANCH}@${before_sha}\`"
+              echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
+              if [[ -n "${conflicts}" ]]; then
+                echo
+                echo "### Conflicting files"
+                echo '```text'
+                echo "${conflicts}"
+                echo '```'
+              fi
+            } >> "${GITHUB_STEP_SUMMARY}"
+            git merge --abort || true
+            exit "${merge_status}"
+          fi
+
+          after_sha="$(git rev-parse HEAD)"
+          echo "after_sha=${after_sha}" >> "${GITHUB_OUTPUT}"
+          echo "first_sync=${first_sync}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## Upstream changes merged"
+            echo
+            echo "The merge is local until all enabled checks pass."
+            echo
+            echo "- Target before merge: \`${TARGET_BRANCH}@${before_sha}\`"
+            echo "- Upstream: \`${UPSTREAM_REF}@${upstream_sha}\`"
+            echo "- Merge commit: \`${after_sha}\`"
+            echo "- First history linkage: \`${first_sync}\`"
+            echo
+            echo "### Change summary"
+            echo '```text'
+            git diff --stat "${before_sha}..${after_sha}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Setup Bun
+        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.1
+
+      - name: Install dependencies
+        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting and types
+        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        run: bun run check
+
+      - name: Run tests
+        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        run: bun run test
+
+      - name: Build
+        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        run: bun run build
+
+      - name: Check Git whitespace
+        if: steps.sync.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ steps.sync.outputs.before_sha }}
+        run: git diff --check "${BEFORE_SHA}..HEAD"
+
+      - name: Push synchronized main
+        if: steps.sync.outputs.has_changes == 'true'
+        shell: bash
+        run: git push origin "HEAD:${TARGET_BRANCH}"
+
+      - name: Record result
+        if: steps.sync.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          CHECKS_ENABLED: ${{ inputs.run_checks }}
+        run: |
+          {
+            echo
+            echo "## Sync completed"
+            echo
+            echo "- Pushed branch: \`${TARGET_BRANCH}\`"
+            echo "- Checks enabled: \`${CHECKS_ENABLED}\`"
+            echo "- Vercel can now deploy the new \`${TARGET_BRANCH}\` commit."
+          } >> "${GITHUB_STEP_SUMMARY}"
