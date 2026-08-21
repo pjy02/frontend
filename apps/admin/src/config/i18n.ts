@@ -20,6 +20,7 @@ export const i18nNamespaces = [
   "nodes",
   "order",
   "payment",
+  "plugin",
   "product",
   "servers",
   "subscribe",

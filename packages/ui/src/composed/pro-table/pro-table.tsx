@@ -234,6 +234,8 @@ export function ProTable<
           candidate?.response?.status ??
           candidate?.status ??
           candidate?.code;
+        setData([]);
+        setRowCount(0);
         setFetchError(code === 403 || code === 40_005 ? "forbidden" : "error");
       }
     } finally {
