@@ -20,14 +20,6 @@ import {
 } from "@workspace/ui/components/form";
 import { Label } from "@workspace/ui/components/label";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import {
   Tabs,
@@ -51,6 +43,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
 import { useNode } from "@/stores/node";
 
@@ -267,8 +267,8 @@ export default function SubscribeForm<T extends Record<string, any>>({
   const unit_time = form.watch("unit_time");
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
             form.reset();
@@ -277,12 +277,12 @@ export default function SubscribeForm<T extends Record<string, any>>({
         >
           {trigger}
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[800px] max-w-full gap-0 md:max-w-3xl">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))] px-6">
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1 px-5 sm:px-7">
           <Form {...form}>
             <form className="pt-4" onSubmit={form.handleSubmit(handleSubmit)}>
               <Tabs className="w-full" defaultValue="basic">
@@ -1039,7 +1039,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
             </form>
           </Form>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
             onClick={() => {
@@ -1070,8 +1070,8 @@ export default function SubscribeForm<T extends Record<string, any>>({
             )}
             {t("form.confirm")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

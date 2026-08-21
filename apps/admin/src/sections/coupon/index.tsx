@@ -16,9 +16,12 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Display } from "@/components/display";
+import {
+  DateTimeValue,
+  EnabledStatusChip,
+  MoneyValue,
+} from "@/components/commerce-display";
 import { useSubscribe } from "@/stores/subscribe";
-import { formatDate } from "@/utils/common";
 import CouponForm from "./coupon-form";
 
 export default function Coupon() {
@@ -96,16 +99,23 @@ export default function Coupon() {
           accessorKey: "enable",
           header: t("enable", "Enable"),
           cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("enable")}
-              onCheckedChange={async (checked) => {
-                await updateCoupon({
-                  ...row.original,
-                  enable: checked,
-                } as API.UpdateCouponRequest);
-                ref.current?.refresh();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                defaultChecked={row.getValue("enable")}
+                onCheckedChange={async (checked) => {
+                  await updateCoupon({
+                    ...row.original,
+                    enable: checked,
+                  } as API.UpdateCouponRequest);
+                  ref.current?.refresh();
+                }}
+              />
+              <EnabledStatusChip
+                disabledLabel={t("disabled", "Disabled")}
+                enabled={Boolean(row.original.enable)}
+                enabledLabel={t("enabled", "Enabled")}
+              />
+            </div>
           ),
         },
         {
@@ -139,7 +149,7 @@ export default function Coupon() {
               {row.getValue("type") === 1 ? (
                 `${row.original.discount} %`
               ) : (
-                <Display type="currency" value={row.original.discount} />
+                <MoneyValue value={row.original.discount} />
               )}
             </Badge>
           ),
@@ -174,13 +184,12 @@ export default function Coupon() {
             const { start_time, expire_time } = row.original;
             if (start_time) {
               return expire_time ? (
-                <>
-                  {formatDate(start_time)} - {formatDate(expire_time)}
-                </>
-              ) : start_time ? (
-                formatDate(start_time)
+                <div className="flex flex-col gap-1">
+                  <DateTimeValue value={start_time} />
+                  <DateTimeValue value={expire_time} />
+                </div>
               ) : (
-                "--"
+                <DateTimeValue value={start_time} />
               );
             }
             return "--";
@@ -188,6 +197,7 @@ export default function Coupon() {
         },
       ]}
       header={{
+        title: t("couponManagement", "Coupon management"),
         toolbar: (
           <CouponForm<API.CreateCouponRequest>
             loading={loading}

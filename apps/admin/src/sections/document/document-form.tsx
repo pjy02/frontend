@@ -10,14 +10,6 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { MarkdownEditor } from "@workspace/ui/composed/editor/markdown";
 import { Icon } from "@workspace/ui/composed/icon";
 import { TagInput } from "@workspace/ui/composed/tag-input";
@@ -25,6 +17,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 
 const formSchema = z.object({
   title: z.string(),
@@ -70,8 +70,8 @@ export default function DocumentForm<T extends Record<string, any>>({
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
             form.reset();
@@ -80,12 +80,12 @@ export default function DocumentForm<T extends Record<string, any>>({
         >
           {trigger}
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[500px] max-w-full md:max-w-screen-md">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-48px-36px-36px-env(safe-area-inset-top))]">
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
             <form
               className="space-y-4 px-6 pt-4"
@@ -239,7 +239,7 @@ export default function DocumentForm<T extends Record<string, any>>({
             </form>
           </Form>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
             onClick={() => {
@@ -255,8 +255,8 @@ export default function DocumentForm<T extends Record<string, any>>({
             )}{" "}
             {t("form.confirm", "Confirm")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

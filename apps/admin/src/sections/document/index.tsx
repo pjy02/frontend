@@ -1,3 +1,4 @@
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Switch } from "@workspace/ui/components/switch";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
@@ -15,7 +16,10 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { formatDate } from "@/utils/common";
+import {
+  DateTimeValue,
+  EnabledStatusChip,
+} from "@/components/commerce-display";
 import DocumentForm from "./document-form";
 
 export default function Page() {
@@ -104,16 +108,23 @@ export default function Page() {
           accessorKey: "show",
           header: t("show", "Show"),
           cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("show")}
-              onCheckedChange={async (checked) => {
-                await updateDocument({
-                  ...row.original,
-                  show: checked,
-                });
-                ref.current?.refresh();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                defaultChecked={row.getValue("show")}
+                onCheckedChange={async (checked) => {
+                  await updateDocument({
+                    ...row.original,
+                    show: checked,
+                  });
+                  ref.current?.refresh();
+                }}
+              />
+              <EnabledStatusChip
+                disabledLabel={t("hidden", "Hidden")}
+                enabled={Boolean(row.original.show)}
+                enabledLabel={t("visible", "Visible")}
+              />
+            </div>
           ),
         },
         {
@@ -123,12 +134,24 @@ export default function Page() {
         {
           accessorKey: "tags",
           header: t("tags", "Tags"),
-          cell: ({ row }) => row.original.tags.join(", "),
+          cell: ({ row }) => (
+            <div className="flex flex-wrap gap-1">
+              {row.original.tags.length > 0
+                ? row.original.tags.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))
+                : "—"}
+            </div>
+          ),
         },
         {
           accessorKey: "updated_at",
           header: t("updatedAt", "Updated At"),
-          cell: ({ row }) => formatDate(row.getValue("updated_at")),
+          cell: ({ row }) => (
+            <DateTimeValue value={row.getValue("updated_at")} />
+          ),
         },
       ]}
       header={{

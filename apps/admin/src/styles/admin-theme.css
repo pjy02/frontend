@@ -477,6 +477,43 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
   border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
 }
 
+.admin-money-value {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.admin-money-value[data-emphasis="strong"] {
+  font-weight: 650;
+}
+
+.admin-money-value[data-emphasis="muted"] {
+  color: var(--admin-text-secondary);
+  font-weight: 400;
+}
+
+.admin-time-value {
+  color: var(--admin-text-secondary);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+
+.admin-commerce-summary {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 16rem;
+}
+
+.admin-commerce-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
 html.admin-console
   .admin-user-sheet
   [data-slot="form-item"]:has([role="switch"]) {

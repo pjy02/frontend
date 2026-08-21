@@ -20,7 +20,7 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Display } from "@/components/display";
+import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import PaymentForm from "./payment-form";
 
 export default function PaymentTable() {
@@ -133,16 +133,23 @@ export default function PaymentTable() {
           accessorKey: "enable",
           header: t("enable", "Enable"),
           cell: ({ row }) => (
-            <Switch
-              checked={Boolean(row.getValue("enable"))}
-              onCheckedChange={async (checked) => {
-                await updatePaymentMethod({
-                  ...row.original,
-                  enable: checked,
-                });
-                ref.current?.refresh();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={Boolean(row.getValue("enable"))}
+                onCheckedChange={async (checked) => {
+                  await updatePaymentMethod({
+                    ...row.original,
+                    enable: checked,
+                  });
+                  ref.current?.refresh();
+                }}
+              />
+              <EnabledStatusChip
+                disabledLabel={t("disabled", "Disabled")}
+                enabled={Boolean(row.original.enable)}
+                enabledLabel={t("enabled", "Enabled")}
+              />
+            </div>
           ),
         },
         {
@@ -186,7 +193,7 @@ export default function PaymentTable() {
             if (feeMode === 2) {
               return (
                 <Badge>
-                  <Display type="currency" value={row.original.fee_amount} />
+                  <MoneyValue value={row.original.fee_amount} />
                 </Badge>
               );
             }

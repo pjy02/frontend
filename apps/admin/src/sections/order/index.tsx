@@ -1,5 +1,4 @@
 import { useSearch } from "@tanstack/react-router";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   HoverCard,
@@ -12,16 +11,18 @@ import {
   ProTable,
   type ProTableActions,
 } from "@workspace/ui/composed/pro-table/pro-table";
-import { cn } from "@workspace/ui/lib/utils";
 import {
   getOrderList,
   updateOrderStatus,
 } from "@workspace/ui/services/admin/order";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Display } from "@/components/display";
+import {
+  DateTimeValue,
+  MoneyValue,
+  OrderStatusChip,
+} from "@/components/commerce-display";
 import { useSubscribe } from "@/stores/subscribe";
-import { formatDate } from "@/utils/common";
 import { UserDetail } from "../user/user-detail";
 
 export default function Order() {
@@ -29,23 +30,11 @@ export default function Order() {
   const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
 
   const statusOptions = [
-    {
-      value: 1,
-      label: t("status.1", "Pending"),
-      className: "bg-orange-500",
-    },
-    { value: 2, label: t("status.2", "Paid"), className: "bg-green-500" },
-    {
-      value: 3,
-      label: t("status.3", "Cancelled"),
-      className: "bg-gray-500",
-    },
-    { value: 4, label: t("status.4", "Closed"), className: "bg-red-500" },
-    {
-      value: 5,
-      label: t("status.5", "Completed"),
-      className: "bg-green-500",
-    },
+    { value: 1, label: t("status.1", "Pending") },
+    { value: 2, label: t("status.2", "Paid") },
+    { value: 3, label: t("status.3", "Cancelled") },
+    { value: 4, label: t("status.4", "Closed") },
+    { value: 5, label: t("status.5", "Completed") },
   ];
 
   const typeOptions = [
@@ -108,7 +97,7 @@ export default function Order() {
               <HoverCard>
                 <HoverCardTrigger asChild>
                   <Button className="p-0" variant="link">
-                    <Display type="currency" value={order.amount} />
+                    <MoneyValue emphasis="strong" value={order.amount} />
                   </Button>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-auto max-w-[80vw]">
@@ -124,55 +113,52 @@ export default function Order() {
                         <Separator className="my-2" />
                       </>
                     )}
-                    <ul className="grid gap-3">
-                      <li className="flex items-center justify-between">
+                    <ul className="admin-commerce-summary">
+                      <li className="admin-commerce-summary__row">
                         <span className="text-muted-foreground">
                           {t("subscribePrice", "Subscription Price")}
                         </span>
                         <span>
-                          <Display type="currency" value={order.price} />
+                          <MoneyValue value={order.price} />
                         </span>
                       </li>
-                      <li className="flex items-center justify-between">
+                      <li className="admin-commerce-summary__row">
                         <span className="text-muted-foreground">
                           {t("discount", "Discount Amount")}
                         </span>
                         <span>
-                          <Display type="currency" value={order.discount} />
+                          <MoneyValue value={order.discount} />
                         </span>
                       </li>
-                      <li className="flex items-center justify-between">
+                      <li className="admin-commerce-summary__row">
                         <span className="text-muted-foreground">
                           {t("couponDiscount", "Coupon Discount")}
                         </span>
                         <span>
-                          <Display
-                            type="currency"
-                            value={order.coupon_discount}
-                          />
+                          <MoneyValue value={order.coupon_discount} />
                         </span>
                       </li>
-                      <li className="flex items-center justify-between">
+                      <li className="admin-commerce-summary__row">
                         <span className="text-muted-foreground">
                           {t("feeAmount", "Fee Amount")}
                         </span>
                         <span>
-                          <Display type="currency" value={order.fee_amount} />
+                          <MoneyValue value={order.fee_amount} />
                         </span>
                       </li>
-                      <li className="flex items-center justify-between font-semibold">
+                      <li className="admin-commerce-summary__row border-t pt-3 font-semibold">
                         <span className="text-muted-foreground">
                           {t("total", "Total")}
                         </span>
                         <span>
-                          <Display type="currency" value={order.amount} />
+                          <MoneyValue emphasis="strong" value={order.amount} />
                         </span>
                       </li>
                     </ul>
                   </div>
                   <Separator className="my-4" />
-                  <ul className="grid gap-3">
-                    <li className="flex items-center justify-between">
+                  <ul className="admin-commerce-summary">
+                    <li className="admin-commerce-summary__row">
                       <span className="text-muted-foreground">
                         {t("method", "Payment Method")}
                       </span>
@@ -199,7 +185,7 @@ export default function Order() {
           header: t("updateTime", "Update Time"),
           cell: ({ row }) => {
             const order = row.original as API.Order;
-            return formatDate(order.updated_at);
+            return <DateTimeValue value={order.updated_at} />;
           },
         },
         {
@@ -213,7 +199,6 @@ export default function Order() {
             if ([1, 3, 4].includes(row.getValue("status"))) {
               return (
                 <Combobox<number, false>
-                  className={cn(option?.className)}
                   onChange={async (value) => {
                     await updateOrderStatus({
                       id: order.id,
@@ -221,20 +206,29 @@ export default function Order() {
                     });
                     ref.current?.refresh();
                   }}
-                  options={statusOptions}
+                  options={statusOptions.map((item) => ({
+                    ...item,
+                    children: (
+                      <OrderStatusChip label={item.label} status={item.value} />
+                    ),
+                  }))}
                   placeholder={t("status.0", "Status")}
                   value={order.status}
                 />
               );
             }
             return (
-              <Badge>
-                {option?.label || t(`status.${row.getValue("status")}`)}
-              </Badge>
+              <OrderStatusChip
+                label={option?.label || t(`status.${row.getValue("status")}`)}
+                status={order.status}
+              />
             );
           },
         },
       ]}
+      header={{
+        title: t("orderManagement", "Order management"),
+      }}
       initialFilters={initialFilters}
       key={JSON.stringify(initialFilters)}
       params={[

@@ -19,6 +19,7 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { Display } from "@/components/display";
 import { useSubscribe } from "@/stores/subscribe";
 import SubscribeForm from "./subscribe-form";
@@ -132,34 +133,48 @@ export default function SubscribeTable() {
           accessorKey: "show",
           header: t("show"),
           cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("show")}
-              onCheckedChange={async (checked) => {
-                await updateSubscribe({
-                  ...row.original,
-                  show: checked,
-                } as API.UpdateSubscribeRequest);
-                ref.current?.refresh();
-                fetchSubscribes();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                defaultChecked={row.getValue("show")}
+                onCheckedChange={async (checked) => {
+                  await updateSubscribe({
+                    ...row.original,
+                    show: checked,
+                  } as API.UpdateSubscribeRequest);
+                  ref.current?.refresh();
+                  fetchSubscribes();
+                }}
+              />
+              <EnabledStatusChip
+                disabledLabel={t("hidden", "Hidden")}
+                enabled={Boolean(row.original.show)}
+                enabledLabel={t("visible", "Visible")}
+              />
+            </div>
           ),
         },
         {
           accessorKey: "sell",
           header: t("sell"),
           cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("sell")}
-              onCheckedChange={async (checked) => {
-                await updateSubscribe({
-                  ...row.original,
-                  sell: checked,
-                } as API.UpdateSubscribeRequest);
-                ref.current?.refresh();
-                fetchSubscribes();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                defaultChecked={row.getValue("sell")}
+                onCheckedChange={async (checked) => {
+                  await updateSubscribe({
+                    ...row.original,
+                    sell: checked,
+                  } as API.UpdateSubscribeRequest);
+                  ref.current?.refresh();
+                  fetchSubscribes();
+                }}
+              />
+              <EnabledStatusChip
+                disabledLabel={t("notForSale", "Not for sale")}
+                enabled={Boolean(row.original.sell)}
+                enabledLabel={t("onSale", "On sale")}
+              />
+            </div>
           ),
         },
         {
@@ -171,7 +186,7 @@ export default function SubscribeTable() {
           header: t("unitPrice"),
           cell: ({ row }) => (
             <>
-              <Display type="currency" value={row.getValue("unit_price")} />/
+              <MoneyValue value={row.getValue("unit_price")} />/
               {t(
                 row.original.unit_time
                   ? `form.${row.original.unit_time}`
@@ -183,9 +198,7 @@ export default function SubscribeTable() {
         {
           accessorKey: "replacement",
           header: t("replacement"),
-          cell: ({ row }) => (
-            <Display type="currency" value={row.getValue("replacement")} />
-          ),
+          cell: ({ row }) => <MoneyValue value={row.getValue("replacement")} />,
         },
         {
           accessorKey: "traffic",
@@ -245,6 +258,7 @@ export default function SubscribeTable() {
         },
       ]}
       header={{
+        title: t("productManagement", "Product management"),
         toolbar: (
           <SubscribeForm<API.CreateSubscribeRequest>
             loading={loading}

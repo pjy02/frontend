@@ -21,14 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { MarkdownEditor } from "@workspace/ui/composed/editor/markdown";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
@@ -38,6 +30,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import * as z from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
 
 interface PaymentFormProps<T extends { platform?: string }> {
@@ -150,13 +150,13 @@ export default function PaymentForm<T extends { platform?: string }>({
   };
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent className="w-[550px] max-w-full md:max-w-screen-md">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-48px-36px-36px-24px-env(safe-area-inset-top))]">
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>{trigger}</WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="lg">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
             <form
               className="space-y-6 px-6 pt-4"
@@ -453,7 +453,7 @@ export default function PaymentForm<T extends { platform?: string }>({
           </Form>
         </ScrollArea>
 
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button disabled={loading} onClick={handleClose} variant="outline">
             {t("cancel", "Cancel")}
           </Button>
@@ -463,8 +463,8 @@ export default function PaymentForm<T extends { platform?: string }>({
             )}
             {t("submit", "Submit")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

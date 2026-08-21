@@ -26,7 +26,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { formatDate } from "@/utils/common";
+import { DateTimeValue, TicketStatusChip } from "@/components/commerce-display";
 import { UserDetail } from "../user/user-detail";
 
 export default function Page() {
@@ -123,29 +123,18 @@ export default function Page() {
             accessorKey: "status",
             header: t("status.0", "Status"),
             cell: ({ row }) => (
-              <span
-                className={cn(
-                  "flex items-center gap-2 before:block before:size-1.5 before:animate-pulse before:rounded-full before:ring-2 before:ring-opacity-50",
-                  {
-                    "before:bg-rose-500 before:ring-rose-500":
-                      row.original.status === 1,
-                    "before:bg-yellow-500 before:ring-yellow-500":
-                      row.original.status === 2,
-                    "before:bg-green-500 before:ring-green-500":
-                      row.original.status === 3,
-                    "before:bg-zinc-500 before:ring-zinc-500":
-                      row.original.status === 4,
-                  }
-                )}
-              >
-                {t(`status.${row.original.status}`)}
-              </span>
+              <TicketStatusChip
+                label={t(`status.${row.original.status}`)}
+                status={row.original.status}
+              />
             ),
           },
           {
             accessorKey: "updated_at",
             header: t("updatedAt", "Updated At"),
-            cell: ({ row }) => formatDate(row.getValue("updated_at")),
+            cell: ({ row }) => (
+              <DateTimeValue value={row.getValue("updated_at")} />
+            ),
           },
         ]}
         header={{
@@ -216,8 +205,8 @@ export default function Page() {
         }}
         open={!!ticketId}
       >
-        <DrawerContent className="container mx-auto h-screen *:select-text">
-          <DrawerHeader className="border-b text-left">
+        <DrawerContent className="container mx-auto h-[min(92dvh,960px)] max-w-5xl overflow-hidden rounded-t-2xl border *:select-text">
+          <DrawerHeader className="border-b bg-muted/25 px-6 py-5 text-left">
             <DrawerTitle>{ticket?.title}</DrawerTitle>
           </DrawerHeader>
           <ScrollArea className="h-full overflow-hidden" ref={scrollRef}>
@@ -227,7 +216,7 @@ export default function Page() {
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col gap-1">
                     <p className="text-muted-foreground text-sm">
-                      {formatDate(ticket.created_at)}
+                      <DateTimeValue value={ticket.created_at} />
                     </p>
                     <p className="w-fit rounded-lg bg-accent p-2 font-medium">
                       {ticket.description}
@@ -250,7 +239,7 @@ export default function Page() {
                     })}
                   >
                     <p className="text-muted-foreground text-sm">
-                      {formatDate(item.created_at)}
+                      <DateTimeValue value={item.created_at} />
                     </p>
                     <p
                       className={cn(
@@ -279,7 +268,7 @@ export default function Page() {
             </div>
           </ScrollArea>
           {ticket?.status !== 4 && (
-            <DrawerFooter>
+            <DrawerFooter className="border-t bg-muted/20 px-6 py-4">
               <form
                 className="flex w-full flex-row items-center gap-2"
                 onSubmit={async (event) => {
