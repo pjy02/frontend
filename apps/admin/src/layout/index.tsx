@@ -67,7 +67,10 @@ export default function DashboardLayout() {
           ref={mainRef}
           tabIndex={-1}
         >
-          <div className="admin-content__inner">
+          <div
+            className="admin-content__inner admin-page-transition"
+            key={pathname}
+          >
             <Outlet />
           </div>
         </main>

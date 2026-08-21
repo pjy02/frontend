@@ -23,7 +23,7 @@ import {
 import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
 import { cn } from "@workspace/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
-import React, { useState } from "react";
+import React, { type CSSProperties, useState } from "react";
 import { useGlobalStore } from "@/stores/global";
 import packageJson from "../../../../package.json";
 import { type NavItem, useNavs } from "./navs";
@@ -44,6 +44,13 @@ export function SidebarLeft({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [scrollEdges, setScrollEdges] = useState({ up: false, down: false });
+  const [activeIndicator, setActiveIndicator] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    visible: false,
+  });
 
   const updateScrollEdges = React.useCallback(() => {
     const element = scrollRef.current;
@@ -51,6 +58,34 @@ export function SidebarLeft({
     setScrollEdges({
       up: element.scrollTop > 4,
       down: element.scrollTop + element.clientHeight < element.scrollHeight - 4,
+    });
+  }, []);
+
+  const updateActiveIndicator = React.useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    let active = container.querySelector<HTMLElement>(
+      '[data-slot="sidebar-menu-button"][data-active="true"], [data-slot="sidebar-menu-sub-button"][data-active="true"]'
+    );
+    const closedGroup = active?.closest<HTMLElement>(
+      '.admin-sidebar-group-motion[data-open="false"]'
+    );
+    if (closedGroup?.previousElementSibling instanceof HTMLElement) {
+      active = closedGroup.previousElementSibling;
+    }
+    if (!active) {
+      setActiveIndicator((current) => ({ ...current, visible: false }));
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    setActiveIndicator({
+      x: activeRect.left - containerRect.left + container.scrollLeft,
+      y: activeRect.top - containerRect.top + container.scrollTop,
+      width: activeRect.width,
+      height: activeRect.height,
+      visible: true,
     });
   }, []);
 
@@ -91,18 +126,26 @@ export function SidebarLeft({
   }, [pathname, navs]);
 
   React.useEffect(() => {
-    const frame = requestAnimationFrame(updateScrollEdges);
+    const frame = requestAnimationFrame(() => {
+      updateScrollEdges();
+      updateActiveIndicator();
+    });
     const element = scrollRef.current;
     if (!element || typeof ResizeObserver === "undefined") {
       return () => cancelAnimationFrame(frame);
     }
-    const observer = new ResizeObserver(updateScrollEdges);
+    const observer = new ResizeObserver(() => {
+      updateScrollEdges();
+      updateActiveIndicator();
+    });
     observer.observe(element);
+    const menu = element.querySelector('[data-slot="sidebar-menu"]');
+    if (menu) observer.observe(menu);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [openGroups, state, updateScrollEdges]);
+  }, [openGroups, pathname, state, updateActiveIndicator, updateScrollEdges]);
 
   const renderCollapsedItem = (nav: NavItem) => {
     const NavIcon = nav.icon;
@@ -218,6 +261,21 @@ export function SidebarLeft({
         onScroll={updateScrollEdges}
         ref={scrollRef}
       >
+        <div
+          aria-hidden="true"
+          className="admin-sidebar-active-indicator"
+          style={
+            {
+              "--admin-sidebar-indicator-height": `${activeIndicator.height}px`,
+              "--admin-sidebar-indicator-opacity": activeIndicator.visible
+                ? 1
+                : 0,
+              "--admin-sidebar-indicator-width": `${activeIndicator.width}px`,
+              "--admin-sidebar-indicator-x": `${activeIndicator.x}px`,
+              "--admin-sidebar-indicator-y": `${activeIndicator.y}px`,
+            } as CSSProperties
+          }
+        />
         <SidebarMenu>
           {!isMobile && state === "collapsed"
             ? navs.map((nav) => (
@@ -281,41 +339,49 @@ export function SidebarLeft({
                       </span>
                       <ChevronDown
                         className={cn(
-                          "size-4 text-sidebar-foreground/60 transition-transform duration-200",
+                          "admin-sidebar-chevron size-4 text-sidebar-foreground/60",
                           !isOpen && "-rotate-90"
                         )}
                       />
                     </SidebarMenuButton>
-                    {isOpen ? (
-                      <SidebarGroupContent>
-                        <SidebarMenuSub className="my-1 border-sidebar-border/70">
-                          {nav.items.map((item) => {
-                            const ItemIcon = item.icon;
-                            return (
-                              <SidebarMenuSubItem key={item.title}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  className="relative h-9 rounded-lg"
-                                  isActive={Boolean(
-                                    item.url && isActiveUrl(item.url)
-                                  )}
-                                >
-                                  <Link
-                                    onClick={handleNavigate}
-                                    to={item.url || "/dashboard"}
+                    <div
+                      className="admin-sidebar-group-motion"
+                      data-open={isOpen}
+                    >
+                      <div className="admin-sidebar-group-motion__inner">
+                        <SidebarGroupContent
+                          aria-hidden={!isOpen}
+                          inert={!isOpen}
+                        >
+                          <SidebarMenuSub className="my-1 border-sidebar-border/70">
+                            {nav.items.map((item) => {
+                              const ItemIcon = item.icon;
+                              return (
+                                <SidebarMenuSubItem key={item.title}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    className="relative h-9 rounded-lg"
+                                    isActive={Boolean(
+                                      item.url && isActiveUrl(item.url)
+                                    )}
                                   >
-                                    {ItemIcon ? (
-                                      <ItemIcon className="size-4" />
-                                    ) : null}
-                                    <span>{item.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      </SidebarGroupContent>
-                    ) : null}
+                                    <Link
+                                      onClick={handleNavigate}
+                                      to={item.url || "/dashboard"}
+                                    >
+                                      {ItemIcon ? (
+                                        <ItemIcon className="size-4" />
+                                      ) : null}
+                                      <span>{item.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        </SidebarGroupContent>
+                      </div>
+                    </div>
                   </SidebarGroup>
                 );
               })}

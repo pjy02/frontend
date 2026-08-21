@@ -137,6 +137,14 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/v1/auth/login") {
+    send(response, 200, {
+      code: 200,
+      data: { token: "admin-acceptance-token" },
+    });
+    return;
+  }
+
   if (url.pathname === "/v1/admin/user/current") {
     send(response, 200, {
       code: 200,

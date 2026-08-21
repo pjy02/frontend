@@ -18,6 +18,7 @@ import { DirectionProvider } from "@workspace/ui/integrations/direction";
 import { LanguageProvider } from "@workspace/ui/integrations/language";
 import { ThemeProvider } from "@workspace/ui/integrations/theme";
 import { initializeI18n } from "@workspace/ui/lib/i18n";
+import { MotionProvider } from "./components/motion-provider.tsx";
 import { fallbackLng, i18nNamespaces, supportedLngs } from "./config/index.ts";
 // Report web vitals
 import reportWebVitals from "./reportWebVitals.ts";
@@ -76,7 +77,9 @@ if (rootElement && !rootElement.innerHTML) {
           <LanguageProvider supportedLanguages={supportedLngs}>
             <ThemeProvider>
               <DirectionProvider>
-                <RouterProvider router={router} />
+                <MotionProvider>
+                  <RouterProvider router={router} />
+                </MotionProvider>
               </DirectionProvider>
             </ThemeProvider>
           </LanguageProvider>

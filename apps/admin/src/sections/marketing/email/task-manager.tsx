@@ -228,7 +228,7 @@ export default function EmailTaskManager() {
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full bg-primary transition-all duration-300"
+                            className="admin-task-progress h-full bg-primary"
                             style={{ width: `${progress}%` }}
                           />
                         </div>

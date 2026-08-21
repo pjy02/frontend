@@ -142,6 +142,10 @@ export function ProTable<
   });
   const requestIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0);
+  const adminMotionEnabled =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("admin-console");
   const [fetchError, setFetchError] = useState<"error" | "forbidden" | null>(
     null
   );
@@ -227,6 +231,7 @@ export function ProTable<
       if (requestId === requestIdRef.current) {
         setData(response.list);
         setRowCount(response.total);
+        setDataVersion((version) => version + 1);
       }
     } catch (error) {
       console.error("Fetch data error:", error);
@@ -283,7 +288,12 @@ export function ProTable<
   const selectedCount = selectedRows.length;
 
   return (
-    <div aria-busy={isLoading} className="flex min-w-0 flex-col gap-4">
+    <div
+      aria-busy={isLoading}
+      className="admin-pro-table flex min-w-0 flex-col gap-4"
+      data-loading={isLoading}
+      data-refreshing={isLoading && data.length > 0}
+    >
       {!header?.hidden && (
         <DataToolbar
           filters={Object.fromEntries(
@@ -318,14 +328,17 @@ export function ProTable<
       )}
 
       {mobile ? (
-        <div className="grid gap-3 md:hidden">
+        <div
+          className="admin-pro-table-mobile grid gap-3 md:hidden"
+          key={adminMotionEnabled ? `mobile-${dataVersion}` : undefined}
+        >
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => {
               const rowActions = actions?.render?.(row.original) || [];
               return (
                 <article
                   aria-label={mobile.getAriaLabel?.(row.original)}
-                  className="overflow-hidden rounded-xl border bg-card"
+                  className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   key={row.id}
                 >
@@ -415,6 +428,7 @@ export function ProTable<
           mobile && "hidden md:block"
         )}
       >
+        <div aria-hidden="true" className="admin-pro-table-progress" />
         <ProTableWrapper data={data} onSort={onSort} setData={setData}>
           <Table className="w-full">
             <TableHeader className="bg-muted/45">
@@ -441,11 +455,12 @@ export function ProTable<
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody>
+            <TableBody key={adminMotionEnabled ? dataVersion : undefined}>
               {table.getRowModel()?.rows?.length ? (
                 onSort ? (
                   table.getRowModel().rows.map((row) => (
                     <SortableRow
+                      className="h-13"
                       data-state={row.getIsSelected() && "selected"}
                       id={
                         row.original.id
@@ -478,7 +493,7 @@ export function ProTable<
                 ) : (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
-                      className="h-13"
+                      className="admin-pro-table-row h-13"
                       data-state={row.getIsSelected() && "selected"}
                       key={row.id}
                     >
