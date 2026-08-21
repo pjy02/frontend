@@ -116,7 +116,7 @@ export default function EmailTaskManager() {
                         <Icon icon="mdi:eye" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[80vh] max-w-4xl">
+                    <DialogContent className="admin-mobile-workspace-dialog max-h-[80vh] max-w-4xl">
                       <DialogHeader>
                         <DialogTitle>
                           {t("emailContent", "Email Content")}

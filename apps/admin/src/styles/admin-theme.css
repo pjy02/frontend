@@ -801,6 +801,64 @@ html.admin-console [data-slot="table-body"] [data-slot="table-row"] {
   animation-delay: 48ms;
 }
 
+.admin-mobile-record {
+  min-width: 0;
+}
+
+.admin-mobile-record__identity {
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.875rem;
+}
+
+.admin-mobile-record__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--admin-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+  line-height: 1rem;
+  text-transform: uppercase;
+}
+
+.admin-mobile-record__title {
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-mobile-record__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 0.875rem;
+  margin-top: 1rem;
+}
+
+.admin-mobile-record__field {
+  min-width: 0;
+}
+
+.admin-mobile-record__value {
+  min-width: 0;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-mobile-record__value :where(a, button, [role="button"]) {
+  max-width: 100%;
+}
+
+.admin-mobile-record__value :where(.truncate, [class*="line-clamp"]) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .admin-task-progress {
   transition: width var(--admin-motion-slow) var(--admin-motion-easing);
 }
@@ -1156,7 +1214,7 @@ html.admin-console
     white-space: normal;
   }
 
-  html.admin-console .admin-workspace-dialog [data-slot="tabs-list"] {
+  html.admin-console [data-slot="tabs-list"] {
     display: flex;
     width: 100%;
     justify-content: flex-start;
@@ -1164,18 +1222,16 @@ html.admin-console
     scrollbar-width: thin;
   }
 
-  html.admin-console .admin-workspace-dialog [data-slot="tabs-trigger"] {
+  html.admin-console [data-slot="tabs-trigger"] {
     flex: 0 0 auto;
     white-space: nowrap;
   }
 
-  html.admin-console .admin-workspace-dialog [data-slot="tabs-list"]::before {
+  html.admin-console [data-slot="tabs-list"]::before {
     display: none;
   }
 
-  html.admin-console
-    .admin-workspace-dialog
-    [data-slot="tabs-trigger"][data-state="active"] {
+  html.admin-console [data-slot="tabs-trigger"][data-state="active"] {
     background: var(--card) !important;
     box-shadow: 0 1px 2px rgb(60 64 67 / 12%) !important;
   }
@@ -1185,7 +1241,73 @@ html.admin-console
   }
 
   .admin-workspace-dialog {
-    border-radius: 1rem;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .admin-mobile-workspace-dialog {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none !important;
+    max-height: none !important;
+    translate: 0 0;
+    border-radius: 0;
+    overflow-y: auto;
+  }
+
+  .admin-mobile-workspace-drawer {
+    width: 100vw;
+    height: 100dvh !important;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .admin-data-toolbar__controls {
+    align-items: stretch;
+  }
+
+  .admin-data-toolbar__actions {
+    flex: 1 1 auto;
+  }
+
+  .admin-data-toolbar__actions > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admin-data-toolbar__actions :where(button, a[role="button"]) {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .admin-pro-table > [data-slot="alert"] {
+    align-items: stretch;
+  }
+
+  .admin-pro-table > [data-slot="alert"] [data-slot="alert-description"] {
+    justify-content: stretch;
+  }
+
+  .admin-pro-table > [data-slot="alert"] [data-slot="alert-description"] > * {
+    flex: 1 1 auto;
+  }
+
+  .admin-pagination > :last-child {
+    width: 100%;
+  }
+
+  .admin-pagination > :last-child > :first-child {
+    min-width: 0;
+  }
+
+  .admin-pagination > :last-child > :last-child {
+    margin-left: auto;
   }
 }
 
@@ -1233,10 +1355,7 @@ html.admin-console
   }
 
   .admin-workspace-dialog {
-    width: 100vw;
-    height: 100dvh;
-    max-height: none;
-    border-radius: 0;
+    overscroll-behavior: contain;
   }
 
   .admin-workspace-dialog__header,

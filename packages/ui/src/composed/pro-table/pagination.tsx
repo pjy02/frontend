@@ -24,7 +24,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
   const end = total ? Math.min((pageIndex + 1) * pageSize, total) : 0;
 
   return (
-    <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="admin-pagination flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
       <div
         aria-live="polite"
         className="whitespace-nowrap text-muted-foreground text-sm"

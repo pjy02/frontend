@@ -73,6 +73,7 @@
     "columns": "Choose columns",
     "loadError": "Unable to load data",
     "moreActions": "More actions",
+    "recordLabel": "Record {{number}}",
     "refresh": "Refresh data",
     "reset": "Reset table",
     "retry": "Try again",

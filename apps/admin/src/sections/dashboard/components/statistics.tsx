@@ -22,6 +22,12 @@ import { Separator } from "@workspace/ui/components/separator";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
+import { cn } from "@workspace/ui/lib/utils";
+import {
   queryRevenueStatistics,
   queryServerTotalData,
   queryTicketWaitReply,
@@ -45,13 +51,12 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { useState } from "react";
+import { animate } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -59,6 +64,7 @@ import {
   YAxis,
 } from "recharts";
 import { Display } from "@/components/display";
+import { useAdminMotion } from "@/components/motion-provider";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
 import SystemLogsDialog from "./system-logs-dialog";
@@ -67,6 +73,136 @@ import SystemVersionCard from "./system-version-card";
 type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
 type TrafficPeriod = "today" | "yesterday";
+
+type TrafficRankingItem = {
+  id: number;
+  name: string;
+  uid?: number;
+  sid: number;
+  upload: number;
+  download: number;
+  total: number;
+  todayTotal: number;
+  yesterdayTotal: number;
+  growth: number;
+  share: number;
+};
+
+function AnimatedNumber({
+  className,
+  format = (value) => Math.round(value).toLocaleString(),
+  value,
+}: {
+  className?: string;
+  format?: (value: number) => string;
+  value: number;
+}) {
+  const { reducedMotion } = useAdminMotion();
+  const previous = useRef(0);
+  const [displayed, setDisplayed] = useState(reducedMotion ? value : 0);
+
+  useEffect(() => {
+    const from = previous.current;
+    previous.current = value;
+    if (reducedMotion) {
+      setDisplayed(value);
+      return;
+    }
+    const controls = animate(from, value, {
+      duration: 0.65,
+      ease: [0.05, 0.7, 0.1, 1],
+      onUpdate: setDisplayed,
+    });
+    return () => controls.stop();
+  }, [reducedMotion, value]);
+
+  return <span className={className}>{format(displayed)}</span>;
+}
+
+function createTrafficRanking(
+  server: API.ServerTotalDataResponse | undefined,
+  type: TrafficType,
+  period: TrafficPeriod
+): TrafficRankingItem[] {
+  if (type === "nodes") {
+    const today = server?.server_traffic_ranking_today || [];
+    const yesterday = server?.server_traffic_ranking_yesterday || [];
+    const current = period === "today" ? today : yesterday;
+    const todayMap = new Map(today.map((item) => [item.server_id, item]));
+    const yesterdayMap = new Map(
+      yesterday.map((item) => [item.server_id, item])
+    );
+    const grandTotal = current.reduce(
+      (total, item) => total + item.upload + item.download,
+      0
+    );
+    return current
+      .map((item) => {
+        const todayItem = todayMap.get(item.server_id);
+        const yesterdayItem = yesterdayMap.get(item.server_id);
+        return createTrafficRankingItem({
+          id: item.server_id,
+          name: item.name,
+          sid: item.server_id,
+          upload: item.upload,
+          download: item.download,
+          todayTotal: (todayItem?.upload || 0) + (todayItem?.download || 0),
+          yesterdayTotal:
+            (yesterdayItem?.upload || 0) + (yesterdayItem?.download || 0),
+          grandTotal,
+        });
+      })
+      .sort((left, right) => right.total - left.total);
+  }
+
+  const today = server?.user_traffic_ranking_today || [];
+  const yesterday = server?.user_traffic_ranking_yesterday || [];
+  const current = period === "today" ? today : yesterday;
+  const todayMap = new Map(today.map((item) => [item.sid, item]));
+  const yesterdayMap = new Map(yesterday.map((item) => [item.sid, item]));
+  const grandTotal = current.reduce(
+    (total, item) => total + item.upload + item.download,
+    0
+  );
+  return current
+    .map((item) => {
+      const todayItem = todayMap.get(item.sid);
+      const yesterdayItem = yesterdayMap.get(item.sid);
+      return createTrafficRankingItem({
+        id: item.sid,
+        name: `UID ${item.uid}`,
+        sid: item.sid,
+        uid: item.uid,
+        upload: item.upload,
+        download: item.download,
+        todayTotal: (todayItem?.upload || 0) + (todayItem?.download || 0),
+        yesterdayTotal:
+          (yesterdayItem?.upload || 0) + (yesterdayItem?.download || 0),
+        grandTotal,
+      });
+    })
+    .sort((left, right) => right.total - left.total);
+}
+
+function createTrafficRankingItem({
+  grandTotal,
+  ...item
+}: Omit<TrafficRankingItem, "growth" | "share" | "total"> & {
+  grandTotal: number;
+}): TrafficRankingItem {
+  const total = item.upload + item.download;
+  const growth = item.yesterdayTotal
+    ? ((item.todayTotal - item.yesterdayTotal) / item.yesterdayTotal) * 100
+    : item.todayTotal
+      ? 100
+      : 0;
+  return {
+    ...item,
+    total,
+    growth,
+    share: grandTotal ? (total / grandTotal) * 100 : 0,
+  };
+}
 
 type MetricCardProps = {
   description: React.ReactNode;
@@ -187,33 +323,11 @@ export default function Statistics() {
     userQuery.dataUpdatedAt
   );
 
-  const trafficData = {
-    nodes: {
-      today:
-        server?.server_traffic_ranking_today?.map((item) => ({
-          name: item.name,
-          traffic: item.download + item.upload,
-        })) || [],
-      yesterday:
-        server?.server_traffic_ranking_yesterday?.map((item) => ({
-          name: item.name,
-          traffic: item.download + item.upload,
-        })) || [],
-    },
-    users: {
-      today:
-        server?.user_traffic_ranking_today?.map((item) => ({
-          name: item.sid,
-          traffic: item.download + item.upload,
-        })) || [],
-      yesterday:
-        server?.user_traffic_ranking_yesterday?.map((item) => ({
-          name: item.sid,
-          traffic: item.download + item.upload,
-        })) || [],
-    },
-  };
-  const currentTraffic = trafficData[trafficType][trafficPeriod].slice(0, 8);
+  const currentTraffic = createTrafficRanking(
+    server,
+    trafficType,
+    trafficPeriod
+  );
 
   return (
     <div className="space-y-5">
@@ -289,14 +403,26 @@ export default function Statistics() {
           icon={Users}
           loading={userQuery.isLoading}
           title={t("overview.newUsers", "New users")}
-          value={userQuery.isError ? "—" : selectedUsers?.register || 0}
+          value={
+            userQuery.isError ? (
+              "—"
+            ) : (
+              <AnimatedNumber value={selectedUsers?.register || 0} />
+            )
+          }
         />
         <MetricCard
           description={t("currentlyOnline", "Currently online")}
           icon={Activity}
           loading={serverQuery.isLoading}
           title={t("onlineUsersCount", "Online users")}
-          value={serverQuery.isError ? "—" : server?.online_users || 0}
+          value={
+            serverQuery.isError ? (
+              "—"
+            ) : (
+              <AnimatedNumber value={server?.online_users || 0} />
+            )
+          }
         />
         <MetricCard
           description={
@@ -319,12 +445,17 @@ export default function Statistics() {
           loading={serverQuery.isLoading}
           title={t("monthTraffic", "Month traffic")}
           value={
-            serverQuery.isError
-              ? "—"
-              : formatBytes(
+            serverQuery.isError ? (
+              "—"
+            ) : (
+              <AnimatedNumber
+                format={formatBytes}
+                value={
                   (server?.monthly_upload || 0) +
-                    (server?.monthly_download || 0)
-                )
+                  (server?.monthly_download || 0)
+                }
+              />
+            )
           }
         />
       </section>
@@ -399,6 +530,7 @@ function BusinessTrends({
   usersLoading: boolean;
 }) {
   const { t, i18n } = useTranslation("dashboard");
+  const { reducedMotion } = useAdminMotion();
   const revenueRange = range === "month" ? revenue?.monthly : revenue?.all;
   const userRange = range === "month" ? users?.monthly : users?.all;
   const dateFormatter = (value: string) => {
@@ -497,15 +629,21 @@ function BusinessTrends({
                   cursor={false}
                 />
                 <Area
+                  animationDuration={650}
+                  animationEasing="ease-out"
                   dataKey="newPurchase"
                   fill="url(#revenueBlue)"
+                  isAnimationActive={!reducedMotion}
                   stroke="var(--color-newPurchase)"
                   strokeWidth={2}
                   type="monotone"
                 />
                 <Area
+                  animationDuration={650}
+                  animationEasing="ease-out"
                   dataKey="renewal"
                   fill="transparent"
+                  isAnimationActive={!reducedMotion}
                   stroke="var(--color-renewal)"
                   strokeWidth={2}
                   type="monotone"
@@ -577,15 +715,21 @@ function BusinessTrends({
                   cursor={false}
                 />
                 <Line
+                  animationDuration={650}
+                  animationEasing="ease-out"
                   dataKey="register"
                   dot={false}
+                  isAnimationActive={!reducedMotion}
                   stroke="var(--color-register)"
                   strokeWidth={2}
                   type="monotone"
                 />
                 <Line
+                  animationDuration={650}
+                  animationEasing="ease-out"
                   dataKey="paid"
                   dot={false}
+                  isAnimationActive={!reducedMotion}
                   stroke="var(--color-paid)"
                   strokeWidth={2}
                   type="monotone"
@@ -946,7 +1090,7 @@ function TrafficRanking({
   serverError,
   trafficType,
 }: {
-  data: { name: string | number; traffic: number }[];
+  data: TrafficRankingItem[];
   loading: boolean;
   onPeriodChange: (period: TrafficPeriod) => void;
   onTypeChange: (type: TrafficType) => void;
@@ -955,11 +1099,18 @@ function TrafficRanking({
   trafficType: TrafficType;
 }) {
   const { t } = useTranslation("dashboard");
+  const visibleData = data.slice(0, 8);
+  const total = data.reduce((sum, item) => sum + item.total, 0);
+  const upload = data.reduce((sum, item) => sum + item.upload, 0);
+  const download = data.reduce((sum, item) => sum + item.download, 0);
+  const today = data.reduce((sum, item) => sum + item.todayTotal, 0);
+  const yesterday = data.reduce((sum, item) => sum + item.yesterdayTotal, 0);
+  const growth = yesterday ? ((today - yesterday) / yesterday) * 100 : 0;
 
   return (
     <section className="dashboard-section">
       <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <SectionHeading
             description={t(
               "overview.trafficRankingHint",
@@ -967,7 +1118,7 @@ function TrafficRanking({
             )}
             title={t("trafficRank", "Traffic ranking")}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Tabs
               onValueChange={(value) => onTypeChange(value as TrafficType)}
               value={trafficType}
@@ -988,64 +1139,299 @@ function TrafficRanking({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Button asChild size="sm" variant="outline">
+              <Link
+                to={
+                  trafficType === "nodes"
+                    ? "/dashboard/log/server-traffic"
+                    : "/dashboard/log/subscribe-traffic"
+                }
+              >
+                {t("overview.trafficLogs", "Traffic logs")}
+                <ArrowUpRight />
+              </Link>
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="h-[360px] p-5">
+        <CardContent className="p-0">
           {loading ? (
-            <Skeleton className="h-full w-full rounded-lg" />
+            <div className="space-y-3 p-5">
+              <Skeleton className="h-20 w-full rounded-lg" />
+              {Array.from({ length: 4 }, (_, index) => (
+                <Skeleton
+                  className="h-20 w-full rounded-lg"
+                  key={`traffic-skeleton-${index}`}
+                />
+              ))}
+            </div>
           ) : serverError || data.length === 0 ? (
-            <DataUnavailable
-              text={t("overview.unavailable", "Data unavailable")}
-            />
+            <div className="p-5">
+              <DataUnavailable
+                text={t("overview.unavailable", "Data unavailable")}
+              />
+            </div>
           ) : (
-            <ChartContainer
-              className="h-full max-h-none w-full"
-              config={{
-                traffic: {
-                  label: t("traffic", "Traffic"),
-                  color: "var(--chart-1)",
-                },
-              }}
-            >
-              <BarChart
-                data={data}
-                layout="vertical"
-                margin={{ left: 4, right: 28 }}
-              >
-                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                <XAxis
-                  axisLine={false}
-                  tickFormatter={(value) => formatBytes(value || 0)}
-                  tickLine={false}
-                  type="number"
+            <>
+              <div className="dashboard-traffic-summary grid grid-cols-2 border-b lg:grid-cols-4">
+                <TrafficSummaryValue
+                  format={formatBytes}
+                  label={t("overview.currentTotal", "Selected total")}
+                  value={total}
                 />
-                <YAxis
-                  axisLine={false}
-                  dataKey="name"
-                  tickLine={false}
-                  tickMargin={10}
-                  type="category"
-                  width={96}
+                <div className="border-l px-5 py-4">
+                  <div className="text-muted-foreground text-xs">
+                    {t("overview.transferSplit", "Upload / Download")}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-medium text-sm tabular-nums">
+                    <span className="inline-flex items-center gap-1 text-chart-1">
+                      <ArrowUp className="size-3.5" /> {formatBytes(upload)}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-chart-4">
+                      <ArrowDown className="size-3.5" /> {formatBytes(download)}
+                    </span>
+                  </div>
+                </div>
+                <TrafficSummaryValue
+                  className="border-t lg:border-t-0 lg:border-l"
+                  format={formatBytes}
+                  label={t("today", "Today")}
+                  value={today}
                 />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value) => formatBytes(Number(value) || 0)}
-                    />
-                  }
-                  cursor={false}
-                />
-                <Bar
-                  dataKey="traffic"
-                  fill="var(--color-traffic)"
-                  radius={[0, 5, 5, 0]}
-                />
-              </BarChart>
-            </ChartContainer>
+                <div className="border-t border-l px-5 py-4 lg:border-t-0">
+                  <div className="text-muted-foreground text-xs">
+                    {t("overview.yesterdayComparison", "Yesterday / change")}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="font-semibold text-base tabular-nums">
+                      {formatBytes(yesterday)}
+                    </span>
+                    <GrowthChip value={growth} />
+                  </div>
+                </div>
+              </div>
+              <ol className="dashboard-traffic-list divide-y">
+                {visibleData.map((item, index) => (
+                  <TrafficRankingRow
+                    index={index}
+                    item={item}
+                    key={`${trafficType}-${item.id}`}
+                    trafficType={trafficType}
+                  />
+                ))}
+              </ol>
+            </>
           )}
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+function TrafficSummaryValue({
+  className,
+  format,
+  label,
+  value,
+}: {
+  className?: string;
+  format: (value: number) => string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className={cn("px-5 py-4", className)}>
+      <div className="text-muted-foreground text-xs">{label}</div>
+      <AnimatedNumber
+        className="mt-1 block font-semibold text-base tabular-nums"
+        format={format}
+        value={value}
+      />
+    </div>
+  );
+}
+
+function GrowthChip({ value }: { value: number }) {
+  const { t } = useTranslation("dashboard");
+  const tone: StatusChipTone =
+    value > 0 ? "success" : value < 0 ? "danger" : "neutral";
+  const label = `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+  return (
+    <StatusChip dot={false} tone={tone}>
+      <span className="sr-only">{t("overview.growth", "Growth")}: </span>
+      {label}
+    </StatusChip>
+  );
+}
+
+function TrafficRankingRow({
+  index,
+  item,
+  trafficType,
+}: {
+  index: number;
+  item: TrafficRankingItem;
+  trafficType: TrafficType;
+}) {
+  const { t } = useTranslation("dashboard");
+  const uploadShare = item.total ? (item.upload / item.total) * 100 : 0;
+  const downloadShare = 100 - uploadShare;
+
+  return (
+    <li className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5">
+      <Tooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <button
+            aria-label={t(
+              "overview.trafficTooltipLabel",
+              "Traffic details for {{name}}",
+              { name: item.name }
+            )}
+            className="min-w-0 rounded-lg p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            type="button"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted font-semibold text-muted-foreground text-xs tabular-nums">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-sm">
+                      {item.name}
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground tabular-nums">
+                      {item.uid !== undefined ? (
+                        <span>UID {item.uid}</span>
+                      ) : null}
+                      <span>SID {item.sid}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-sm tabular-nums">
+                      {formatBytes(item.total)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">
+                      {item.share.toFixed(1)}% {t("overview.share", "share")}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
+                    style={
+                      {
+                        "--traffic-share": `${Math.max(item.share, 1.5)}%`,
+                      } as React.CSSProperties
+                    }
+                  >
+                    <span
+                      className="h-full bg-chart-1"
+                      style={{ width: `${uploadShare}%` }}
+                    />
+                    <span
+                      className="h-full bg-chart-4"
+                      style={{ width: `${downloadShare}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
+                  <span className="inline-flex items-center gap-1">
+                    <i className="size-1.5 rounded-full bg-chart-1" />
+                    {t("overview.upload", "Upload")} {formatBytes(item.upload)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <i className="size-1.5 rounded-full bg-chart-4" />
+                    {t("overview.download", "Download")}{" "}
+                    {formatBytes(item.download)}
+                  </span>
+                  <GrowthChip value={item.growth} />
+                </div>
+              </div>
+            </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="w-72 space-y-3 p-3" side="top">
+          <div>
+            <div className="font-semibold text-sm">{item.name}</div>
+            <div className="mt-1 flex gap-2 text-xs opacity-75">
+              {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
+              <span>SID {item.sid}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <TrafficTooltipValue
+              label={t("overview.upload", "Upload")}
+              value={formatBytes(item.upload)}
+            />
+            <TrafficTooltipValue
+              label={t("overview.download", "Download")}
+              value={formatBytes(item.download)}
+            />
+            <TrafficTooltipValue
+              label={t("traffic", "Total traffic")}
+              value={formatBytes(item.total)}
+            />
+            <TrafficTooltipValue
+              label={t("overview.share", "Traffic share")}
+              value={`${item.share.toFixed(2)}%`}
+            />
+            <TrafficTooltipValue
+              label={t("today", "Today")}
+              value={formatBytes(item.todayTotal)}
+            />
+            <TrafficTooltipValue
+              label={t("yesterday", "Yesterday")}
+              value={formatBytes(item.yesterdayTotal)}
+            />
+          </div>
+          <div className="flex items-center justify-between border-t pt-2 text-xs">
+            <span className="opacity-75">{t("overview.growth", "Growth")}</span>
+            <GrowthChip value={item.growth} />
+          </div>
+        </TooltipContent>
+      </Tooltip>
+      <Button
+        aria-label={t("overview.openTrafficLog", "Open traffic log")}
+        asChild
+        className="size-8 rounded-full"
+        size="icon"
+        variant="ghost"
+      >
+        {trafficType === "nodes" ? (
+          <Link
+            search={{ server_id: item.sid }}
+            to="/dashboard/log/server-traffic"
+          >
+            <ArrowUpRight />
+          </Link>
+        ) : (
+          <Link
+            search={{
+              user_id: item.uid,
+              user_subscribe_id: item.sid,
+            }}
+            to="/dashboard/log/subscribe-traffic"
+          >
+            <ArrowUpRight />
+          </Link>
+        )}
+      </Button>
+    </li>
+  );
+}
+
+function TrafficTooltipValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <div className="opacity-70">{label}</div>
+      <div className="mt-0.5 font-medium tabular-nums">{value}</div>
+    </div>
   );
 }
 

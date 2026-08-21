@@ -205,7 +205,7 @@ export default function Page() {
         }}
         open={!!ticketId}
       >
-        <DrawerContent className="container mx-auto h-[min(92dvh,960px)] max-w-5xl overflow-hidden rounded-t-2xl border *:select-text">
+        <DrawerContent className="admin-mobile-workspace-drawer container mx-auto h-[min(92dvh,960px)] max-w-5xl overflow-hidden rounded-t-2xl border *:select-text">
           <DrawerHeader className="border-b bg-muted/25 px-6 py-5 text-left">
             <DrawerTitle>{ticket?.title}</DrawerTitle>
           </DrawerHeader>

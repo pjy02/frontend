@@ -359,7 +359,7 @@ function PluginUploadDialog({ onUploaded }: { onUploaded: () => void }) {
           {t("uploadPlugin", "Upload plugin")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="admin-mobile-workspace-dialog">
         <DialogHeader>
           <DialogTitle>{t("uploadPlugin", "Upload plugin")}</DialogTitle>
           <DialogDescription>

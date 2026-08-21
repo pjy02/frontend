@@ -44,16 +44,17 @@ export function DataToolbar<TData>({
       className="rounded-xl border bg-card p-3 shadow-none"
       data-slot="data-toolbar"
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 flex-1">
+      <div className="admin-data-toolbar__layout flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="admin-data-toolbar__filters flex min-w-0 flex-1 flex-col gap-3">
+          {title ? (
+            <div className="px-1 font-medium text-sm">{title}</div>
+          ) : null}
           {params?.length ? (
             <ColumnFilter filters={filters} params={params} table={table} />
-          ) : title ? (
-            <div className="px-1 font-medium text-sm">{title}</div>
           ) : null}
         </div>
 
-        <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 xl:w-auto xl:justify-start">
+        <div className="admin-data-toolbar__controls flex w-full shrink-0 flex-wrap items-center justify-between gap-2 xl:w-auto xl:justify-start">
           <div className="flex items-center rounded-lg border bg-background p-0.5">
             <Button
               aria-busy={loading}
@@ -67,7 +68,7 @@ export function DataToolbar<TData>({
             >
               <RefreshCcw className={loading ? "animate-spin" : undefined} />
             </Button>
-            <div className={mobileCards ? "hidden md:block" : undefined}>
+            <div className={mobileCards ? "hidden lg:block" : undefined}>
               <ColumnToggle table={table} title={labels?.columns} />
             </div>
             <Button
@@ -81,7 +82,11 @@ export function DataToolbar<TData>({
               <ListRestart />
             </Button>
           </div>
-          {toolbar}
+          {toolbar ? (
+            <div className="admin-data-toolbar__actions flex min-w-0 flex-wrap items-center justify-end gap-2">
+              {toolbar}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

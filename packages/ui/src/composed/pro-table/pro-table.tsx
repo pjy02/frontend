@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type Row,
   type SortingState,
   useReactTable,
   type VisibilityState,
@@ -70,10 +71,12 @@ export interface ProTableProps<TData, TValue> {
     render?: (row: TData) => React.ReactNode[];
     batchRender?: (rows: TData[]) => React.ReactNode[];
   };
-  mobile?: {
-    render: (row: TData) => React.ReactNode;
-    getAriaLabel?: (row: TData) => string;
-  };
+  mobile?:
+    | {
+        render?: (row: TData) => React.ReactNode;
+        getAriaLabel?: (row: TData) => string;
+      }
+    | false;
   action?: React.Ref<ProTableActions | undefined>;
   texts?: Partial<{
     actions: string;
@@ -146,6 +149,7 @@ export function ProTable<
   const adminMotionEnabled =
     typeof document !== "undefined" &&
     document.documentElement.classList.contains("admin-console");
+  const mobileCardsEnabled = mobile !== false;
   const [fetchError, setFetchError] = useState<"error" | "forbidden" | null>(
     null
   );
@@ -305,7 +309,7 @@ export function ProTable<
             reset: texts?.reset || t("table.reset", "Reset table"),
           }}
           loading={isLoading}
-          mobileCards={Boolean(mobile)}
+          mobileCards={mobileCardsEnabled}
           onRefresh={fetchData}
           onReset={reset}
           params={params}
@@ -327,9 +331,9 @@ export function ProTable<
         </Alert>
       )}
 
-      {mobile ? (
+      {mobileCardsEnabled ? (
         <div
-          className="admin-pro-table-mobile grid gap-3 md:hidden"
+          className="admin-pro-table-mobile grid gap-3 lg:hidden"
           key={adminMotionEnabled ? `mobile-${dataVersion}` : undefined}
         >
           {table.getRowModel().rows.length ? (
@@ -337,12 +341,24 @@ export function ProTable<
               const rowActions = actions?.render?.(row.original) || [];
               return (
                 <article
-                  aria-label={mobile.getAriaLabel?.(row.original)}
+                  aria-label={
+                    mobile?.getAriaLabel
+                      ? mobile.getAriaLabel(row.original)
+                      : t("table.recordLabel", "Record {{number}}", {
+                          number: row.index + 1,
+                        })
+                  }
                   className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
                   data-state={row.getIsSelected() ? "selected" : undefined}
                   key={row.id}
                 >
-                  <div className="p-4">{mobile.render(row.original)}</div>
+                  <div className="p-4">
+                    {mobile?.render ? (
+                      mobile.render(row.original)
+                    ) : (
+                      <DefaultMobileCard row={row} />
+                    )}
+                  </div>
                   {(actions?.batchRender || rowActions.length > 0) && (
                     <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
                       {actions?.batchRender ? (
@@ -425,7 +441,7 @@ export function ProTable<
       <div
         className={cn(
           "relative min-w-0 overflow-hidden rounded-xl border bg-card",
-          mobile && "hidden md:block"
+          mobileCardsEnabled && "hidden lg:block"
         )}
       >
         <div aria-hidden="true" className="admin-pro-table-progress" />
@@ -583,6 +599,78 @@ export function ProTable<
       {rowCount > 0 && <Pagination table={table} total={rowCount} />}
     </div>
   );
+}
+
+const MOBILE_IDENTITY_COLUMNS = [
+  "name",
+  "title",
+  "subject",
+  "order_no",
+  "email",
+  "username",
+  "platform",
+  "user_id",
+  "id",
+];
+
+function DefaultMobileCard<
+  TData extends Record<string, unknown> & { id?: string | number },
+>({ row }: { row: Row<TData> }) {
+  const cells = row
+    .getVisibleCells()
+    .filter(
+      (cell) => !["actions", "selected", "sortable"].includes(cell.column.id)
+    );
+  const identity =
+    MOBILE_IDENTITY_COLUMNS.map((id) =>
+      cells.find((cell) => cell.column.id === id)
+    ).find(Boolean) || cells[0];
+  const details = cells.filter((cell) => cell.id !== identity?.id);
+  const renderCell = (cell: (typeof cells)[number]) =>
+    flexRender(cell.column.columnDef.cell, cell.getContext()) ??
+    String(cell.getValue() ?? "—");
+
+  return (
+    <div className="admin-mobile-record">
+      {identity ? (
+        <div className="admin-mobile-record__identity">
+          <span className="admin-mobile-record__label">
+            {getMobileColumnLabel(
+              identity.column.id,
+              identity.column.columnDef.header
+            )}
+          </span>
+          <div className="admin-mobile-record__title">
+            {renderCell(identity)}
+          </div>
+        </div>
+      ) : null}
+      {details.length > 0 ? (
+        <dl className="admin-mobile-record__details">
+          {details.map((cell) => (
+            <div className="admin-mobile-record__field" key={cell.id}>
+              <dt className="admin-mobile-record__label">
+                {getMobileColumnLabel(
+                  cell.column.id,
+                  cell.column.columnDef.header
+                )}
+              </dt>
+              <dd className="admin-mobile-record__value">{renderCell(cell)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </div>
+  );
+}
+
+function getMobileColumnLabel(columnId: string, header: unknown) {
+  if (typeof header === "string" || typeof header === "number") {
+    return header;
+  }
+  return columnId
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function createSelectColumn<TData, TValue>(): ColumnDef<TData, TValue> {
