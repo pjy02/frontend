@@ -4,12 +4,14 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
 import { DotLottieReact } from "@workspace/ui/composed/lottie";
 import { ThemeSwitch } from "@workspace/ui/composed/theme-switch";
+import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
 import { useEffect } from "react";
 import { useGlobalStore } from "@/stores/global";
 import EmailAuthForm from "./email/auth-form";
 
 export default function Auth() {
   const { common, user } = useGlobalStore();
+  const reducedMotion = useReducedMotion();
   const { site } = common;
 
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ export default function Auth() {
   }, [navigate, user]);
 
   return (
-    <main className="flex h-full min-h-screen items-center bg-muted/50">
+    <main className="flex min-h-svh items-center bg-muted/50">
       <div className="flex size-full flex-auto flex-col justify-center lg:flex-row">
         <div className="flex lg:w-1/2 lg:flex-auto">
           <div className="flex w-full flex-col items-center justify-center px-5 py-4 md:px-14 lg:py-14">
@@ -34,9 +36,9 @@ export default function Auth() {
               <span className="font-semibold text-2xl">{site.site_name}</span>
             </Link>
             <DotLottieReact
-              autoplay
+              autoplay={!reducedMotion}
               className="mx-auto hidden w-full lg:block"
-              loop
+              loop={!reducedMotion}
               src="./assets/lotties/login.json"
             />
             <p className="hidden w-[275px] text-center md:w-1/2 lg:block xl:w-[500px]">
@@ -44,9 +46,9 @@ export default function Auth() {
             </p>
           </div>
         </div>
-        <div className="flex flex-initial justify-center p-8 lg:flex-auto lg:justify-end">
-          <div className="flex flex-col items-center rounded-2xl md:w-[600px] lg:flex-auto lg:bg-background lg:p-10 lg:shadow">
-            <div className="flex flex-col items-stretch justify-center md:w-[400px] lg:h-full">
+        <div className="flex w-full flex-initial justify-center p-5 sm:p-8 lg:w-1/2 lg:flex-auto lg:justify-end">
+          <div className="flex w-full max-w-[600px] flex-col items-center rounded-2xl lg:flex-auto lg:bg-background lg:p-10 lg:shadow">
+            <div className="flex w-full max-w-[400px] flex-col items-stretch justify-center lg:h-full">
               <div className="flex flex-col justify-center pb-14 lg:flex-auto lg:pb-20">
                 <EmailAuthForm />
               </div>

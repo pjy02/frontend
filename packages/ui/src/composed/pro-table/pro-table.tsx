@@ -36,7 +36,7 @@ import { Pagination } from "@workspace/ui/composed/pro-table/pagination";
 import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { cn } from "@workspace/ui/lib/utils";
-import { GripVertical, TriangleAlert } from "lucide-react";
+import { GripVertical, ShieldX, TriangleAlert } from "lucide-react";
 import type React from "react";
 import {
   Fragment,
@@ -79,6 +79,7 @@ export interface ProTableProps<TData, TValue> {
     reset: string;
     columns: string;
     fetchError: string;
+    permissionDenied: string;
     retry: string;
   }>;
   empty?: React.ReactNode;
@@ -131,7 +132,9 @@ export function ProTable<
   });
   const requestIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [fetchError, setFetchError] = useState(false);
+  const [fetchError, setFetchError] = useState<"error" | "forbidden" | null>(
+    null
+  );
 
   const table = useReactTable({
     data,
@@ -141,7 +144,7 @@ export function ProTable<
             {
               id: "sortable",
               header: (
-                <GripVertical className="h-4 w-4 cursor-move text-gray-500 hover:text-gray-700" />
+                <GripVertical className="h-4 w-4 cursor-move text-muted-foreground hover:text-foreground" />
               ),
               enableSorting: false,
               enableHiding: false,
@@ -199,7 +202,7 @@ export function ProTable<
   const fetchData = async () => {
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
-    setFetchError(false);
+    setFetchError(null);
     try {
       const response = await request(
         {
@@ -215,9 +218,23 @@ export function ProTable<
         setRowCount(response.total);
       }
     } catch (error) {
-      console.log("Fetch data error:", error);
+      console.error("Fetch data error:", error);
       if (requestId === requestIdRef.current) {
-        setFetchError(true);
+        const candidate = error as {
+          code?: number;
+          status?: number;
+          response?: {
+            status?: number;
+            data?: { code?: number; data?: { code?: number } };
+          };
+        };
+        const code =
+          candidate?.response?.data?.data?.code ??
+          candidate?.response?.data?.code ??
+          candidate?.response?.status ??
+          candidate?.status ??
+          candidate?.code;
+        setFetchError(code === 403 || code === 40_005 ? "forbidden" : "error");
       }
     } finally {
       if (requestId === requestIdRef.current) {
@@ -253,7 +270,7 @@ export function ProTable<
   const selectedCount = selectedRows.length;
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div aria-busy={isLoading} className="flex min-w-0 flex-col gap-4">
       {!header?.hidden && (
         <DataToolbar
           filters={Object.fromEntries(
@@ -387,17 +404,39 @@ export function ProTable<
                     className="py-20"
                     colSpan={table.getVisibleLeafColumns().length}
                   >
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <div className="grid size-10 place-items-center rounded-full bg-destructive/10 text-destructive">
-                        <TriangleAlert className="size-5" />
+                    <div
+                      className="flex flex-col items-center gap-3 text-center"
+                      role="alert"
+                    >
+                      <div
+                        className={cn(
+                          "grid size-10 place-items-center rounded-full",
+                          fetchError === "forbidden"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                            : "bg-destructive/10 text-destructive"
+                        )}
+                      >
+                        {fetchError === "forbidden" ? (
+                          <ShieldX className="size-5" />
+                        ) : (
+                          <TriangleAlert className="size-5" />
+                        )}
                       </div>
                       <p className="font-medium text-sm">
-                        {texts?.fetchError ||
-                          t("table.loadError", "Unable to load data")}
+                        {fetchError === "forbidden"
+                          ? texts?.permissionDenied ||
+                            t(
+                              "table.permissionDenied",
+                              "You do not have permission to view this data"
+                            )
+                          : texts?.fetchError ||
+                            t("table.loadError", "Unable to load data")}
                       </p>
-                      <Button onClick={fetchData} size="sm" variant="outline">
-                        {texts?.retry || t("table.retry", "Try again")}
-                      </Button>
+                      {fetchError === "error" ? (
+                        <Button onClick={fetchData} size="sm" variant="outline">
+                          {texts?.retry || t("table.retry", "Try again")}
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>

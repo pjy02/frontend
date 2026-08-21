@@ -110,9 +110,16 @@ html.admin-console,
 html.admin-console body {
   min-height: 100%;
   background: var(--background);
+  color-scheme: light;
+}
+
+html.admin-console.dark,
+html.admin-console.dark body {
+  color-scheme: dark;
 }
 
 html.admin-console body {
+  overflow-x: hidden;
   color: var(--foreground);
   font-family: var(--admin-font-sans);
   font-feature-settings:
@@ -120,6 +127,17 @@ html.admin-console body {
     "liga" 1,
     "tnum" 1;
   text-rendering: optimizeLegibility;
+}
+
+html.admin-console ::selection {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+html.admin-console :where(a, [role="link"]):focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 html.admin-console code,
@@ -151,6 +169,38 @@ html.admin-console [data-slot="dialog-content"],
 html.admin-console [data-slot="sheet-content"] {
   border-color: var(--border);
   box-shadow: 0 8px 24px rgb(60 64 67 / 16%);
+}
+
+html.admin-console.dark [data-slot="popover-content"],
+html.admin-console.dark [data-slot="dropdown-menu-content"],
+html.admin-console.dark [data-slot="dialog-content"],
+html.admin-console.dark [data-slot="sheet-content"] {
+  box-shadow: 0 12px 32px rgb(0 0 0 / 48%);
+}
+
+.admin-skip-link {
+  appearance: none;
+  position: fixed;
+  top: 0.5rem;
+  left: 0.75rem;
+  z-index: 100;
+  max-width: calc(100vw - 1.5rem);
+  transform: translateY(-150%);
+  border: 1px solid var(--ring);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--foreground);
+  background: var(--card);
+  box-shadow: 0 8px 24px rgb(60 64 67 / 20%);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform var(--admin-motion-fast) var(--admin-motion-easing);
+}
+
+.admin-skip-link:focus {
+  transform: translateY(0);
 }
 
 .admin-shell {
@@ -250,6 +300,7 @@ html.admin-console [data-slot="sheet-content"] {
   font-weight: 600;
   line-height: 2rem;
   letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
 }
 
 .admin-page-header__description {
@@ -258,6 +309,7 @@ html.admin-console [data-slot="sheet-content"] {
   color: var(--admin-text-secondary);
   font-size: 0.875rem;
   line-height: 1.35rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-page-header__actions {
@@ -267,6 +319,10 @@ html.admin-console [data-slot="sheet-content"] {
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.admin-page-header__actions > * {
+  max-width: 100%;
 }
 
 .admin-status-chip {
@@ -347,6 +403,11 @@ html.admin-console [data-slot="sheet-content"] {
   background: var(--admin-danger-surface);
 }
 
+.admin-state--permission .admin-state__icon {
+  color: var(--admin-warning);
+  background: var(--admin-warning-surface);
+}
+
 .admin-state__title {
   margin: 0;
   font-size: 0.95rem;
@@ -359,6 +420,7 @@ html.admin-console [data-slot="sheet-content"] {
   color: var(--admin-text-secondary);
   font-size: 0.875rem;
   line-height: 1.35rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-loading-state {
@@ -421,6 +483,10 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
 .admin-workspace-dialog {
   background: var(--card);
   box-shadow: 0 18px 48px rgb(60 64 67 / 24%);
+}
+
+.admin-workspace-dialog :where([data-slot="dialog-description"], label, p) {
+  overflow-wrap: anywhere;
 }
 
 .admin-workspace-dialog__header {
@@ -532,6 +598,7 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.35rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-settings-section__description {
@@ -540,6 +607,7 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
   color: var(--admin-text-secondary);
   font-size: 0.8125rem;
   line-height: 1.25rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-settings-section__grid {
@@ -632,6 +700,16 @@ html.admin-console
   }
 }
 
+@media (max-width: 1023px) {
+  .admin-content__inner {
+    padding: 1.25rem;
+  }
+
+  .admin-page-header {
+    gap: 1rem;
+  }
+}
+
 @media (max-width: 767px) {
   .admin-header {
     padding-inline: 0.75rem;
@@ -651,8 +729,92 @@ html.admin-console
     justify-content: flex-start;
   }
 
+  .admin-page-header__actions :where(button, [role="button"], a) {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .admin-workspace-dialog [data-slot="tabs-list"] {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .admin-workspace-dialog [data-slot="tabs-trigger"] {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .admin-workspace-dialog__footer {
+    flex-wrap: wrap;
+  }
+
   .admin-workspace-dialog {
     border-radius: 1rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .admin-header {
+    height: 3.5rem;
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+
+  .admin-header__start,
+  .admin-header__end {
+    gap: 0;
+  }
+
+  .admin-header__center {
+    padding-inline: 0.125rem;
+  }
+
+  .admin-content {
+    min-height: calc(100svh - 3.5rem);
+  }
+
+  .admin-content__inner {
+    padding: 0.75rem;
+  }
+
+  .admin-page-header {
+    margin-bottom: 1rem;
+  }
+
+  .admin-page-header__actions > * {
+    flex: 1 1 auto;
+  }
+
+  .admin-state {
+    min-height: 12rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .admin-settings-section__header,
+  .admin-settings-item,
+  .admin-settings-section__grid > :not(.admin-settings-item) {
+    padding-inline: 1rem;
+  }
+
+  .admin-workspace-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .admin-workspace-dialog__header,
+  .admin-workspace-dialog__body,
+  .admin-workspace-dialog__footer {
+    padding-inline: 1rem;
+  }
+
+  .admin-workspace-dialog__footer > :where(button, [role="button"]) {
+    flex: 1 1 8rem;
+    white-space: normal;
   }
 }
 
@@ -660,9 +822,11 @@ html.admin-console
   html.admin-console *,
   html.admin-console *::before,
   html.admin-console *::after {
-    scroll-behavior: auto;
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-    transition-duration: 0.01ms;
+    scroll-behavior: auto !important;
+    animation-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

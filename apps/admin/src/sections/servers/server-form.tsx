@@ -451,7 +451,7 @@ function renderFieldsByGroup(
   if (groupFields.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {groupFields.map((field) => (
         <DynamicField
           control={control}
@@ -771,7 +771,7 @@ export default function ServerForm(props: {
         <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
             <form className="grid grid-cols-1 gap-2 px-6 pt-4">
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
                 <FormField
                   control={control}
                   name="name"

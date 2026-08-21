@@ -48,7 +48,7 @@ export function DataToolbar<TData>({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 xl:w-auto xl:justify-start">
           <div className="flex items-center rounded-lg border bg-background p-0.5">
             <Button
               aria-label={labels?.refresh || "Refresh data"}

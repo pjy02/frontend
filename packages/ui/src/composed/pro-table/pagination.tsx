@@ -25,7 +25,10 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
 
   return (
     <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-      <div className="whitespace-nowrap text-muted-foreground text-sm">
+      <div
+        aria-live="polite"
+        className="whitespace-nowrap text-muted-foreground text-sm"
+      >
         {total !== undefined
           ? t("pagination.rangeInfo", "{{start}}–{{end}} of {{total}}", {
               start,
@@ -37,7 +40,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
               total: pageCount,
             })}
       </div>
-      <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
         <div className="flex items-center gap-2">
           <p className="whitespace-nowrap text-muted-foreground text-sm">
             {t("pagination.rowsPerPage", "Rows per page")}
@@ -62,7 +65,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
         </div>
         <div className="flex items-center gap-1">
           <Button
-            aria-label="Go to previous page"
+            aria-label={t("pagination.previous", "Go to previous page")}
             className="size-8 rounded-full"
             disabled={!table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
@@ -75,7 +78,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
             {pageIndex + 1} / {pageCount}
           </span>
           <Button
-            aria-label="Go to next page"
+            aria-label={t("pagination.next", "Go to next page")}
             className="size-8 rounded-full"
             disabled={!table.getCanNextPage()}
             onClick={() => table.nextPage()}

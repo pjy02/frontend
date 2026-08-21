@@ -4,6 +4,7 @@ import type { Table } from "@tanstack/react-table";
 import { Input } from "@workspace/ui/components/input";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface IParams {
   key: string;
@@ -23,6 +24,7 @@ export function ColumnFilter<TData>({
   params,
   filters,
 }: ColumnFilterProps<TData>) {
+  const { t } = useTranslation("components");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFilter = (key: string, value: any) => {
     table.setColumnFilters((prev) => {
@@ -44,18 +46,18 @@ export function ColumnFilter<TData>({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
       {params.map((param) => {
         if (param.options || param.type === "select") {
           return (
             <Combobox
-              className="h-9 min-w-36 max-w-52 rounded-lg bg-background"
+              className="h-9 w-full min-w-0 rounded-lg bg-background sm:w-auto sm:min-w-36 sm:max-w-52"
               key={param.key}
               onChange={(value) => {
                 updateFilter(param.key, value);
               }}
               options={param.options}
-              placeholder={param.placeholder || "Choose..."}
+              placeholder={param.placeholder || t("table.choose", "Choose...")}
               value={filters[param.key] || ""}
             />
           );
@@ -70,7 +72,8 @@ export function ColumnFilter<TData>({
                 : "";
           return (
             <Input
-              className="block h-9 min-w-36 rounded-lg bg-background"
+              aria-label={param.placeholder || t("table.date", "Date")}
+              className="block h-9 w-full min-w-0 rounded-lg bg-background sm:w-auto sm:min-w-36"
               key={param.key}
               onChange={(event) => {
                 const v = event.target.value;
@@ -86,7 +89,9 @@ export function ColumnFilter<TData>({
         return (
           <div
             className={
-              isSearch ? "relative min-w-60 flex-1 sm:max-w-80" : "min-w-36"
+              isSearch
+                ? "relative min-w-0 flex-1 sm:min-w-60 sm:max-w-80"
+                : "min-w-0 sm:min-w-36"
             }
             key={param.key}
           >
@@ -94,13 +99,24 @@ export function ColumnFilter<TData>({
               <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
             ) : null}
             <Input
+              aria-label={
+                param.placeholder ||
+                (isSearch
+                  ? t("table.search", "Search")
+                  : t("table.filter", "Filter"))
+              }
               className={
                 isSearch
                   ? "h-9 rounded-lg bg-background pl-9"
                   : "h-9 rounded-lg bg-background"
               }
               onChange={(event) => updateFilter(param.key, event.target.value)}
-              placeholder={param.placeholder || "Search..."}
+              placeholder={
+                param.placeholder ||
+                (isSearch
+                  ? t("table.searchPlaceholder", "Search...")
+                  : t("table.filterPlaceholder", "Filter..."))
+              }
               value={filters[param.key] || ""}
             />
           </div>

@@ -32,6 +32,15 @@ const initialState: ThemeProviderState = {
 
 const ThemeContext = createContext<ThemeProviderState>(initialState);
 
+function getSystemTheme(): ResolvedTheme {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return "light";
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = DEFAULT_THEME,
@@ -41,39 +50,40 @@ export function ThemeProvider({
   const [theme, _setTheme] = useState<Theme>(
     () => (getCookie(storageKey) as Theme) || defaultTheme
   );
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
 
   // Optimized: Memoize the resolved theme calculation to prevent unnecessary re-computations
   const resolvedTheme = useMemo((): ResolvedTheme => {
     if (theme === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+      return systemTheme;
     }
     return theme as ResolvedTheme;
-  }, [theme]);
+  }, [systemTheme, theme]);
+
+  useEffect(() => {
+    if (!window.matchMedia) {
+      return;
+    }
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => setSystemTheme(getSystemTheme());
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    root.classList.remove("light", "dark");
+    root.classList.add(resolvedTheme);
+    root.style.colorScheme = resolvedTheme;
 
-    const applyTheme = (currentResolvedTheme: ResolvedTheme) => {
-      root.classList.remove("light", "dark"); // Remove existing theme classes
-      root.classList.add(currentResolvedTheme); // Add the new theme class
-    };
-
-    const handleChange = () => {
-      if (theme === "system") {
-        const systemTheme = mediaQuery.matches ? "dark" : "light";
-        applyTheme(systemTheme);
-      }
-    };
-
-    applyTheme(resolvedTheme);
-
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme, resolvedTheme]);
+    const themeColor = getComputedStyle(root)
+      .getPropertyValue("--background")
+      .trim();
+    const metaThemeColor = document.querySelector("meta[name='theme-color']");
+    if (themeColor && metaThemeColor) {
+      metaThemeColor.setAttribute("content", themeColor);
+    }
+  }, [resolvedTheme]);
 
   const setTheme = (theme: Theme) => {
     setCookie(storageKey, theme, THEME_COOKIE_MAX_AGE);

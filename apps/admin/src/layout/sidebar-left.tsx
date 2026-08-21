@@ -20,12 +20,14 @@ import {
   SidebarRail,
   useSidebar,
 } from "@workspace/ui/components/sidebar";
+import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
 import { cn } from "@workspace/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
 import React, { useState } from "react";
 import { useGlobalStore } from "@/stores/global";
 import packageJson from "../../../../package.json";
 import { type NavItem, useNavs } from "./navs";
+import TimezoneSwitch from "./timezone-switch";
 
 function hasChildren(item: NavItem): item is NavItem & { items: NavItem[] } {
   return Boolean(item.items?.length);
@@ -38,7 +40,7 @@ export function SidebarLeft({
   const { site } = common;
   const navs = useNavs();
   const pathname = useLocation({ select: (location) => location.pathname });
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const normalize = (path: string) =>
@@ -55,6 +57,12 @@ export function SidebarLeft({
     hasChildren(nav)
       ? nav.items.some((item) => item.url && isActiveUrl(item.url))
       : Boolean(nav.url && isActiveUrl(nav.url));
+
+  const handleNavigate = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   React.useEffect(() => {
     setOpenGroups((current) => {
@@ -82,7 +90,7 @@ export function SidebarLeft({
           isActive={isActiveUrl(nav.url)}
           tooltip={nav.title}
         >
-          <Link to={nav.url}>
+          <Link onClick={handleNavigate} to={nav.url}>
             {NavIcon ? <NavIcon className="size-[18px]" /> : null}
             <span className="sr-only">{nav.title}</span>
           </Link>
@@ -127,6 +135,7 @@ export function SidebarLeft({
                       : "text-foreground hover:bg-muted"
                   )}
                   key={item.title}
+                  onClick={handleNavigate}
                   to={item.url || "/dashboard"}
                 >
                   {ItemIcon ? (
@@ -153,7 +162,7 @@ export function SidebarLeft({
               size="lg"
               tooltip={site.site_name || "PPanel"}
             >
-              <Link to="/dashboard">
+              <Link onClick={handleNavigate} to="/dashboard">
                 <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white ring-1 ring-sidebar-border dark:bg-white/10">
                   <img
                     alt=""
@@ -198,7 +207,7 @@ export function SidebarLeft({
                         tooltip={nav.title}
                       >
                         {nav.url ? (
-                          <Link to={nav.url}>
+                          <Link onClick={handleNavigate} to={nav.url}>
                             {NavIcon ? (
                               <NavIcon className="size-[18px]" />
                             ) : null}
@@ -256,7 +265,10 @@ export function SidebarLeft({
                                     item.url && isActiveUrl(item.url)
                                   )}
                                 >
-                                  <Link to={item.url || "/dashboard"}>
+                                  <Link
+                                    onClick={handleNavigate}
+                                    to={item.url || "/dashboard"}
+                                  >
                                     {ItemIcon ? (
                                       <ItemIcon className="size-4" />
                                     ) : null}
@@ -276,6 +288,12 @@ export function SidebarLeft({
       </SidebarContent>
 
       <SidebarFooter className="border-sidebar-border border-t px-3 py-3">
+        {isMobile ? (
+          <div className="mb-2 flex items-center gap-1 border-sidebar-border border-b pb-2">
+            <LanguageSwitch />
+            <TimezoneSwitch />
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 px-2 text-sidebar-foreground/60 text-xs group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <span className="size-2 rounded-full bg-emerald-500" />
           <span className="truncate group-data-[collapsible=icon]:hidden">

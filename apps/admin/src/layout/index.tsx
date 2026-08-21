@@ -1,18 +1,36 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useLocation } from "@tanstack/react-router";
 import {
   SidebarInset,
   SidebarProvider,
 } from "@workspace/ui/components/sidebar";
 import { getCookie } from "@workspace/ui/lib/cookies";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/layout/header";
 import { SidebarLeft } from "./sidebar-left";
 
 export default function DashboardLayout() {
+  const { t } = useTranslation("components");
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPathname = useRef(pathname);
   const [open, setOpen] = useState(() => {
     const sidebarState = getCookie("sidebar_state");
     return sidebarState === undefined ? true : sidebarState === "true";
   });
+
+  useEffect(() => {
+    if (previousPathname.current === pathname) {
+      return;
+    }
+    previousPathname.current = pathname;
+    const frame = requestAnimationFrame(() => {
+      mainRef.current?.focus({
+        preventScroll: true,
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
 
   return (
     <SidebarProvider
@@ -26,14 +44,33 @@ export default function DashboardLayout() {
         } as CSSProperties
       }
     >
+      <button
+        className="admin-skip-link"
+        onClick={() => mainRef.current?.focus({ preventScroll: true })}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+          event.preventDefault();
+          mainRef.current?.focus({ preventScroll: true });
+        }}
+        type="button"
+      >
+        {t("accessibility.skipToContent", "Skip to main content")}
+      </button>
       <SidebarLeft />
       <SidebarInset className="admin-main relative flex-grow overflow-hidden">
         <Header />
-        <div className="admin-content flex-grow">
+        <main
+          className="admin-content flex-grow outline-none"
+          id="admin-main-content"
+          ref={mainRef}
+          tabIndex={-1}
+        >
           <div className="admin-content__inner">
             <Outlet />
           </div>
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

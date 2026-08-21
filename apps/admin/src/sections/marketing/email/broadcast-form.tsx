@@ -370,7 +370,7 @@ export default function EmailBroadcastForm() {
                 {/* Send Settings Tab */}
                 <TabsContent className="space-y-2" value="settings">
                   {/* Send scope and estimated recipients */}
-                  <div className="grid grid-cols-2 items-center gap-4">
+                  <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="scope"
@@ -456,7 +456,7 @@ export default function EmailBroadcastForm() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="register_start_time"
@@ -577,7 +577,7 @@ export default function EmailBroadcastForm() {
                   />
 
                   {/* Send rate control */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="interval"

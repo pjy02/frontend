@@ -8,25 +8,22 @@ import {
 import { useTheme } from "@workspace/ui/integrations/theme";
 import { cn } from "@workspace/ui/lib/utils";
 import { Check, Moon, Sun } from "lucide-react";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 export function ThemeSwitch() {
   const { t } = useTranslation("components");
   const { theme, setTheme } = useTheme();
 
-  /* Update theme-color meta tag
-   * when theme is updated */
-  useEffect(() => {
-    const themeColor = theme === "dark" ? "#020817" : "#fff";
-    const metaThemeColor = document.querySelector("meta[name='theme-color']");
-    if (metaThemeColor) metaThemeColor.setAttribute("content", themeColor);
-  }, [theme]);
-
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button className="scale-95 rounded-full" size="icon" variant="ghost">
+        <Button
+          aria-haspopup="menu"
+          className="scale-95 rounded-full"
+          size="icon"
+          title={t("theme.toggle", "Toggle theme")}
+          variant="ghost"
+        >
           <Sun className="dark:-rotate-90 size-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0" />
           <Moon className="absolute size-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">{t("theme.toggle", "Toggle theme")}</span>

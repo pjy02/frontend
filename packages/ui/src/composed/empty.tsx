@@ -5,7 +5,6 @@ import {
   EmptyMedia,
 } from "@workspace/ui/components/empty";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function Empty({
@@ -17,60 +16,11 @@ export default function Empty({
 }) {
   const { t } = useTranslation("components");
 
-  const messages = useMemo(
-    () => [
-      t(
-        "empty.tips.0",
-        "Imagine this space filled with exciting content! For now, you'll have to use your imagination..."
-      ),
-      t(
-        "empty.tips.1",
-        "This area mysteriously disappeared, but we're summoning it back!"
-      ),
-      t(
-        "empty.tips.2",
-        "Oh no, nothing happened... Feel free to fill in the blank!"
-      ),
-      t(
-        "empty.tips.3",
-        "It's like discovering an empty stage at a concert... Why not go up and perform?"
-      ),
-      t(
-        "empty.tips.4",
-        "You've found a blank canvas! How about building a house?"
-      ),
-      t(
-        "empty.tips.5",
-        "This area is currently empty, but creativity starts here!"
-      ),
-      t(
-        "empty.tips.6",
-        "Nothing here... but don't worry, it's just the beginning!"
-      ),
-      t(
-        "empty.tips.7",
-        "This place was supposed to have a big surprise, but the surprise slipped away!"
-      ),
-      t(
-        "empty.tips.8",
-        "There's nothing here for now, like an empty snack cabinet."
-      ),
-      t(
-        "empty.tips.9",
-        "This empty space is waiting for its protagonist to take the stage!"
-      ),
-    ],
-    [t]
-  );
-
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    setIndex(Math.floor(Math.random() * messages.length));
-  }, [messages]);
-
   return (
-    <EmptyContainer className={cn(border ? "border" : "border-none")}>
+    <EmptyContainer
+      className={cn(border ? "border" : "border-none")}
+      role="status"
+    >
       <EmptyMedia>
         <svg
           className="text-background"
@@ -81,7 +31,7 @@ export default function Empty({
           width="64"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <title>Empty</title>
+          <title>{t("empty.title", "No data")}</title>
           <g fill="none" fillRule="evenodd" transform="translate(0 1)">
             <ellipse
               cx="32"
@@ -102,7 +52,13 @@ export default function Empty({
         </svg>
       </EmptyMedia>
       <EmptyHeader>
-        <EmptyDescription>{description || messages[index]}</EmptyDescription>
+        <EmptyDescription>
+          {description ||
+            t(
+              "empty.description",
+              "No records match the current filters. Try adjusting or clearing them."
+            )}
+        </EmptyDescription>
       </EmptyHeader>
     </EmptyContainer>
   );

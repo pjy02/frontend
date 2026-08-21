@@ -1,7 +1,8 @@
 import { cn } from "@workspace/ui/lib/utils";
 import type * as React from "react";
 
-interface SettingsSectionProps extends React.ComponentProps<"section"> {
+interface SettingsSectionProps
+  extends Omit<React.ComponentProps<"section">, "title"> {
   title: React.ReactNode;
   description?: React.ReactNode;
   columns?: 1 | 2;

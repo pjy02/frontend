@@ -1,4 +1,4 @@
-import { useTheme } from "next-themes";
+import { useTheme } from "@workspace/ui/integrations/theme";
 import { type RefObject, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import Turnstile, { useTurnstile } from "react-turnstile";
@@ -57,7 +57,7 @@ const CloudFlareTurnstile = function CloudFlareTurnstile({
         }}
         onVerify={(token) => onChange(token)}
         sitekey={verify.turnstile_site_key}
-        theme={resolvedTheme as "light" | "dark"}
+        theme={resolvedTheme}
       />
     )
   );

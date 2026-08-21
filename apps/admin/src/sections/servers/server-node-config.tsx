@@ -325,7 +325,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                           </FormLabel>
                           <FormControl>
                             <ArrayInput
-                              className="grid grid-cols-2 gap-2"
+                              className="grid grid-cols-1 gap-2 sm:grid-cols-2"
                               fields={[
                                 {
                                   name: "proto",

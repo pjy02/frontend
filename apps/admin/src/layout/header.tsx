@@ -24,7 +24,7 @@ export function Header() {
 
   return (
     <header className="admin-header">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="admin-header__start flex min-w-0 items-center gap-2">
         <SidebarTrigger className="size-9 rounded-full" />
         <Separator
           className="mx-1 hidden h-5 sm:block"
@@ -59,12 +59,12 @@ export function Header() {
         </Breadcrumb>
       </div>
 
-      <div className="flex min-w-0 flex-1 justify-center px-0 sm:px-2">
+      <div className="admin-header__center flex min-w-0 flex-1 justify-center px-0 sm:px-2">
         <AdminSearch />
       </div>
 
-      <div className="flex shrink-0 items-center gap-0.5">
-        <div className="hidden items-center gap-0.5 lg:flex">
+      <div className="admin-header__end flex shrink-0 items-center gap-0.5">
+        <div className="hidden items-center gap-0.5 md:flex">
           <LanguageSwitch />
           <TimezoneSwitch />
         </div>
