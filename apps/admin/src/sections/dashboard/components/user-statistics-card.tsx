@@ -16,6 +16,7 @@ import {
   ChartTooltipContent,
 } from "@workspace/ui/components/chart";
 import { Separator } from "@workspace/ui/components/separator";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   Tabs,
   TabsContent,
@@ -56,7 +57,7 @@ export function UserStatisticsCard() {
     },
   };
 
-  const { data: UserStatistics } = useQuery({
+  const { data: UserStatistics, isLoading } = useQuery({
     queryKey: ["queryUserStatistics"],
     queryFn: async () => {
       const { data } = await queryUserStatistics();
@@ -66,9 +67,11 @@ export function UserStatisticsCard() {
 
   return (
     <Tabs defaultValue="today">
-      <Card className="h-full pb-0">
-        <CardHeader className="!flex-row flex items-center justify-between">
-          <CardTitle>{t("userTitle", "User Statistics")}</CardTitle>
+      <Card className="dashboard-card h-full gap-0 overflow-hidden border-border/70 pb-0 shadow-none">
+        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 sm:!flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">
+            {t("userTitle", "User Statistics")}
+          </CardTitle>
           <TabsList>
             <TabsTrigger value="today">{t("today", "Today")}</TabsTrigger>
             <TabsTrigger value="month">{t("month", "Month")}</TabsTrigger>
@@ -77,8 +80,10 @@ export function UserStatisticsCard() {
         </CardHeader>
 
         <TabsContent className="h-full" value="today">
-          <CardContent className="h-80">
-            {UserStatistics?.today.register ||
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : UserStatistics?.today.register ||
             UserStatistics?.today.new_order_users ||
             UserStatistics?.today.renewal_order_users ? (
               <ChartContainer
@@ -182,8 +187,10 @@ export function UserStatisticsCard() {
         </TabsContent>
 
         <TabsContent className="h-full" value="month">
-          <CardContent className="h-80">
-            {UserStatistics?.monthly.list &&
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : UserStatistics?.monthly.list &&
             UserStatistics?.monthly.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
@@ -281,8 +288,10 @@ export function UserStatisticsCard() {
         </TabsContent>
 
         <TabsContent className="h-full" value="total">
-          <CardContent className="h-80">
-            {UserStatistics?.all.list && UserStatistics?.all.list.length > 0 ? (
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : UserStatistics?.all.list && UserStatistics?.all.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
                 config={UserStatisticsConfig}
@@ -324,26 +333,26 @@ export function UserStatisticsCard() {
                   <Area
                     dataKey="register"
                     fill="var(--color-register)"
-                    fillOpacity={0.4}
+                    fillOpacity={0.12}
                     stackId="a"
                     stroke="var(--color-register)"
-                    type="natural"
+                    type="monotone"
                   />
                   <Area
                     dataKey="new_purchase"
                     fill="var(--color-new_purchase)"
-                    fillOpacity={0.4}
+                    fillOpacity={0.12}
                     stackId="a"
                     stroke="var(--color-new_purchase)"
-                    type="natural"
+                    type="monotone"
                   />
                   <Area
                     dataKey="repurchase"
                     fill="var(--color-repurchase)"
-                    fillOpacity={0.4}
+                    fillOpacity={0.12}
                     stackId="a"
                     stroke="var(--color-repurchase)"
-                    type="natural"
+                    type="monotone"
                   />
                   <ChartLegend content={<ChartLegendContent />} />
                 </AreaChart>

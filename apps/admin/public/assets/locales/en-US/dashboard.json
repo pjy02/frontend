@@ -1,7 +1,29 @@
 {
   "billing": {
     "description": "Sponsoring helps PPanel to continue releasing updates!",
-    "title": "Sponsor"
+    "title": "Project Support"
+  },
+  "overview": {
+    "description": "Monitor users, revenue, traffic, and system health in one place.",
+    "notice": "{{offline}} servers are offline and {{tickets}} tickets need attention.",
+    "noticeServers": "{{offline}} servers are currently offline.",
+    "noticeTickets": "{{tickets}} tickets need attention.",
+    "operations": "Operations",
+    "operationsHint": "Current workload and quick access",
+    "orders": "Orders",
+    "products": "Products",
+    "refresh": "Refresh",
+    "servers": "Servers",
+    "systemHealth": "System health",
+    "title": "Dashboard",
+    "todayIncome": "Today's income",
+    "todayIncomeHint": "New purchases and renewals",
+    "trafficRankingHint": "Top eight records by transferred traffic",
+    "unavailable": "Data unavailable",
+    "updatedAt": "Updated {{time}}",
+    "users": "Users",
+    "viewServers": "View servers",
+    "viewTickets": "View tickets"
   },
   "currentlyOnline": "Currently Online",
   "month": "Month",

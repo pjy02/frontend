@@ -6,8 +6,8 @@ import {
 } from "@workspace/ui/components/avatar";
 import {
   Card,
+  CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
 import { useTranslation } from "react-i18next";
@@ -69,17 +69,19 @@ export default function Billing({ type }: BillingProps) {
   if (!list?.length) return null;
 
   return (
-    <>
-      <h1 className="text mt-2 font-bold">
-        <span>{t("billing.title", "Sponsor")}</span>
-        <span className="ml-2 text-muted-foreground text-xs">
+    <section className="dashboard-section border-t pt-5">
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h2 className="font-semibold text-sm">
+          {t("billing.title", "Project Support")}
+        </h2>
+        <span className="text-muted-foreground text-xs">
           {t(
             "billing.description",
             "Sponsoring helps PPanel to continue releasing updates!"
           )}
         </span>
-      </h1>
-      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {list.map((item: ItemType, index: number) => (
           <a
             href={item.href}
@@ -87,23 +89,25 @@ export default function Billing({ type }: BillingProps) {
             rel="noopener noreferrer"
             target="_blank"
           >
-            <Card className="h-full cursor-pointer">
-              <CardHeader className="flex flex-row gap-2 p-3">
-                <Avatar>
+            <Card className="h-full cursor-pointer gap-0 border-border/60 py-0 shadow-none transition-colors hover:border-primary/25 hover:bg-muted/20">
+              <CardContent className="flex flex-row items-center gap-3 p-3">
+                <Avatar className="size-9">
                   <AvatarImage src={item.logo} />
                   <AvatarFallback>{item.title}</AvatarFallback>
                 </Avatar>
-                <div>
-                  <CardTitle>{item.title}</CardTitle>
-                  <CardDescription className="mt-2">
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-sm">
+                    {item.title}
+                  </CardTitle>
+                  <CardDescription className="mt-1 line-clamp-1 text-xs">
                     {item.description}
                   </CardDescription>
                 </div>
-              </CardHeader>
+              </CardContent>
             </Card>
           </a>
         ))}
       </div>
-    </>
+    </section>
   );
 }

@@ -130,14 +130,21 @@ export default function SystemVersionCard() {
   const isUpdatingServer = updateServerMutation.isPending;
 
   return (
-    <Card className="gap-0 p-3">
-      <CardHeader className="mb-2 p-0">
-        <CardTitle className="flex items-center justify-between">
-          {t("systemServices", "System Services")}
+    <Card className="dashboard-card h-full gap-0 border-border/70 p-0 shadow-none">
+      <CardHeader className="border-b px-5 py-4">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-base">
+            {t("systemServices", "System Services")}
+          </span>
           <div className="flex items-center space-x-2">
             <AlertDialog onOpenChange={setOpenRestart} open={openRestart}>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive">
+                <Button
+                  className="text-destructive hover:text-destructive"
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Icon className="size-4" icon="uil:power" />
                   {t("systemReboot", "System Reboot")}
                 </Button>
               </AlertDialogTrigger>
@@ -178,15 +185,15 @@ export default function SystemVersionCard() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 p-0">
-        <div className="flex flex-1 items-center justify-between">
+      <CardContent className="space-y-2 p-5">
+        <div className="flex flex-1 flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center">
             <Icon className="mr-2 h-4 w-4 text-green-600" icon="mdi:web" />
             <span className="font-medium text-sm">
               {t("webVersion", "Web Version")}
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex w-full items-center justify-end space-x-2 sm:w-auto">
             <Badge>V{packageJson.version}</Badge>
             <AlertDialog onOpenChange={setOpenUpdateWeb} open={openUpdateWeb}>
               <AlertDialogTrigger asChild>
@@ -237,14 +244,14 @@ export default function SystemVersionCard() {
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-between">
+        <div className="flex flex-1 flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center">
             <Icon className="mr-2 h-4 w-4 text-blue-600" icon="mdi:server" />
             <span className="font-medium text-sm">
               {t("serverVersion", "Server Version")}
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex w-full items-center justify-end space-x-2 sm:w-auto">
             <Badge>
               V
               {moduleConfig?.service_version ||

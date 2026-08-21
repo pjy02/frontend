@@ -16,6 +16,7 @@ import {
   ChartTooltipContent,
 } from "@workspace/ui/components/chart";
 import { Separator } from "@workspace/ui/components/separator";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   Tabs,
   TabsContent,
@@ -58,7 +59,7 @@ export function RevenueStatisticsCard() {
     },
   };
 
-  const { data: RevenueStatistics } = useQuery({
+  const { data: RevenueStatistics, isLoading } = useQuery({
     queryKey: ["queryRevenueStatistics"],
     queryFn: async () => {
       const { data } = await queryRevenueStatistics();
@@ -68,9 +69,11 @@ export function RevenueStatisticsCard() {
 
   return (
     <Tabs defaultValue="today">
-      <Card className="h-full pb-0">
-        <CardHeader className="!flex-row flex items-center justify-between">
-          <CardTitle>{t("revenueTitle", "Revenue Statistics")}</CardTitle>
+      <Card className="dashboard-card h-full gap-0 overflow-hidden border-border/70 pb-0 shadow-none">
+        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 sm:!flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-base">
+            {t("revenueTitle", "Revenue Statistics")}
+          </CardTitle>
           <TabsList>
             <TabsTrigger value="today">{t("today", "Today")}</TabsTrigger>
             <TabsTrigger value="month">{t("month", "Month")}</TabsTrigger>
@@ -78,8 +81,10 @@ export function RevenueStatisticsCard() {
           </TabsList>
         </CardHeader>
         <TabsContent className="h-full" value="today">
-          <CardContent className="h-80">
-            {RevenueStatistics?.today.new_order_amount ||
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : RevenueStatistics?.today.new_order_amount ||
             RevenueStatistics?.today.renewal_order_amount ? (
               <ChartContainer
                 className="mx-auto max-h-80"
@@ -191,8 +196,10 @@ export function RevenueStatisticsCard() {
         </TabsContent>
 
         <TabsContent className="h-full" value="month">
-          <CardContent className="h-80">
-            {RevenueStatistics?.monthly.list &&
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : RevenueStatistics?.monthly.list &&
             RevenueStatistics?.monthly.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
@@ -331,8 +338,10 @@ export function RevenueStatisticsCard() {
         </TabsContent>
 
         <TabsContent className="h-full" value="total">
-          <CardContent className="h-80">
-            {RevenueStatistics?.all.list &&
+          <CardContent className="h-72 p-5 sm:h-80">
+            {isLoading ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : RevenueStatistics?.all.list &&
             RevenueStatistics?.all.list.length > 0 ? (
               <ChartContainer
                 className="max-h-80 w-full"
@@ -413,18 +422,18 @@ export function RevenueStatisticsCard() {
                   <Area
                     dataKey="new_purchase"
                     fill="var(--color-new_purchase)"
-                    fillOpacity={0.4}
+                    fillOpacity={0.12}
                     stackId="a"
                     stroke="var(--color-new_purchase)"
-                    type="natural"
+                    type="monotone"
                   />
                   <Area
                     dataKey="repurchase"
                     fill="var(--color-repurchase)"
-                    fillOpacity={0.4}
+                    fillOpacity={0.12}
                     stackId="a"
                     stroke="var(--color-repurchase)"
-                    type="natural"
+                    type="monotone"
                   />
                   <ChartLegend content={<ChartLegendContent />} />
                 </AreaChart>
