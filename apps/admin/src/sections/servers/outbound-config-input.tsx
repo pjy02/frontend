@@ -299,11 +299,11 @@ export function OutboundConfigInput({
     }
 
     return (
-      <fieldset className="rounded-lg border border-border" key={group.group}>
+      <fieldset className="rounded-xl border border-border" key={group.group}>
         <legend className="ml-3 bg-background px-1 py-1 font-medium text-foreground text-sm">
           {t(group.labelKey, group.fallback)}
         </legend>
-        <div className="grid grid-cols-2 gap-4 p-4 pt-2">
+        <div className="grid grid-cols-1 gap-4 p-4 pt-2 sm:grid-cols-2">
           {visibleFields.map((field) => renderField(item, index, field))}
         </div>
       </fieldset>
@@ -345,7 +345,7 @@ export function OutboundConfigInput({
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pt-0 pb-4">
-                  <div className="-mx-4 space-y-4 rounded-b-lg border-t px-4 pt-4">
+                  <div className="-mx-4 grid gap-4 rounded-b-lg border-t px-4 pt-4 lg:grid-cols-2">
                     {FIELD_GROUPS.map((group) =>
                       renderGroup(item, index, group)
                     )}

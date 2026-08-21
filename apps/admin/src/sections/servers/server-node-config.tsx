@@ -19,14 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import {
   Tabs,
@@ -46,6 +38,14 @@ import { type Control, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import {
   normalizeOutboundConfig,
   outboundConfigSchema,
@@ -197,21 +197,21 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button variant="outline">
           <Icon className="mr-2 h-4 w-4" icon="mdi:tune-variant" />
           {t("server_node_config.trigger", "Node Config")}
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[700px] max-w-full gap-0 md:max-w-3xl">
-        <SheetHeader>
-          <SheetTitle>
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>
             {t("server_node_config.title", "Node Config")} - {server.name}
-          </SheetTitle>
-        </SheetHeader>
+          </WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
 
-        <ScrollArea className="h-[calc(100vh-8rem)] pr-3">
+        <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
           {isError && (
             <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive text-sm">
               {t(
@@ -473,7 +473,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
           </Tabs>
         </ScrollArea>
 
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={saving}
             onClick={() => setOpen(false)}
@@ -492,8 +492,8 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
             />
             {t("actions.save", "Save")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

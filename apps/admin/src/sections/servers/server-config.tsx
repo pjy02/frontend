@@ -22,14 +22,6 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -51,6 +43,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import {
   normalizeOutboundConfig,
   outboundConfigSchema,
@@ -141,8 +141,8 @@ export default function ServerConfig() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Card>
           <CardContent>
             <div className="flex cursor-pointer items-center justify-between">
@@ -169,17 +169,17 @@ export default function ServerConfig() {
             </div>
           </CardContent>
         </Card>
-      </SheetTrigger>
+      </WorkspaceDialogTrigger>
 
-      <SheetContent className="w-[720px] max-w-full md:max-w-3xl">
-        <SheetHeader>
-          <SheetTitle>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>
             {t("server_config.title", "Node configuration")}
-          </SheetTitle>
-        </SheetHeader>
+          </WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
 
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))] px-6">
-          <Tabs className="pt-4" defaultValue="basic">
+        <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
+          <Tabs defaultValue="basic">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">
                 {t("server_config.tabs.basic", "Basic Configuration")}
@@ -541,7 +541,7 @@ export default function ServerConfig() {
           </Tabs>
         </ScrollArea>
 
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={saving}
             onClick={() => setOpen(false)}
@@ -556,8 +556,8 @@ export default function ServerConfig() {
             />
             {t("actions.save", "Save")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

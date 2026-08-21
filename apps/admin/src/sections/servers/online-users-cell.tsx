@@ -2,13 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@workspace/ui/components/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import { getUserSubscribeById } from "@workspace/ui/services/admin/user";
 import { formatBytes } from "@workspace/ui/utils/formatting";
@@ -16,6 +9,14 @@ import { Users } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IpLink } from "@/components/ip-link";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogBody,
+  WorkspaceDialogContent,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import { UserDetail } from "@/sections/user/user-detail";
 import { formatDate } from "@/utils/common";
 
@@ -106,20 +107,22 @@ export default function OnlineUsersCell({
   const [open, setOpen] = useState(false);
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <button
           className="flex items-center gap-2 bg-transparent p-0 text-muted-foreground text-sm hover:text-foreground"
           type="button"
         >
           <Users className="h-4 w-4" /> {status?.online.length}
         </button>
-      </SheetTrigger>
-      <SheetContent className="h-screen w-screen max-w-none sm:h-auto sm:w-[900px] sm:max-w-[90vw]">
-        <SheetHeader>
-          <SheetTitle>{t("onlineUsers", "Online Users")}</SheetTitle>
-        </SheetHeader>
-        <div className="h-[calc(100vh-48px-16px)] overflow-y-auto px-6 py-4 sm:h-[calc(100dvh-48px-16px-env(safe-area-inset-top))]">
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>
+            {t("onlineUsers", "Online Users")}
+          </WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <WorkspaceDialogBody>
           <ProTable<API.ServerOnlineUser, Record<string, unknown>>
             columns={[
               {
@@ -214,8 +217,8 @@ export default function OnlineUsersCell({
               total: status?.online?.length || 0,
             })}
           />
-        </div>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogBody>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

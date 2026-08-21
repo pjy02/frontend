@@ -22,13 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import {
   Tabs,
@@ -63,6 +56,13 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+} from "@/components/workspace-dialog";
 import { subscribeSchema } from "./schema";
 import { TemplatePreview } from "./template-preview";
 
@@ -434,16 +434,16 @@ export function ProtocolForm() {
         request={request}
       />
 
-      <Sheet onOpenChange={setOpen} open={open}>
-        <SheetContent className="w-[580px] max-w-full md:max-w-screen-md">
-          <SheetHeader>
-            <SheetTitle>
+      <WorkspaceDialog onOpenChange={setOpen} open={open}>
+        <WorkspaceDialogContent size="xl">
+          <WorkspaceDialogHeader>
+            <WorkspaceDialogTitle>
               {editingClient
                 ? t("form.editTitle", "Edit Client")
                 : t("form.addTitle", "Add Client")}
-            </SheetTitle>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100dvh-48px-36px-36px)] px-6">
+            </WorkspaceDialogTitle>
+          </WorkspaceDialogHeader>
+          <ScrollArea className="min-h-0 flex-1 px-5 sm:px-7">
             <Form {...form}>
               <form className="space-y-6 py-4">
                 <Tabs className="w-full" defaultValue="basic">
@@ -918,7 +918,7 @@ export function ProtocolForm() {
               </form>
             </Form>
           </ScrollArea>
-          <SheetFooter className="flex-row justify-end gap-2 pt-3">
+          <WorkspaceDialogFooter className="flex-row justify-end gap-2">
             <Button onClick={() => setOpen(false)} variant="outline">
               {t("actions.cancel", "Cancel")}
             </Button>
@@ -930,9 +930,9 @@ export function ProtocolForm() {
                 ? t("actions.update", "Update")
                 : t("actions.add", "Add")}
             </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </WorkspaceDialogFooter>
+        </WorkspaceDialogContent>
+      </WorkspaceDialog>
     </>
   );
 }

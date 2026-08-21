@@ -20,6 +20,8 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
+import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
 import DynamicMultiplier from "./dynamic-multiplier";
@@ -91,7 +93,15 @@ export default function Servers() {
   const ref = useRef<ProTableActions>(null);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <PageHeader
+        description={t(
+          "pageDescription",
+          "Manage server capacity, connectivity, protocols, and node runtime configuration."
+        )}
+        eyebrow={t("infrastructure", "Infrastructure")}
+        title={t("pageTitle", "Servers")}
+      />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <DynamicMultiplier />
         <ServerConfig />
@@ -287,17 +297,9 @@ export default function Servers() {
             cell: ({ row }) => {
               const offline = row.original.status.status === "offline";
               return (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-block h-2.5 w-2.5 rounded-full",
-                      offline ? "bg-zinc-400" : "bg-emerald-500"
-                    )}
-                  />
-                  <span className="text-sm">
-                    {offline ? t("offline", "Offline") : t("online", "Online")}
-                  </span>
-                </div>
+                <StatusChip tone={offline ? "neutral" : "success"}>
+                  {offline ? t("offline", "Offline") : t("online", "Online")}
+                </StatusChip>
               );
             },
           },
@@ -340,7 +342,7 @@ export default function Servers() {
           },
         ]}
         header={{
-          title: t("pageTitle", "Servers"),
+          title: t("inventoryTitle", "Server inventory"),
           toolbar: (
             <div className="flex gap-2">
               <ServerForm

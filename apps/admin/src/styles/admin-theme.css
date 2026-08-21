@@ -418,6 +418,65 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
   padding-bottom: 1.125rem;
 }
 
+.admin-workspace-dialog {
+  background: var(--card);
+  box-shadow: 0 18px 48px rgb(60 64 67 / 24%);
+}
+
+.admin-workspace-dialog__header {
+  background: color-mix(in srgb, var(--card) 92%, var(--admin-info-surface));
+}
+
+.admin-workspace-dialog__header [data-slot="dialog-title"] {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.5rem;
+}
+
+.admin-workspace-dialog__body {
+  overscroll-behavior: contain;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+
+.admin-workspace-dialog__footer {
+  background: color-mix(in srgb, var(--muted) 34%, var(--card));
+}
+
+.admin-workspace-dialog [data-slot="tabs-list"] {
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  background: var(--admin-surface-subtle);
+}
+
+.admin-workspace-dialog [data-slot="tabs-trigger"] {
+  min-height: 2.125rem;
+  border-radius: 0.55rem;
+}
+
+.admin-workspace-dialog [data-slot="accordion-item"],
+.admin-workspace-dialog fieldset {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--card) 94%, var(--muted));
+}
+
+.admin-workspace-dialog [data-slot="form-item"]:has([role="switch"]) {
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--muted) 52%, transparent);
+  padding: 0.75rem 1rem;
+}
+
+.admin-infrastructure-panel {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+}
+
+.admin-infrastructure-panel:hover {
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+}
+
 html.admin-console
   .admin-user-sheet
   [data-slot="form-item"]:has([role="switch"]) {
@@ -450,6 +509,10 @@ html.admin-console
   .admin-page-header__actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .admin-workspace-dialog {
+    border-radius: 1rem;
   }
 }
 

@@ -12,14 +12,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import TagInput from "@workspace/ui/composed/tag-input";
@@ -29,6 +21,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
 
@@ -242,8 +242,8 @@ export default function NodeForm(props: {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
             form.reset({
@@ -260,20 +260,20 @@ export default function NodeForm(props: {
         >
           {trigger}
         </Button>
-      </SheetTrigger>
+      </WorkspaceDialogTrigger>
 
-      <SheetContent className="w-[560px] max-w-full">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))] px-6 pt-4">
+      <WorkspaceDialogContent size="lg">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
           <Form {...form}>
-            <form className="grid grid-cols-1 gap-4">
+            <form className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="server_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>{t("server", "Server")}</FormLabel>
                     <FormControl>
                       <Combobox<number, false>
@@ -377,7 +377,7 @@ export default function NodeForm(props: {
                 control={form.control}
                 name="tags"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel>{t("tags", "Tags")}</FormLabel>
                     <FormControl>
                       <TagInput
@@ -404,7 +404,7 @@ export default function NodeForm(props: {
           </Form>
         </ScrollArea>
 
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
             onClick={() => setOpen(false)}
@@ -422,8 +422,8 @@ export default function NodeForm(props: {
           >
             {t("confirm", "Confirm")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

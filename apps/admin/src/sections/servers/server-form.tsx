@@ -31,14 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
@@ -47,6 +39,14 @@ import { useEffect, useState } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import { useNode } from "@/stores/node";
 import {
   type FieldConfig,
@@ -744,8 +744,8 @@ export default function ServerForm(props: {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
             if (!initialValues) {
@@ -763,12 +763,12 @@ export default function ServerForm(props: {
         >
           {trigger}
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[700px] max-w-full gap-0 md:max-w-3xl">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))]">
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
             <form className="grid grid-cols-1 gap-2 px-6 pt-4">
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -1005,7 +1005,7 @@ export default function ServerForm(props: {
             </form>
           </Form>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
             onClick={() => setOpen(false)}
@@ -1026,8 +1026,8 @@ export default function ServerForm(props: {
             )}
             {t("confirm", "Confirm")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

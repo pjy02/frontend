@@ -19,6 +19,7 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
 import NodeForm from "./node-form";
@@ -140,18 +141,30 @@ export default function Nodes() {
           id: "enabled",
           header: t("enabled", "Enabled"),
           cell: ({ row }) => (
-            <Switch
-              checked={row.original.enabled}
-              onCheckedChange={async (v) => {
-                await toggleNodeStatus({ id: row.original.id, enable: v });
-                toast.success(
-                  v ? t("enabled_on", "Enabled") : t("enabled_off", "Disabled")
-                );
-                ref.current?.refresh();
-                fetchNodes();
-                fetchTags();
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={row.original.enabled}
+                onCheckedChange={async (v) => {
+                  await toggleNodeStatus({ id: row.original.id, enable: v });
+                  toast.success(
+                    v
+                      ? t("enabled_on", "Enabled")
+                      : t("enabled_off", "Disabled")
+                  );
+                  ref.current?.refresh();
+                  fetchNodes();
+                  fetchTags();
+                }}
+              />
+              <StatusChip
+                dot={false}
+                tone={row.original.enabled ? "success" : "neutral"}
+              >
+                {row.original.enabled
+                  ? t("enabled_on", "Enabled")
+                  : t("enabled_off", "Disabled")}
+              </StatusChip>
+            </div>
           ),
         },
         { accessorKey: "name", header: t("name", "Name") },
@@ -192,7 +205,7 @@ export default function Nodes() {
         },
       ]}
       header={{
-        title: t("pageTitle", "Nodes"),
+        title: t("inventoryTitle", "Node inventory"),
         toolbar: (
           <NodeForm
             loading={loading}

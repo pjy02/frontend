@@ -13,14 +13,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -34,6 +26,14 @@ import { type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogContent,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 
 const subscribeConfigSchema = z.object({
   single_model: z.boolean().optional(),
@@ -101,8 +101,8 @@ export default function ConfigForm() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
-      <SheetTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -119,14 +119,14 @@ export default function ConfigForm() {
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
-      </SheetTrigger>
-      <SheetContent className="w-[600px] max-w-full md:max-w-screen-md">
-        <SheetHeader>
-          <SheetTitle>
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="lg">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>
             {t("config.title", "Subscription Configuration")}
-          </SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-env(safe-area-inset-top))] px-6">
+          </WorkspaceDialogTitle>
+        </WorkspaceDialogHeader>
+        <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
           <Form {...form}>
             <form
               className="space-y-2 pt-4"
@@ -397,7 +397,7 @@ export default function ConfigForm() {
             </form>
           </Form>
         </ScrollArea>
-        <SheetFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
             onClick={() => setOpen(false)}
@@ -411,8 +411,8 @@ export default function ConfigForm() {
             )}
             {t("actions.save", "Save")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }

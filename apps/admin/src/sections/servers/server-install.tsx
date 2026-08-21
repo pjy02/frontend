@@ -2,14 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { getNodeConfig } from "@workspace/ui/services/admin/system";
@@ -22,6 +14,16 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogBody,
+  WorkspaceDialogContent,
+  WorkspaceDialogDescription,
+  WorkspaceDialogFooter,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 
 type Props = {
   server: API.Server;
@@ -78,18 +80,23 @@ export default function ServerInstall({ server }: Props) {
     localStorage.setItem("API_HOST", e.target.value);
   }, []);
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      <DialogTrigger asChild>
+    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialogTrigger asChild>
         <Button variant="secondary">{t("connect", "Connect")}</Button>
-      </DialogTrigger>
+      </WorkspaceDialogTrigger>
 
-      <DialogContent className="w-[720px] max-w-full md:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{t("oneClickInstall", "One-click Install")}</DialogTitle>
-        </DialogHeader>
+      <WorkspaceDialogContent size="md">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>
+            {t("oneClickInstall", "One-click Install")}
+          </WorkspaceDialogTitle>
+          <WorkspaceDialogDescription>
+            {server.name} · {server.address}
+          </WorkspaceDialogDescription>
+        </WorkspaceDialogHeader>
 
-        <div className="space-y-4">
-          <div>
+        <WorkspaceDialogBody className="space-y-4">
+          <div className="space-y-2">
             <Label>{t("apiHost", "API Host")}</Label>
             <div className="flex items-center gap-2">
               <Input
@@ -100,28 +107,28 @@ export default function ServerInstall({ server }: Props) {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label>{t("installCommand", "Install command")}</Label>
             <div className="flex flex-col gap-2">
               <textarea
                 aria-label={t("installCommand", "Install command")}
-                className="min-h-[88px] w-full rounded border p-2 font-mono text-sm"
+                className="min-h-32 w-full resize-none rounded-xl border bg-muted/35 p-4 font-mono text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
                 readOnly
                 value={installCommand}
               />
             </div>
           </div>
-        </div>
+        </WorkspaceDialogBody>
 
-        <DialogFooter className="flex-row justify-end gap-2 pt-3">
+        <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button onClick={() => setOpen(false)} variant="outline">
             {t("close", "Close")}
           </Button>
           <Button onClick={handleCopy}>
             {t("copyAndClose", "Copy and Close")}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </WorkspaceDialogFooter>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }
