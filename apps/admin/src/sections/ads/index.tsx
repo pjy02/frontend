@@ -15,7 +15,10 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { formatDate } from "@/utils/common";
+import {
+  DateTimeValue,
+  EnabledStatusChip,
+} from "@/components/commerce-display";
 import AdsForm from "./ads-form";
 
 export default function Ads() {
@@ -72,18 +75,28 @@ export default function Ads() {
         {
           accessorKey: "status",
           header: t("status", "Status"),
-          cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("status") === 1}
-              onCheckedChange={async (checked) => {
-                await updateAds({
-                  ...row.original,
-                  status: checked ? 1 : 0,
-                });
-                ref.current?.refresh();
-              }}
-            />
-          ),
+          cell: ({ row }) => {
+            const enabled = row.getValue("status") === 1;
+            return (
+              <div className="flex items-center gap-2">
+                <Switch
+                  defaultChecked={enabled}
+                  onCheckedChange={async (checked) => {
+                    await updateAds({
+                      ...row.original,
+                      status: checked ? 1 : 0,
+                    });
+                    ref.current?.refresh();
+                  }}
+                />
+                <EnabledStatusChip
+                  disabledLabel={t("disabled", "Disabled")}
+                  enabled={enabled}
+                  enabledLabel={t("enabled", "Enabled")}
+                />
+              </div>
+            );
+          },
         },
         {
           accessorKey: "title",
@@ -111,14 +124,16 @@ export default function Ads() {
           cell: ({ row }) => {
             const { start_time, end_time } = row.original;
             return (
-              <>
-                {formatDate(start_time)} - {formatDate(end_time)}
-              </>
+              <div className="grid gap-1">
+                <DateTimeValue value={start_time} />
+                <DateTimeValue value={end_time} />
+              </div>
             );
           },
         },
       ]}
       header={{
+        title: t("adsManagement", "Advertising Management"),
         toolbar: (
           <AdsForm<API.CreateAdsRequest>
             loading={loading}

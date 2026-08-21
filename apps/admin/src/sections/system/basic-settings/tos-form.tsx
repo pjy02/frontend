@@ -11,14 +11,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { MarkdownEditor } from "@workspace/ui/composed/editor/markdown";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
@@ -30,6 +22,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 
 const tosSchema = z.object({
   tos_content: z.string().optional(),
@@ -106,7 +106,7 @@ export default function TosConfig() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[600px] max-w-full md:max-w-screen-md">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("tos.title", "Terms of Service")}</SheetTitle>
         </SheetHeader>

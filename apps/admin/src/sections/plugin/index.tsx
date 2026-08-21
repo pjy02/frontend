@@ -12,8 +12,6 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Separator } from "@workspace/ui/components/separator";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import {
   ProTable,
@@ -48,10 +46,20 @@ import {
   RotateCcw,
   Upload,
 } from "lucide-react";
-import type React from "react";
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { PluginStatusChip } from "@/components/operations-display";
+import { SettingsSection } from "@/components/settings-section";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogBody,
+  WorkspaceDialogContent,
+  WorkspaceDialogDescription,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 
 interface PluginDetailData {
   manifest?: PluginManifest;
@@ -60,18 +68,6 @@ interface PluginDetailData {
   middlewares: PluginMiddleware[];
   events: PluginEventSubscription[];
 }
-
-const statusVariant: Record<
-  PluginStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  unloaded: "outline",
-  loaded: "secondary",
-  initialized: "secondary",
-  running: "default",
-  stopped: "outline",
-  error: "destructive",
-};
 
 export default function PluginManagement() {
   const { t } = useTranslation("plugin");
@@ -174,9 +170,10 @@ export default function PluginManagement() {
           accessorKey: "status",
           header: t("status", "Status"),
           cell: ({ row }) => (
-            <Badge variant={statusVariant[row.original.status] || "outline"}>
-              {getStatusLabel(row.original.status)}
-            </Badge>
+            <PluginStatusChip
+              label={getStatusLabel(row.original.status)}
+              status={row.original.status}
+            />
           ),
         },
         {
@@ -478,7 +475,7 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
   };
 
   return (
-    <Dialog
+    <WorkspaceDialog
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
         if (nextOpen) {
@@ -487,23 +484,31 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
       }}
       open={open}
     >
-      <DialogTrigger asChild>
+      <WorkspaceDialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Eye />
           {t("detail", "Detail")}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[86vh] max-w-5xl">
-        <DialogHeader>
-          <DialogTitle>{plugin.name}</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[72vh] pr-4">
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{plugin.name}</WorkspaceDialogTitle>
+          <WorkspaceDialogDescription>
+            {plugin.description ||
+              t(
+                "detailDescription",
+                "Inspect runtime health, manifest and registered capabilities."
+              )}
+          </WorkspaceDialogDescription>
+        </WorkspaceDialogHeader>
+        <WorkspaceDialogBody>
           <div className="grid gap-5">
             <section className="grid gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={statusVariant[plugin.status] || "outline"}>
-                  {getStatusLabel(plugin.status)}
-                </Badge>
+                <PluginStatusChip
+                  label={getStatusLabel(plugin.status)}
+                  status={plugin.status}
+                />
                 <span className="text-muted-foreground text-sm">
                   {plugin.version || "-"}
                 </span>
@@ -518,36 +523,57 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
               ) : null}
             </section>
 
-            <Separator />
+            <SettingsSection
+              columns={1}
+              description={t(
+                "runtimeHealthDescription",
+                "Current worker pool, readiness and registered route summary."
+              )}
+              title={t("runtimeHealth", "Runtime health")}
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <Metric
+                  label={t("ready", "Ready")}
+                  value={
+                    detail?.health?.ready ? t("yes", "Yes") : t("no", "No")
+                  }
+                />
+                <Metric
+                  label={t("poolSize", "Pool Size")}
+                  value={detail?.health?.pool_size ?? "-"}
+                />
+                <Metric
+                  label={t("asyncInflight", "Async In-flight")}
+                  value={`${detail?.health?.async_in_flight ?? 0}/${detail?.health?.async_limit ?? 0}`}
+                />
+                <Metric
+                  label={t("registeredRoutes", "Registered Routes")}
+                  value={detail?.health?.registered_route ?? 0}
+                />
+              </div>
+            </SettingsSection>
 
-            <section className="grid gap-3 md:grid-cols-4">
-              <Metric
-                label={t("ready", "Ready")}
-                value={detail?.health?.ready ? t("yes", "Yes") : t("no", "No")}
-              />
-              <Metric
-                label={t("poolSize", "Pool Size")}
-                value={detail?.health?.pool_size ?? "-"}
-              />
-              <Metric
-                label={t("asyncInflight", "Async In-flight")}
-                value={`${detail?.health?.async_in_flight ?? 0}/${detail?.health?.async_limit ?? 0}`}
-              />
-              <Metric
-                label={t("registeredRoutes", "Registered Routes")}
-                value={detail?.health?.registered_route ?? 0}
-              />
-            </section>
-
-            <Separator />
-
-            <DetailSection title={t("manifest", "Manifest")}>
+            <SettingsSection
+              columns={1}
+              description={t(
+                "manifestDescription",
+                "Package identity, compatibility and declared permissions."
+              )}
+              title={t("manifest", "Manifest")}
+            >
               <pre className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-xs">
                 {JSON.stringify(detail?.manifest || {}, null, 2)}
               </pre>
-            </DetailSection>
+            </SettingsSection>
 
-            <DetailSection title={t("runtimeRoutes", "Runtime Routes")}>
+            <SettingsSection
+              columns={1}
+              description={t(
+                "runtimeRoutesDescription",
+                "HTTP routes currently registered by this plugin."
+              )}
+              title={t("runtimeRoutes", "Runtime Routes")}
+            >
               <RuntimeList
                 emptyText={t("noRoutes", "No runtime routes")}
                 items={detail?.routes.map((item) => ({
@@ -557,9 +583,14 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
                   meta: item.Middleware?.join(", "),
                 }))}
               />
-            </DetailSection>
+            </SettingsSection>
 
-            <DetailSection
+            <SettingsSection
+              columns={1}
+              description={t(
+                "runtimeMiddlewaresDescription",
+                "Middleware handlers attached to the active runtime."
+              )}
               title={t("runtimeMiddlewares", "Runtime Middlewares")}
             >
               <RuntimeList
@@ -570,9 +601,14 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
                   description: item.Handler,
                 }))}
               />
-            </DetailSection>
+            </SettingsSection>
 
-            <DetailSection
+            <SettingsSection
+              columns={1}
+              description={t(
+                "eventSubscriptionsDescription",
+                "Application events consumed by this plugin."
+              )}
               title={t("eventSubscriptions", "Event Subscriptions")}
             >
               <RuntimeList
@@ -583,11 +619,11 @@ function PluginDetailDialog({ plugin }: { plugin: PluginInfo }) {
                   description: item.Handler,
                 }))}
               />
-            </DetailSection>
+            </SettingsSection>
           </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+        </WorkspaceDialogBody>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
   );
 }
 
@@ -597,21 +633,6 @@ function Metric({ label, value }: { label: string; value: string | number }) {
       <div className="text-muted-foreground text-xs">{label}</div>
       <div className="mt-1 font-medium text-sm">{value}</div>
     </div>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="grid gap-2">
-      <h3 className="font-medium text-sm">{title}</h3>
-      {children}
-    </section>
   );
 }
 

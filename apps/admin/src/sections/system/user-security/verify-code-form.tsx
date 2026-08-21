@@ -11,14 +11,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
@@ -30,6 +22,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 
 const verifyCodeSchema = z.object({
   verify_code_expire_time: z.number().optional(),
@@ -108,7 +108,7 @@ export default function VerifyCodeConfig() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[600px] max-w-full md:max-w-screen-md">
+      <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>
             {t("verifyCode.title", "Verification Code Settings")}

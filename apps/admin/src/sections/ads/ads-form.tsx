@@ -13,6 +13,12 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
+import { Icon } from "@workspace/ui/composed/icon";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import {
   Sheet,
   SheetContent,
@@ -20,13 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@workspace/ui/components/sheet";
-import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
-import { Icon } from "@workspace/ui/composed/icon";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
-import { z } from "zod";
+} from "@/components/settings-workspace";
 
 const formSchema = z.object({
   title: z.string(),
@@ -113,7 +113,7 @@ export default function AdsForm<T extends Record<string, any>>({
           {trigger}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[500px] max-w-full md:max-w-screen-md">
+      <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>

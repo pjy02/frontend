@@ -11,14 +11,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -32,6 +24,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { useSubscribe } from "@/stores/subscribe";
 
 const registerSchema = z.object({
@@ -123,7 +123,7 @@ export default function RegisterConfig() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[600px] max-w-full md:max-w-screen-md">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>
             {t("register.title", "Registration Settings")}

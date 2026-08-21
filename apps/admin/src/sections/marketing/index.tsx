@@ -1,10 +1,6 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
+import { SettingsItem, SettingsSection } from "@/components/settings-section";
 import EmailBroadcastForm from "./email/broadcast-form";
 import EmailTaskManager from "./email/task-manager";
 import QuotaBroadcastForm from "./quota/broadcast-form";
@@ -16,6 +12,10 @@ export default function MarketingPage() {
   const formSections = [
     {
       title: t("emailMarketing", "Email Marketing"),
+      description: t(
+        "emailMarketingDescription",
+        "Create targeted email broadcasts and monitor delivery tasks."
+      ),
       forms: [
         { component: EmailBroadcastForm },
         { component: EmailTaskManager },
@@ -23,6 +23,10 @@ export default function MarketingPage() {
     },
     {
       title: t("quotaService", "Quota Service"),
+      description: t(
+        "quotaServiceDescription",
+        "Distribute account quota or traffic adjustments and track execution."
+      ),
       forms: [
         { component: QuotaBroadcastForm },
         { component: QuotaTaskManager },
@@ -31,25 +35,30 @@ export default function MarketingPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <PageHeader
+        description={t(
+          "pageDescription",
+          "Plan outbound campaigns, calculate recipients, and monitor background tasks."
+        )}
+        eyebrow={t("operations", "Operations")}
+        title={t("pageTitle", "Marketing")}
+      />
       {formSections.map((section, sectionIndex) => (
-        <div key={sectionIndex}>
-          <h2 className="mb-4 font-semibold text-lg">{section.title}</h2>
-          <Table>
-            <TableBody>
-              {section.forms.map((form, formIndex) => {
-                const FormComponent = form.component;
-                return (
-                  <TableRow key={formIndex}>
-                    <TableCell>
-                      <FormComponent />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <SettingsSection
+          description={section.description}
+          key={sectionIndex}
+          title={section.title}
+        >
+          {section.forms.map((form, formIndex) => {
+            const FormComponent = form.component;
+            return (
+              <SettingsItem key={formIndex}>
+                <FormComponent />
+              </SettingsItem>
+            );
+          })}
+        </SettingsSection>
       ))}
     </div>
   );

@@ -1,10 +1,6 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
+import { SettingsItem, SettingsSection } from "@/components/settings-section";
 import AppleForm from "./forms/apple-form";
 import DeviceForm from "./forms/device-form";
 import EmailSettingsForm from "./forms/email-settings-form";
@@ -20,6 +16,10 @@ export default function AuthControl() {
   const formSections = [
     {
       title: t("communicationMethods", "Communication Methods"),
+      description: t(
+        "communicationMethodsDescription",
+        "Configure delivery providers used for email and SMS verification."
+      ),
       forms: [
         { component: EmailSettingsForm },
         { component: PhoneSettingsForm },
@@ -27,6 +27,10 @@ export default function AuthControl() {
     },
     {
       title: t("socialAuthMethods", "Social Authentication Methods"),
+      description: t(
+        "socialAuthMethodsDescription",
+        "Manage OAuth providers and their client credentials."
+      ),
       forms: [
         { component: AppleForm },
         { component: GoogleForm },
@@ -37,30 +41,39 @@ export default function AuthControl() {
     },
     {
       title: t("deviceAuthMethods", "Device Authentication Methods"),
+      description: t(
+        "deviceAuthMethodsDescription",
+        "Control device-level authentication and binding policies."
+      ),
       forms: [{ component: DeviceForm }],
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <PageHeader
+        description={t(
+          "pageDescription",
+          "Manage communication providers, external identity, and device authentication."
+        )}
+        eyebrow={t("platform", "Platform")}
+        title={t("pageTitle", "Authentication Control")}
+      />
       {formSections.map((section, sectionIndex) => (
-        <div key={sectionIndex}>
-          <h2 className="mb-4 font-semibold text-lg">{section.title}</h2>
-          <Table>
-            <TableBody>
-              {section.forms.map((form, formIndex) => {
-                const FormComponent = form.component;
-                return (
-                  <TableRow key={formIndex}>
-                    <TableCell>
-                      <FormComponent />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <SettingsSection
+          description={section.description}
+          key={sectionIndex}
+          title={section.title}
+        >
+          {section.forms.map((form, formIndex) => {
+            const FormComponent = form.component;
+            return (
+              <SettingsItem key={formIndex}>
+                <FormComponent />
+              </SettingsItem>
+            );
+          })}
+        </SettingsSection>
       ))}
     </div>
   );

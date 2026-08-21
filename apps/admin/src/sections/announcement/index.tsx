@@ -11,10 +11,13 @@ import {
   getAnnouncementList,
   updateAnnouncement,
 } from "@workspace/ui/services/admin/announcement";
-import { format } from "date-fns";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  DateTimeValue,
+  EnabledStatusChip,
+} from "@/components/commerce-display";
 import NoticeForm from "./notice-form";
 
 export default function Page() {
@@ -104,18 +107,28 @@ export default function Page() {
         {
           accessorKey: "show",
           header: t("show", "Show"),
-          cell: ({ row }) => (
-            <Switch
-              defaultChecked={row.getValue("show")}
-              onCheckedChange={async (checked) => {
-                await updateAnnouncement({
-                  ...row.original,
-                  show: checked,
-                });
-                ref.current?.refresh();
-              }}
-            />
-          ),
+          cell: ({ row }) => {
+            const visible = Boolean(row.getValue("show"));
+            return (
+              <div className="flex items-center gap-2">
+                <Switch
+                  defaultChecked={visible}
+                  onCheckedChange={async (checked) => {
+                    await updateAnnouncement({
+                      ...row.original,
+                      show: checked,
+                    });
+                    ref.current?.refresh();
+                  }}
+                />
+                <EnabledStatusChip
+                  disabledLabel={t("hide", "Hidden")}
+                  enabled={visible}
+                  enabledLabel={t("show", "Visible")}
+                />
+              </div>
+            );
+          },
         },
         {
           accessorKey: "pinned",
@@ -160,8 +173,11 @@ export default function Page() {
         {
           accessorKey: "updated_at",
           header: t("updatedAt", "Updated At"),
-          cell: ({ row }) =>
-            format(row.getValue("updated_at"), "yyyy-MM-dd HH:mm:ss"),
+          cell: ({ row }) => (
+            <DateTimeValue
+              value={row.getValue("updated_at") as number | null}
+            />
+          ),
         },
       ]}
       header={{

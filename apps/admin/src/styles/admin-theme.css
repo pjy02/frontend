@@ -514,6 +514,109 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
   gap: 2rem;
 }
 
+.admin-settings-section {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+}
+
+.admin-settings-section__header {
+  border-bottom: 1px solid var(--border);
+  padding: 1.125rem 1.25rem;
+  background: color-mix(in srgb, var(--muted) 28%, var(--card));
+}
+
+.admin-settings-section__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35rem;
+}
+
+.admin-settings-section__description {
+  max-width: 48rem;
+  margin: 0.25rem 0 0;
+  color: var(--admin-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.admin-settings-section__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-settings-item {
+  min-width: 0;
+  padding: 1rem 1.25rem;
+  transition: background-color var(--admin-motion-fast)
+    var(--admin-motion-easing);
+}
+
+.admin-settings-section__grid > :not(.admin-settings-item) {
+  min-width: 0;
+  padding: 1rem 1.25rem;
+}
+
+.admin-settings-item:hover {
+  background: color-mix(in srgb, var(--admin-surface-hover) 42%, transparent);
+}
+
+.admin-settings-item + .admin-settings-item {
+  border-top: 1px solid var(--border);
+}
+
+.admin-settings-section__grid
+  > :not(.admin-settings-item)
+  + :not(.admin-settings-item) {
+  border-top: 1px solid var(--border);
+}
+
+.admin-workspace-dialog > [data-slot="scroll-area"] {
+  min-height: 0;
+  height: auto !important;
+  flex: 1;
+}
+
+@media (min-width: 900px) {
+  .admin-settings-section__grid[data-columns="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    .admin-settings-item
+    + .admin-settings-item {
+    border-top: 0;
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    .admin-settings-item:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    .admin-settings-item:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    > :not(.admin-settings-item)
+    + :not(.admin-settings-item) {
+    border-top: 0;
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    > :not(.admin-settings-item):nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .admin-settings-section__grid[data-columns="2"]
+    > :not(.admin-settings-item):nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+}
+
 html.admin-console
   .admin-user-sheet
   [data-slot="form-item"]:has([role="switch"]) {

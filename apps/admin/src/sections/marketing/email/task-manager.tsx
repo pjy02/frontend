@@ -1,4 +1,3 @@
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -8,13 +7,6 @@ import {
   DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
   ProTable,
@@ -27,7 +19,15 @@ import {
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { formatDate } from "@/utils/common";
+import { DateTimeValue } from "@/components/commerce-display";
+import { TaskStatusChip } from "@/components/operations-display";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 
 export default function EmailTaskManager() {
   const { t } = useTranslation("marketing");
@@ -50,22 +50,17 @@ export default function EmailTaskManager() {
     }
   };
 
-  const getStatusBadge = (status: number) => {
+  const getStatusChip = (status: number) => {
     const statusConfig = {
-      0: {
-        label: t("notStarted", "Not Started"),
-        variant: "secondary" as const,
-      },
-      1: { label: t("inProgress", "In Progress"), variant: "default" as const },
-      2: { label: t("completed", "Completed"), variant: "default" as const },
+      0: t("notStarted", "Not Started"),
+      1: t("inProgress", "In Progress"),
+      2: t("completed", "Completed"),
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || {
-      label: `${t("status", "Status")} ${status}`,
-      variant: "secondary" as const,
-    };
-
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const label =
+      statusConfig[status as keyof typeof statusConfig] ||
+      `${t("status", "Status")} ${status}`;
+    return <TaskStatusChip label={label} status={status} />;
   };
 
   return (
@@ -94,7 +89,7 @@ export default function EmailTaskManager() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[1000px] max-w-full md:max-w-screen-lg">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>
             {t("emailBroadcastTasks", "Email Broadcast Tasks")}
@@ -214,7 +209,7 @@ export default function EmailTaskManager() {
                   accessorKey: "status",
                   header: t("status", "Status"),
                   cell: ({ row }) =>
-                    getStatusBadge(row.getValue("status") as number),
+                    getStatusChip(row.getValue("status") as number),
                 },
                 {
                   accessorKey: "progress",
@@ -246,9 +241,7 @@ export default function EmailTaskManager() {
                   header: t("sendTime", "Send Time"),
                   cell: ({ row }) => {
                     const scheduled = row.getValue("scheduled") as number;
-                    return scheduled && scheduled > 0
-                      ? formatDate(scheduled)
-                      : "--";
+                    return <DateTimeValue value={scheduled} />;
                   },
                 },
                 {
@@ -256,7 +249,7 @@ export default function EmailTaskManager() {
                   header: t("createdAt", "Created At"),
                   cell: ({ row }) => {
                     const createdAt = row.getValue("created_at") as number;
-                    return formatDate(createdAt);
+                    return <DateTimeValue value={createdAt} />;
                   },
                 },
               ]}

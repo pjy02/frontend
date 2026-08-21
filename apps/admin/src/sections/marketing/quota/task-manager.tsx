@@ -1,20 +1,19 @@
-import { Badge } from "@workspace/ui/components/badge";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { Icon } from "@workspace/ui/composed/icon";
+import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
+import { queryQuotaTaskList } from "@workspace/ui/services/admin/marketing";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
+import { TaskStatusChip } from "@/components/operations-display";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@workspace/ui/components/sheet";
-import { Icon } from "@workspace/ui/composed/icon";
-import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
-import { queryQuotaTaskList } from "@workspace/ui/services/admin/marketing";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Display } from "@/components/display";
+} from "@/components/settings-workspace";
 import { useSubscribe } from "@/stores/subscribe";
-import { formatDate } from "@/utils/common";
 
 export default function QuotaTaskManager() {
   const { t } = useTranslation("marketing");
@@ -30,22 +29,17 @@ export default function QuotaTaskManager() {
       {} as Record<number, string>
     ) || {};
 
-  const getStatusBadge = (status: number) => {
+  const getStatusChip = (status: number) => {
     const statusConfig = {
-      0: {
-        label: t("notStarted", "Not Started"),
-        variant: "secondary" as const,
-      },
-      1: { label: t("inProgress", "In Progress"), variant: "default" as const },
-      2: { label: t("completed", "Completed"), variant: "default" as const },
+      0: t("notStarted", "Not Started"),
+      1: t("inProgress", "In Progress"),
+      2: t("completed", "Completed"),
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || {
-      label: `${t("status", "Status")} ${status}`,
-      variant: "secondary" as const,
-    };
-
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const label =
+      statusConfig[status as keyof typeof statusConfig] ||
+      `${t("status", "Status")} ${status}`;
+    return <TaskStatusChip label={label} status={status} />;
   };
 
   return (
@@ -68,7 +62,7 @@ export default function QuotaTaskManager() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[1000px] max-w-full md:max-w-screen-lg">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("quotaTasks", "Quota Tasks")}</SheetTitle>
         </SheetHeader>
@@ -152,7 +146,7 @@ export default function QuotaTaskManager() {
                       return (
                         <div className="font-medium text-sm">
                           {giftType === 1 ? (
-                            <Display type="currency" value={giftValue} />
+                            <MoneyValue value={giftValue} />
                           ) : (
                             `${giftValue}%`
                           )}
@@ -193,14 +187,15 @@ export default function QuotaTaskManager() {
                       return (
                         <div className="space-y-1 text-xs">
                           {startTime && (
-                            <div>
-                              {t("startTime", "Start Time")}:{" "}
-                              {formatDate(startTime)}
+                            <div className="flex gap-1">
+                              <span>{t("startTime", "Start Time")}:</span>
+                              <DateTimeValue value={startTime} />
                             </div>
                           )}
                           {endTime && (
-                            <div>
-                              {t("endTime", "End Time")}: {formatDate(endTime)}
+                            <div className="flex gap-1">
+                              <span>{t("endTime", "End Time")}:</span>
+                              <DateTimeValue value={endTime} />
                             </div>
                           )}
                         </div>
@@ -212,7 +207,7 @@ export default function QuotaTaskManager() {
                     header: t("status", "Status"),
                     size: 100,
                     cell: ({ row }) =>
-                      getStatusBadge(row.getValue("status") as number),
+                      getStatusChip(row.getValue("status") as number),
                   },
                   {
                     accessorKey: "created_at",
@@ -220,7 +215,7 @@ export default function QuotaTaskManager() {
                     size: 150,
                     cell: ({ row }) => {
                       const createdAt = row.getValue("created_at") as number;
-                      return formatDate(createdAt);
+                      return <DateTimeValue value={createdAt} />;
                     },
                   },
                 ]}

@@ -19,14 +19,6 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -45,6 +37,14 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 
 export default function EmailBroadcastForm() {
   const { t } = useTranslation("marketing");
@@ -302,7 +302,7 @@ export default function EmailBroadcastForm() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[700px] max-w-full md:max-w-screen-lg">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("createBroadcast", "Create Broadcast")}</SheetTitle>
         </SheetHeader>

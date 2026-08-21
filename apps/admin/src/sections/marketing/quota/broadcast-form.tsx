@@ -14,14 +14,6 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@workspace/ui/components/sheet";
 import { Switch } from "@workspace/ui/components/switch";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -37,6 +29,14 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Display } from "@/components/display";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/settings-workspace";
 import { useSubscribe } from "@/stores/subscribe";
 
 export default function QuotaBroadcastForm() {
@@ -199,7 +199,7 @@ export default function QuotaBroadcastForm() {
           <Icon className="size-6" icon="mdi:chevron-right" />
         </div>
       </SheetTrigger>
-      <SheetContent className="w-[600px] max-w-full md:max-w-screen-md">
+      <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>{t("createQuotaTask", "Create Quota Task")}</SheetTitle>
         </SheetHeader>
