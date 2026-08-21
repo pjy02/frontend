@@ -17,7 +17,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@workspace/ui/components/chart";
+import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import { Separator } from "@workspace/ui/components/separator";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
@@ -33,6 +41,10 @@ import {
   queryTicketWaitReply,
   queryUserStatistics,
 } from "@workspace/ui/services/admin/console";
+import {
+  filterServerTrafficLog,
+  filterUserSubscribeTrafficLog,
+} from "@workspace/ui/services/admin/log";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import {
@@ -51,7 +63,7 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { animate } from "motion/react";
+import { AnimatePresence, animate, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -67,12 +79,23 @@ import { Display } from "@/components/display";
 import { useAdminMotion } from "@/components/motion-provider";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
+import { useServerStore } from "@/stores/server";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 
 type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
-type TrafficPeriod = "today" | "yesterday";
+type TrafficPeriod = "today" | "yesterday" | "custom";
+type TrafficLimit = 5 | 8 | 10 | 20;
+
+type TrafficSourceItem = {
+  id: number;
+  name?: string;
+  uid?: number;
+  sid: number;
+  upload: number;
+  download: number;
+};
 
 type TrafficRankingItem = {
   id: number;
@@ -82,11 +105,42 @@ type TrafficRankingItem = {
   upload: number;
   download: number;
   total: number;
-  todayTotal: number;
-  yesterdayTotal: number;
+  previousUpload: number;
+  previousDownload: number;
+  previousTotal: number;
+  absoluteChange: number;
   growth: number;
   share: number;
+  rankChange?: number;
+  isNew: boolean;
 };
+
+type TrafficRankingDataset = {
+  items: TrafficRankingItem[];
+  currentTotal: number;
+  previousTotal: number;
+};
+
+type TrafficDateResult = {
+  items: TrafficSourceItem[];
+  total: number;
+};
+
+const TRAFFIC_QUERY_SIZE = 200;
+
+function getDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function shiftDateKey(value: string, offset: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year || 1970, (month || 1) - 1, day || 1, 12);
+  date.setDate(date.getDate() + offset);
+  return getDateKey(date);
+}
 
 function AnimatedNumber({
   className,
@@ -119,88 +173,146 @@ function AnimatedNumber({
   return <span className={className}>{format(displayed)}</span>;
 }
 
-function createTrafficRanking(
+function createTodayTrafficRanking(
   server: API.ServerTotalDataResponse | undefined,
-  type: TrafficType,
-  period: TrafficPeriod
-): TrafficRankingItem[] {
+  type: TrafficType
+): TrafficRankingDataset {
   if (type === "nodes") {
-    const today = server?.server_traffic_ranking_today || [];
-    const yesterday = server?.server_traffic_ranking_yesterday || [];
-    const current = period === "today" ? today : yesterday;
-    const todayMap = new Map(today.map((item) => [item.server_id, item]));
-    const yesterdayMap = new Map(
-      yesterday.map((item) => [item.server_id, item])
-    );
-    const grandTotal = current.reduce(
-      (total, item) => total + item.upload + item.download,
-      0
-    );
-    return current
-      .map((item) => {
-        const todayItem = todayMap.get(item.server_id);
-        const yesterdayItem = yesterdayMap.get(item.server_id);
-        return createTrafficRankingItem({
-          id: item.server_id,
-          name: item.name,
-          sid: item.server_id,
-          upload: item.upload,
-          download: item.download,
-          todayTotal: (todayItem?.upload || 0) + (todayItem?.download || 0),
-          yesterdayTotal:
-            (yesterdayItem?.upload || 0) + (yesterdayItem?.download || 0),
-          grandTotal,
-        });
-      })
-      .sort((left, right) => right.total - left.total);
-  }
-
-  const today = server?.user_traffic_ranking_today || [];
-  const yesterday = server?.user_traffic_ranking_yesterday || [];
-  const current = period === "today" ? today : yesterday;
-  const todayMap = new Map(today.map((item) => [item.sid, item]));
-  const yesterdayMap = new Map(yesterday.map((item) => [item.sid, item]));
-  const grandTotal = current.reduce(
-    (total, item) => total + item.upload + item.download,
-    0
-  );
-  return current
-    .map((item) => {
-      const todayItem = todayMap.get(item.sid);
-      const yesterdayItem = yesterdayMap.get(item.sid);
-      return createTrafficRankingItem({
-        id: item.sid,
-        name: `UID ${item.uid}`,
-        sid: item.sid,
-        uid: item.uid,
+    return createTrafficRankingDataset(
+      (server?.server_traffic_ranking_today || []).map((item) => ({
+        id: item.server_id,
+        name: item.name,
+        sid: item.server_id,
         upload: item.upload,
         download: item.download,
-        todayTotal: (todayItem?.upload || 0) + (todayItem?.download || 0),
-        yesterdayTotal:
-          (yesterdayItem?.upload || 0) + (yesterdayItem?.download || 0),
-        grandTotal,
-      });
-    })
-    .sort((left, right) => right.total - left.total);
+      })),
+      (server?.server_traffic_ranking_yesterday || []).map((item) => ({
+        id: item.server_id,
+        name: item.name,
+        sid: item.server_id,
+        upload: item.upload,
+        download: item.download,
+      }))
+    );
+  }
+
+  return createTrafficRankingDataset(
+    (server?.user_traffic_ranking_today || []).map((item) => ({
+      id: item.sid,
+      name: `UID ${item.uid}`,
+      sid: item.sid,
+      uid: item.uid,
+      upload: item.upload,
+      download: item.download,
+    })),
+    (server?.user_traffic_ranking_yesterday || []).map((item) => ({
+      id: item.sid,
+      name: `UID ${item.uid}`,
+      sid: item.sid,
+      uid: item.uid,
+      upload: item.upload,
+      download: item.download,
+    }))
+  );
 }
 
-function createTrafficRankingItem({
-  grandTotal,
-  ...item
-}: Omit<TrafficRankingItem, "growth" | "share" | "total"> & {
-  grandTotal: number;
-}): TrafficRankingItem {
-  const total = item.upload + item.download;
-  const growth = item.yesterdayTotal
-    ? ((item.todayTotal - item.yesterdayTotal) / item.yesterdayTotal) * 100
-    : item.todayTotal
-      ? 100
-      : 0;
+function createTrafficRankingDataset(
+  current: TrafficSourceItem[],
+  previous: TrafficSourceItem[],
+  resolveName?: (item: TrafficSourceItem) => string
+): TrafficRankingDataset {
+  const sortedCurrent = [...current].sort(
+    (left, right) =>
+      right.upload + right.download - (left.upload + left.download)
+  );
+  const sortedPrevious = [...previous].sort(
+    (left, right) =>
+      right.upload + right.download - (left.upload + left.download)
+  );
+  const previousById = new Map(sortedPrevious.map((item) => [item.id, item]));
+  const previousRankById = new Map(
+    sortedPrevious.map((item, index) => [item.id, index + 1])
+  );
+  const currentTotal = sortedCurrent.reduce(
+    (sum, item) => sum + item.upload + item.download,
+    0
+  );
+  const previousTotal = sortedPrevious.reduce(
+    (sum, item) => sum + item.upload + item.download,
+    0
+  );
+
   return {
-    ...item,
-    total,
-    growth,
-    share: grandTotal ? (total / grandTotal) * 100 : 0,
+    currentTotal,
+    previousTotal,
+    items: sortedCurrent.map((item, index) => {
+      const previousItem = previousById.get(item.id);
+      const total = item.upload + item.download;
+      const previousItemTotal = previousItem
+        ? previousItem.upload + previousItem.download
+        : 0;
+      const absoluteChange = total - previousItemTotal;
+      const previousRank = previousRankById.get(item.id);
+      return {
+        ...item,
+        name: item.name || resolveName?.(item) || `#${item.id}`,
+        total,
+        previousUpload: previousItem?.upload || 0,
+        previousDownload: previousItem?.download || 0,
+        previousTotal: previousItemTotal,
+        absoluteChange,
+        growth: previousItemTotal
+          ? (absoluteChange / previousItemTotal) * 100
+          : total
+            ? 100
+            : 0,
+        share: currentTotal ? (total / currentTotal) * 100 : 0,
+        rankChange:
+          previousRank === undefined ? undefined : previousRank - (index + 1),
+        isNew: previousRank === undefined,
+      };
+    }),
+  };
+}
+
+async function queryTrafficDate(
+  type: TrafficType,
+  date: string
+): Promise<TrafficDateResult> {
+  if (type === "nodes") {
+    const response = await filterServerTrafficLog({
+      date,
+      page: 1,
+      size: TRAFFIC_QUERY_SIZE,
+    });
+    const list = response.data.data?.list || [];
+    return {
+      total: response.data.data?.total || list.length,
+      items: list.map((item) => ({
+        id: item.server_id,
+        sid: item.server_id,
+        upload: item.upload,
+        download: item.download,
+      })),
+    };
+  }
+
+  const response = await filterUserSubscribeTrafficLog({
+    date,
+    page: 1,
+    size: TRAFFIC_QUERY_SIZE,
+  });
+  const list = response.data.data?.list || [];
+  return {
+    total: response.data.data?.total || list.length,
+    items: list.map((item) => ({
+      id: item.subscribe_id,
+      name: `UID ${item.user_id}`,
+      sid: item.subscribe_id,
+      uid: item.user_id,
+      upload: item.upload,
+      download: item.download,
+    })),
   };
 }
 
@@ -273,6 +385,18 @@ export default function Statistics() {
   const [range, setRange] = useState<DashboardRange>("month");
   const [trafficType, setTrafficType] = useState<TrafficType>("nodes");
   const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("today");
+  const [trafficLimit, setTrafficLimit] = useState<TrafficLimit>(8);
+  const [trafficCustomDate, setTrafficCustomDate] = useState(getDateKey);
+  const servers = useServerStore((state) => state.servers);
+  const serversLoaded = useServerStore((state) => state.loaded);
+  const fetchServers = useServerStore((state) => state.fetchServers);
+
+  const historicalTrafficDate =
+    trafficPeriod === "yesterday"
+      ? shiftDateKey(getDateKey(), -1)
+      : trafficCustomDate;
+  const previousTrafficDate = shiftDateKey(historicalTrafficDate, -1);
+  const usesHistoricalTraffic = trafficPeriod !== "today";
 
   const serverQuery = useQuery({
     queryKey: ["queryServerTotalData"],
@@ -302,6 +426,24 @@ export default function Statistics() {
       return data.data;
     },
   });
+  const currentTrafficDateQuery = useQuery({
+    enabled: usesHistoricalTraffic,
+    queryKey: ["queryDashboardTrafficDate", trafficType, historicalTrafficDate],
+    queryFn: () => queryTrafficDate(trafficType, historicalTrafficDate),
+    staleTime: 60_000,
+  });
+  const previousTrafficDateQuery = useQuery({
+    enabled: usesHistoricalTraffic,
+    queryKey: ["queryDashboardTrafficDate", trafficType, previousTrafficDate],
+    queryFn: () => queryTrafficDate(trafficType, previousTrafficDate),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (usesHistoricalTraffic && trafficType === "nodes" && !serversLoaded) {
+      fetchServers();
+    }
+  }, [fetchServers, serversLoaded, trafficType, usesHistoricalTraffic]);
 
   const server = serverQuery.data;
   const pendingTickets = ticketQuery.data || 0;
@@ -313,9 +455,15 @@ export default function Statistics() {
     range === "month" ? revenueQuery.data?.monthly : revenueQuery.data?.all;
   const selectedUsers =
     range === "month" ? userQuery.data?.monthly : userQuery.data?.all;
-  const isRefreshing = [serverQuery, ticketQuery, revenueQuery, userQuery].some(
-    (query) => query.isFetching
-  );
+  const isRefreshing = [
+    serverQuery,
+    ticketQuery,
+    revenueQuery,
+    userQuery,
+    ...(usesHistoricalTraffic
+      ? [currentTrafficDateQuery, previousTrafficDateQuery]
+      : []),
+  ].some((query) => query.isFetching);
   const updatedAt = Math.max(
     serverQuery.dataUpdatedAt,
     ticketQuery.dataUpdatedAt,
@@ -323,11 +471,29 @@ export default function Statistics() {
     userQuery.dataUpdatedAt
   );
 
-  const currentTraffic = createTrafficRanking(
-    server,
-    trafficType,
-    trafficPeriod
-  );
+  const currentTraffic = usesHistoricalTraffic
+    ? createTrafficRankingDataset(
+        currentTrafficDateQuery.data?.items || [],
+        previousTrafficDateQuery.data?.items || [],
+        (item) =>
+          trafficType === "nodes"
+            ? servers.find((serverItem) => serverItem.id === item.id)?.name ||
+              `#${item.id}`
+            : `UID ${item.uid}`
+      )
+    : createTodayTrafficRanking(server, trafficType);
+  const trafficLoading = usesHistoricalTraffic
+    ? currentTrafficDateQuery.isLoading || previousTrafficDateQuery.isLoading
+    : serverQuery.isLoading;
+  const trafficError = usesHistoricalTraffic
+    ? currentTrafficDateQuery.isError || previousTrafficDateQuery.isError
+    : serverQuery.isError;
+  const trafficSourceTotal = usesHistoricalTraffic
+    ? currentTrafficDateQuery.data?.total || 0
+    : currentTraffic.items.length;
+  const trafficSourceTruncated = usesHistoricalTraffic
+    ? trafficSourceTotal > (currentTrafficDateQuery.data?.items.length || 0)
+    : false;
 
   return (
     <div className="space-y-5">
@@ -460,6 +626,30 @@ export default function Statistics() {
         />
       </section>
 
+      <TrafficRanking
+        activeDate={
+          trafficPeriod === "today" ? getDateKey() : historicalTrafficDate
+        }
+        customDate={trafficCustomDate}
+        data={currentTraffic}
+        limit={trafficLimit}
+        loading={trafficLoading}
+        onCustomDateChange={setTrafficCustomDate}
+        onLimitChange={setTrafficLimit}
+        onPeriodChange={setTrafficPeriod}
+        onTypeChange={setTrafficType}
+        period={trafficPeriod}
+        serverError={trafficError}
+        sourceTotal={trafficSourceTotal}
+        sourceTruncated={trafficSourceTruncated}
+        systemTotal={
+          trafficPeriod === "today"
+            ? (server?.today_upload || 0) + (server?.today_download || 0)
+            : undefined
+        }
+        trafficType={trafficType}
+      />
+
       <BusinessTrends
         range={range}
         revenue={revenueQuery.data}
@@ -493,16 +683,6 @@ export default function Statistics() {
           ticketError={ticketQuery.isError}
         />
       </section>
-
-      <TrafficRanking
-        data={currentTraffic}
-        loading={serverQuery.isLoading}
-        onPeriodChange={setTrafficPeriod}
-        onTypeChange={setTrafficType}
-        period={trafficPeriod}
-        serverError={serverQuery.isError}
-        trafficType={trafficType}
-      />
 
       <section className="dashboard-section grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <SystemVersionCard />
@@ -1082,30 +1262,64 @@ function PendingRow({
 }
 
 function TrafficRanking({
+  activeDate,
+  customDate,
   data,
+  limit,
   loading,
+  onCustomDateChange,
+  onLimitChange,
   onPeriodChange,
   onTypeChange,
   period,
   serverError,
+  sourceTotal,
+  sourceTruncated,
+  systemTotal,
   trafficType,
 }: {
-  data: TrafficRankingItem[];
+  activeDate: string;
+  customDate: string;
+  data: TrafficRankingDataset;
+  limit: TrafficLimit;
   loading: boolean;
+  onCustomDateChange: (value: string) => void;
+  onLimitChange: (value: TrafficLimit) => void;
   onPeriodChange: (period: TrafficPeriod) => void;
   onTypeChange: (type: TrafficType) => void;
   period: TrafficPeriod;
   serverError: boolean;
+  sourceTotal: number;
+  sourceTruncated: boolean;
+  systemTotal?: number;
   trafficType: TrafficType;
 }) {
-  const { t } = useTranslation("dashboard");
-  const visibleData = data.slice(0, 8);
-  const total = data.reduce((sum, item) => sum + item.total, 0);
-  const upload = data.reduce((sum, item) => sum + item.upload, 0);
-  const download = data.reduce((sum, item) => sum + item.download, 0);
-  const today = data.reduce((sum, item) => sum + item.todayTotal, 0);
-  const yesterday = data.reduce((sum, item) => sum + item.yesterdayTotal, 0);
-  const growth = yesterday ? ((today - yesterday) / yesterday) * 100 : 0;
+  const { t, i18n } = useTranslation("dashboard");
+  const { reducedMotion } = useAdminMotion();
+  const visibleData = data.items.slice(0, limit);
+  const visibleTotal = visibleData.reduce((sum, item) => sum + item.total, 0);
+  const upload = data.items.reduce((sum, item) => sum + item.upload, 0);
+  const download = data.items.reduce((sum, item) => sum + item.download, 0);
+  const growth = data.previousTotal
+    ? ((data.currentTotal - data.previousTotal) / data.previousTotal) * 100
+    : data.currentTotal
+      ? 100
+      : 0;
+  const shareBase = systemTotal || data.currentTotal;
+  const visibleShare = shareBase ? (visibleTotal / shareBase) * 100 : 0;
+  const previousDate = shiftDateKey(activeDate, -1);
+  const formatDateLabel = (value: string) =>
+    new Date(`${value}T12:00:00`).toLocaleDateString(i18n.language, {
+      month: "short",
+      day: "numeric",
+    });
+  const currentLabel =
+    period === "today" ? t("today", "Today") : formatDateLabel(activeDate);
+  const previousLabel =
+    period === "today"
+      ? t("yesterday", "Yesterday")
+      : formatDateLabel(previousDate);
+  const datasetKey = `${trafficType}-${activeDate}`;
 
   return (
     <section className="dashboard-section">
@@ -1114,7 +1328,7 @@ function TrafficRanking({
           <SectionHeading
             description={t(
               "overview.trafficRankingHint",
-              "Top eight records by transferred traffic"
+              "Compare upload, download, rank and period-over-period changes"
             )}
             title={t("trafficRank", "Traffic ranking")}
           />
@@ -1137,10 +1351,46 @@ function TrafficRanking({
                 <TabsTrigger value="yesterday">
                   {t("yesterday", "Yesterday")}
                 </TabsTrigger>
+                <TabsTrigger value="custom">
+                  {t("overview.customDate", "Custom")}
+                </TabsTrigger>
               </TabsList>
             </Tabs>
+            {period === "custom" ? (
+              <Input
+                aria-label={t("overview.customDate", "Custom date")}
+                className="h-9 w-full sm:w-40"
+                max={getDateKey()}
+                onInput={(event) =>
+                  onCustomDateChange(event.currentTarget.value || getDateKey())
+                }
+                type="date"
+                value={customDate}
+              />
+            ) : null}
+            <Select
+              onValueChange={(value) =>
+                onLimitChange(Number(value) as TrafficLimit)
+              }
+              value={String(limit)}
+            >
+              <SelectTrigger
+                aria-label={t("overview.rankingLimit", "Ranking size")}
+                className="h-9 w-full sm:w-28"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 8, 10, 20].map((value) => (
+                  <SelectItem key={value} value={String(value)}>
+                    Top {value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button asChild size="sm" variant="outline">
               <Link
+                search={{ date: activeDate }}
                 to={
                   trafficType === "nodes"
                     ? "/dashboard/log/server-traffic"
@@ -1164,7 +1414,7 @@ function TrafficRanking({
                 />
               ))}
             </div>
-          ) : serverError || data.length === 0 ? (
+          ) : serverError || data.items.length === 0 ? (
             <div className="p-5">
               <DataUnavailable
                 text={t("overview.unavailable", "Data unavailable")}
@@ -1172,13 +1422,45 @@ function TrafficRanking({
             </div>
           ) : (
             <>
-              <div className="dashboard-traffic-summary grid grid-cols-2 border-b lg:grid-cols-4">
+              <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
                 <TrafficSummaryValue
                   format={formatBytes}
-                  label={t("overview.currentTotal", "Selected total")}
-                  value={total}
+                  hint={
+                    systemTotal === undefined
+                      ? t(
+                          "overview.systemTotalHistoricalHint",
+                          "Historical system total is not provided by the current API"
+                        )
+                      : t("overview.systemTotalHint", "All traffic today")
+                  }
+                  label={t("overview.systemTotal", "System total")}
+                  value={systemTotal}
                 />
-                <div className="border-l px-5 py-4">
+                <TrafficSummaryValue
+                  className="border-l"
+                  format={formatBytes}
+                  hint={t(
+                    "overview.rankingDatasetHint",
+                    "{{count}} records returned by the ranking source",
+                    { count: data.items.length }
+                  )}
+                  label={t("overview.rankingDatasetTotal", "Ranking total")}
+                  value={data.currentTotal}
+                />
+                <TrafficSummaryValue
+                  className="border-t xl:border-t-0 xl:border-l"
+                  format={formatBytes}
+                  hint={t("overview.topShare", "{{share}}% of {{scope}}", {
+                    share: visibleShare.toFixed(1),
+                    scope:
+                      systemTotal === undefined
+                        ? t("overview.rankingDataset", "ranking data")
+                        : t("overview.systemTraffic", "system traffic"),
+                  })}
+                  label={`Top ${limit}`}
+                  value={visibleTotal}
+                />
+                <div className="border-t border-l px-5 py-4 xl:border-t-0">
                   <div className="text-muted-foreground text-xs">
                     {t("overview.transferSplit", "Upload / Download")}
                   </div>
@@ -1191,33 +1473,51 @@ function TrafficRanking({
                     </span>
                   </div>
                 </div>
-                <TrafficSummaryValue
-                  className="border-t lg:border-t-0 lg:border-l"
-                  format={formatBytes}
-                  label={t("today", "Today")}
-                  value={today}
-                />
-                <div className="border-t border-l px-5 py-4 lg:border-t-0">
+                <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
                   <div className="text-muted-foreground text-xs">
-                    {t("overview.yesterdayComparison", "Yesterday / change")}
+                    {t("overview.periodComparison", "{{date}} / change", {
+                      date: previousLabel,
+                    })}
                   </div>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="font-semibold text-base tabular-nums">
-                      {formatBytes(yesterday)}
-                    </span>
+                    <AnimatedNumber
+                      className="font-semibold text-base tabular-nums"
+                      format={formatBytes}
+                      value={data.previousTotal}
+                    />
                     <GrowthChip value={growth} />
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    {t("overview.currentPeriod", "Current period: {{date}}", {
+                      date: currentLabel,
+                    })}
                   </div>
                 </div>
               </div>
+              {sourceTruncated ? (
+                <div className="border-b bg-amber-500/8 px-5 py-2.5 text-amber-800 text-xs dark:text-amber-300">
+                  {t(
+                    "overview.rankingTruncated",
+                    "The API reports {{total}} records. This dashboard calculated the ranking from the first {{loaded}} records; use traffic logs for the complete list.",
+                    { loaded: data.items.length, total: sourceTotal }
+                  )}
+                </div>
+              ) : null}
               <ol className="dashboard-traffic-list divide-y">
-                {visibleData.map((item, index) => (
-                  <TrafficRankingRow
-                    index={index}
-                    item={item}
-                    key={`${trafficType}-${item.id}`}
-                    trafficType={trafficType}
-                  />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {visibleData.map((item, index) => (
+                    <TrafficRankingRow
+                      currentLabel={currentLabel}
+                      index={index}
+                      item={item}
+                      key={`${datasetKey}-${item.id}`}
+                      previousLabel={previousLabel}
+                      reducedMotion={reducedMotion}
+                      selectedDate={activeDate}
+                      trafficType={trafficType}
+                    />
+                  ))}
+                </AnimatePresence>
               </ol>
             </>
           )}
@@ -1230,22 +1530,33 @@ function TrafficRanking({
 function TrafficSummaryValue({
   className,
   format,
+  hint,
   label,
   value,
 }: {
   className?: string;
   format: (value: number) => string;
+  hint?: React.ReactNode;
   label: string;
-  value: number;
+  value?: number;
 }) {
   return (
     <div className={cn("px-5 py-4", className)}>
       <div className="text-muted-foreground text-xs">{label}</div>
-      <AnimatedNumber
-        className="mt-1 block font-semibold text-base tabular-nums"
-        format={format}
-        value={value}
-      />
+      {value === undefined ? (
+        <div className="mt-1 font-semibold text-base">—</div>
+      ) : (
+        <AnimatedNumber
+          className="mt-1 block font-semibold text-base tabular-nums"
+          format={format}
+          value={value}
+        />
+      )}
+      {hint ? (
+        <div className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1263,21 +1574,82 @@ function GrowthChip({ value }: { value: number }) {
   );
 }
 
+function RankChangeChip({ item }: { item: TrafficRankingItem }) {
+  const { t } = useTranslation("dashboard");
+  if (item.isNew) {
+    return (
+      <StatusChip dot={false} tone="info">
+        {t("overview.newToRanking", "New")}
+      </StatusChip>
+    );
+  }
+  if (!item.rankChange) {
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        {t("overview.rankUnchanged", "Rank unchanged")}
+      </span>
+    );
+  }
+  const improved = item.rankChange > 0;
+  const RankIcon = improved ? ArrowUp : ArrowDown;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 font-medium",
+        improved ? "text-[var(--admin-success)]" : "text-destructive"
+      )}
+    >
+      <RankIcon className="size-3" />
+      {Math.abs(item.rankChange)}
+      <span className="sr-only">
+        {improved
+          ? t("overview.rankImproved", "rank improved")
+          : t("overview.rankDropped", "rank dropped")}
+      </span>
+    </span>
+  );
+}
+
 function TrafficRankingRow({
+  currentLabel,
   index,
   item,
+  previousLabel,
+  reducedMotion,
+  selectedDate,
   trafficType,
 }: {
+  currentLabel: string;
   index: number;
   item: TrafficRankingItem;
+  previousLabel: string;
+  reducedMotion: boolean;
+  selectedDate: string;
   trafficType: TrafficType;
 }) {
   const { t } = useTranslation("dashboard");
   const uploadShare = item.total ? (item.upload / item.total) * 100 : 0;
   const downloadShare = 100 - uploadShare;
+  const comparisonMax = Math.max(item.total, item.previousTotal, 1);
+  const currentWidth = (item.total / comparisonMax) * 100;
+  const previousWidth = (item.previousTotal / comparisonMax) * 100;
+  const changeLabel = `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
+    Math.abs(item.absoluteChange)
+  )}`;
 
   return (
-    <li className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5">
+    <motion.li
+      animate={{ opacity: 1, y: 0 }}
+      className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
+      exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+      layout={!reducedMotion}
+      transition={{
+        delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
+        duration: reducedMotion ? 0 : 0.24,
+        ease: [0.2, 0, 0, 1],
+      }}
+    >
       <Tooltip delayDuration={100}>
         <TooltipTrigger asChild>
           <button
@@ -1307,31 +1679,61 @@ function TrafficRankingRow({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-sm tabular-nums">
-                      {formatBytes(item.total)}
-                    </div>
+                    <AnimatedNumber
+                      className="font-semibold text-sm tabular-nums"
+                      format={formatBytes}
+                      value={item.total}
+                    />
                     <div className="text-[11px] text-muted-foreground tabular-nums">
                       {item.share.toFixed(1)}% {t("overview.share", "share")}
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
-                    style={
-                      {
-                        "--traffic-share": `${Math.max(item.share, 1.5)}%`,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <span
-                      className="h-full bg-chart-1"
-                      style={{ width: `${uploadShare}%` }}
-                    />
-                    <span
-                      className="h-full bg-chart-4"
-                      style={{ width: `${downloadShare}%` }}
-                    />
+                <div className="dashboard-traffic-comparison mt-2.5 space-y-1.5">
+                  <div className="grid grid-cols-[3.75rem_minmax(0,1fr)_auto] items-center gap-2 text-[10px] tabular-nums sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]">
+                    <span className="truncate text-muted-foreground">
+                      {currentLabel}
+                    </span>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
+                        style={
+                          {
+                            "--traffic-share": `${Math.max(currentWidth, 1.5)}%`,
+                          } as React.CSSProperties
+                        }
+                      >
+                        <span
+                          className="h-full bg-chart-1"
+                          style={{ width: `${uploadShare}%` }}
+                        />
+                        <span
+                          className="h-full bg-chart-4"
+                          style={{ width: `${downloadShare}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {formatBytes(item.total)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[3.75rem_minmax(0,1fr)_auto] items-center gap-2 text-[10px] tabular-nums sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]">
+                    <span className="truncate text-muted-foreground">
+                      {previousLabel}
+                    </span>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="dashboard-traffic-previous-bar h-full rounded-full bg-muted-foreground/45"
+                        style={
+                          {
+                            "--traffic-share": `${previousWidth}%`,
+                          } as React.CSSProperties
+                        }
+                      />
+                    </div>
+                    <span className="text-muted-foreground">
+                      {formatBytes(item.previousTotal)}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
@@ -1344,7 +1746,20 @@ function TrafficRankingRow({
                     {t("overview.download", "Download")}{" "}
                     {formatBytes(item.download)}
                   </span>
+                  <span
+                    className={cn(
+                      "font-medium",
+                      item.absoluteChange > 0
+                        ? "text-[var(--admin-success)]"
+                        : item.absoluteChange < 0
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    )}
+                  >
+                    {changeLabel}
+                  </span>
                   <GrowthChip value={item.growth} />
+                  <RankChangeChip item={item} />
                 </div>
               </div>
             </div>
@@ -1376,12 +1791,26 @@ function TrafficRankingRow({
               value={`${item.share.toFixed(2)}%`}
             />
             <TrafficTooltipValue
-              label={t("today", "Today")}
-              value={formatBytes(item.todayTotal)}
+              label={currentLabel}
+              value={formatBytes(item.total)}
             />
             <TrafficTooltipValue
-              label={t("yesterday", "Yesterday")}
-              value={formatBytes(item.yesterdayTotal)}
+              label={previousLabel}
+              value={formatBytes(item.previousTotal)}
+            />
+            <TrafficTooltipValue
+              label={t("overview.absoluteChange", "Absolute change")}
+              value={changeLabel}
+            />
+            <TrafficTooltipValue
+              label={t("overview.rankChange", "Rank change")}
+              value={
+                item.isNew
+                  ? t("overview.newToRanking", "New")
+                  : item.rankChange
+                    ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
+                    : "—"
+              }
             />
           </div>
           <div className="flex items-center justify-between border-t pt-2 text-xs">
@@ -1399,7 +1828,7 @@ function TrafficRankingRow({
       >
         {trafficType === "nodes" ? (
           <Link
-            search={{ server_id: item.sid }}
+            search={{ date: selectedDate, server_id: item.sid }}
             to="/dashboard/log/server-traffic"
           >
             <ArrowUpRight />
@@ -1407,6 +1836,7 @@ function TrafficRankingRow({
         ) : (
           <Link
             search={{
+              date: selectedDate,
               user_id: item.uid,
               user_subscribe_id: item.sid,
             }}
@@ -1416,7 +1846,7 @@ function TrafficRankingRow({
           </Link>
         )}
       </Button>
-    </li>
+    </motion.li>
   );
 }
 
