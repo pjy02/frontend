@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getProtocolDefaultConfig } from "./defaults";
 import { formSchema } from "./schemas";
 
 const validServer = {
@@ -110,6 +111,38 @@ describe("TLS protocol form schemas", () => {
     expect(result.protocols[0]).toMatchObject({
       type,
       allow_insecure: true,
+    });
+  });
+});
+
+describe("Reality protocol form schemas", () => {
+  it("defaults new VLESS Reality client configurations to Chrome", () => {
+    expect(getProtocolDefaultConfig("vless")).toMatchObject({
+      fingerprint: "chrome",
+    });
+  });
+
+  it.each([
+    "vmess",
+    "vless",
+    "trojan",
+    "anytls",
+  ] as const)("keeps the client fingerprint for %s", (type) => {
+    const result = formSchema.parse({
+      name: `${type} Reality node`,
+      address: "node.example.com",
+      protocols: [
+        {
+          type,
+          security: "reality",
+          fingerprint: "firefox",
+        },
+      ],
+    });
+
+    expect(result.protocols[0]).toMatchObject({
+      type,
+      fingerprint: "firefox",
     });
   });
 });

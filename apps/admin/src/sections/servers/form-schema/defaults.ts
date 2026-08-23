@@ -32,6 +32,7 @@ const ech = {
 };
 
 const reality = {
+  fingerprint: "chrome",
   reality_server_addr: null,
   reality_server_port: null,
   reality_private_key: null,

@@ -85,6 +85,7 @@ const ech = {
 };
 
 const reality = {
+  fingerprint: nullableString,
   reality_server_addr: nullableString,
   reality_server_port: nullablePort,
   reality_private_key: nullableString,
