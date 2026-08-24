@@ -53,6 +53,7 @@ import {
   CircleHelp,
   Gauge,
   Headphones,
+  Maximize2,
   RefreshCw,
   Server,
   Settings2,
@@ -75,6 +76,15 @@ import { Display } from "@/components/display";
 import { useAdminMotion } from "@/components/motion-provider";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
+import {
+  WorkspaceDialog,
+  WorkspaceDialogBody,
+  WorkspaceDialogContent,
+  WorkspaceDialogDescription,
+  WorkspaceDialogHeader,
+  WorkspaceDialogTitle,
+  WorkspaceDialogTrigger,
+} from "@/components/workspace-dialog";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
@@ -289,21 +299,21 @@ function MetricCard({
 }: MetricCardProps) {
   return (
     <Card className="dashboard-card dashboard-metric gap-0 py-0 shadow-none">
-      <CardContent className="flex min-h-36 items-start justify-between gap-4 p-5">
-        <div className="min-w-0 space-y-2">
+      <CardContent className="dashboard-metric__content flex min-h-36 items-start justify-between gap-4 p-5">
+        <div className="dashboard-metric__body min-w-0 space-y-2">
           <p className="font-medium text-muted-foreground text-sm">{title}</p>
           {loading ? (
             <Skeleton className="h-9 w-32" />
           ) : (
-            <div className="truncate font-semibold text-2xl tabular-nums tracking-tight sm:text-[1.75rem]">
+            <div className="dashboard-metric__value truncate font-semibold text-2xl tabular-nums tracking-tight sm:text-[1.75rem]">
               {value}
             </div>
           )}
-          <div className="min-h-5 text-muted-foreground text-xs">
+          <div className="dashboard-metric__description min-h-5 text-muted-foreground text-xs">
             {description}
           </div>
         </div>
-        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+        <div className="dashboard-metric__icon grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
           <MetricIcon className="size-5" />
         </div>
       </CardContent>
@@ -452,7 +462,7 @@ export default function Statistics() {
         title={t("overview.title", "Dashboard")}
       />
 
-      <section className="dashboard-section grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="dashboard-metrics dashboard-section grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard
           description={
             revenueQuery.isError
@@ -639,21 +649,56 @@ function BusinessTrends({
   };
   const revenueData =
     revenueRange?.list?.map((item) => ({
-      date: item.date,
+      date: item.date || "",
       newPurchase: unitConversion("centsToDollars", item.new_order_amount),
       renewal: unitConversion("centsToDollars", item.renewal_order_amount),
     })) || [];
   const userData =
     userRange?.list?.map((item) => ({
-      date: item.date,
+      date: item.date || "",
       register: item.register,
       paid: item.new_order_users,
     })) || [];
+  const renderRevenueChart = (expanded = false) => {
+    if (revenueLoading) {
+      return <Skeleton className="h-full w-full rounded-lg" />;
+    }
+    if (revenueError || revenueData.length === 0) {
+      return (
+        <DataUnavailable text={t("overview.unavailable", "Data unavailable")} />
+      );
+    }
+    return (
+      <RevenueTrendChart
+        data={revenueData}
+        dateFormatter={dateFormatter}
+        expanded={expanded}
+        reducedMotion={reducedMotion}
+      />
+    );
+  };
+  const renderUserChart = () => {
+    if (usersLoading) {
+      return <Skeleton className="h-full w-full rounded-lg" />;
+    }
+    if (usersError || userData.length === 0) {
+      return (
+        <DataUnavailable text={t("overview.unavailable", "Data unavailable")} />
+      );
+    }
+    return (
+      <UserTrendChart
+        data={userData}
+        dateFormatter={dateFormatter}
+        reducedMotion={reducedMotion}
+      />
+    );
+  };
 
   return (
     <section className="dashboard-section grid items-stretch gap-4 xl:grid-cols-2">
       <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="flex-row items-start justify-between gap-4 border-b px-5 py-4">
+        <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
           <SectionHeading
             description={t(
               "overview.revenueTrendHint",
@@ -661,93 +706,36 @@ function BusinessTrends({
             )}
             title={t("overview.revenueTrend", "Revenue trend")}
           />
-          <div className="shrink-0 text-right">
-            <div className="text-muted-foreground text-xs">
-              {t("totalIncome", "Total income")}
+          <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
+            <div className="dashboard-trend-header__summary text-right">
+              <div className="text-muted-foreground text-xs">
+                {t("totalIncome", "Total income")}
+              </div>
+              <div className="font-semibold tabular-nums">
+                <Display type="currency" value={revenueRange?.amount_total} />
+              </div>
             </div>
-            <div className="font-semibold tabular-nums">
-              <Display type="currency" value={revenueRange?.amount_total} />
-            </div>
+            <ChartExpandDialog
+              description={t(
+                "overview.revenueTrendHint",
+                "New purchases and renewals over time"
+              )}
+              disabled={
+                revenueLoading || revenueError || revenueData.length === 0
+              }
+              title={t("overview.revenueTrend", "Revenue trend")}
+            >
+              {renderRevenueChart(true)}
+            </ChartExpandDialog>
           </div>
         </CardHeader>
-        <CardContent className="h-80 p-5">
-          {revenueLoading ? (
-            <Skeleton className="h-full w-full rounded-lg" />
-          ) : revenueError || revenueData.length === 0 ? (
-            <DataUnavailable
-              text={t("overview.unavailable", "Data unavailable")}
-            />
-          ) : (
-            <ChartContainer
-              className="h-full max-h-none w-full"
-              config={{
-                newPurchase: {
-                  label: t("newPurchase", "New purchase"),
-                  color: "var(--chart-1)",
-                },
-                renewal: {
-                  label: t("repurchase", "Renewal"),
-                  color: "var(--chart-4)",
-                },
-              }}
-            >
-              <AreaChart data={revenueData} margin={{ left: 4, right: 12 }}>
-                <defs>
-                  <linearGradient id="revenueBlue" x1="0" x2="0" y1="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-newPurchase)"
-                      stopOpacity={0.22}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-newPurchase)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  axisLine={false}
-                  dataKey="date"
-                  minTickGap={28}
-                  tickFormatter={dateFormatter}
-                  tickLine={false}
-                  tickMargin={10}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent />}
-                  cursor={false}
-                />
-                <Area
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                  dataKey="newPurchase"
-                  fill="url(#revenueBlue)"
-                  isAnimationActive={!reducedMotion}
-                  stroke="var(--color-newPurchase)"
-                  strokeWidth={2}
-                  type="monotone"
-                />
-                <Area
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                  dataKey="renewal"
-                  fill="transparent"
-                  isAnimationActive={!reducedMotion}
-                  stroke="var(--color-renewal)"
-                  strokeWidth={2}
-                  type="monotone"
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-              </AreaChart>
-            </ChartContainer>
-          )}
+        <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
+          {renderRevenueChart()}
         </CardContent>
       </Card>
 
       <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="flex-row items-start justify-between gap-4 border-b px-5 py-4">
+        <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
           <SectionHeading
             description={t(
               "overview.userTrendHint",
@@ -755,83 +743,217 @@ function BusinessTrends({
             )}
             title={t("overview.userTrend", "New user trend")}
           />
-          <div className="shrink-0 text-right">
-            <div className="text-muted-foreground text-xs">
-              {t("register", "Registered")}
+          <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
+            <div className="dashboard-trend-header__summary text-right">
+              <div className="text-muted-foreground text-xs">
+                {t("register", "Registered")}
+              </div>
+              <div className="font-semibold tabular-nums">
+                {userRange?.register || 0}
+              </div>
             </div>
-            <div className="font-semibold tabular-nums">
-              {userRange?.register || 0}
-            </div>
+            <ChartExpandDialog
+              description={t(
+                "overview.userTrendHint",
+                "Registrations and first-time purchasers"
+              )}
+              disabled={usersLoading || usersError || userData.length === 0}
+              title={t("overview.userTrend", "New user trend")}
+            >
+              {renderUserChart()}
+            </ChartExpandDialog>
           </div>
         </CardHeader>
-        <CardContent className="h-80 p-5">
-          {usersLoading ? (
-            <Skeleton className="h-full w-full rounded-lg" />
-          ) : usersError || userData.length === 0 ? (
-            <DataUnavailable
-              text={t("overview.unavailable", "Data unavailable")}
-            />
-          ) : (
-            <ChartContainer
-              className="h-full max-h-none w-full"
-              config={{
-                register: {
-                  label: t("register", "Register"),
-                  color: "var(--chart-2)",
-                },
-                paid: {
-                  label: t("overview.firstPurchaseUsers", "First purchase"),
-                  color: "var(--chart-3)",
-                },
-              }}
-            >
-              <LineChart data={userData} margin={{ left: 4, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  axisLine={false}
-                  dataKey="date"
-                  minTickGap={28}
-                  tickFormatter={dateFormatter}
-                  tickLine={false}
-                  tickMargin={10}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  axisLine={false}
-                  tickLine={false}
-                  width={30}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent />}
-                  cursor={false}
-                />
-                <Line
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                  dataKey="register"
-                  dot={false}
-                  isAnimationActive={!reducedMotion}
-                  stroke="var(--color-register)"
-                  strokeWidth={2}
-                  type="monotone"
-                />
-                <Line
-                  animationDuration={650}
-                  animationEasing="ease-out"
-                  dataKey="paid"
-                  dot={false}
-                  isAnimationActive={!reducedMotion}
-                  stroke="var(--color-paid)"
-                  strokeWidth={2}
-                  type="monotone"
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-              </LineChart>
-            </ChartContainer>
-          )}
+        <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
+          {renderUserChart()}
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+function ChartExpandDialog({
+  children,
+  description,
+  disabled,
+  title,
+}: {
+  children: React.ReactNode;
+  description: React.ReactNode;
+  disabled: boolean;
+  title: React.ReactNode;
+}) {
+  const { t } = useTranslation("dashboard");
+  return (
+    <WorkspaceDialog>
+      <WorkspaceDialogTrigger asChild>
+        <Button
+          aria-label={t("overview.expandChart", "Expand chart")}
+          disabled={disabled}
+          size="icon-sm"
+          title={t("overview.expandChart", "Expand chart")}
+          variant="ghost"
+        >
+          <Maximize2 />
+        </Button>
+      </WorkspaceDialogTrigger>
+      <WorkspaceDialogContent className="dashboard-chart-dialog" size="xl">
+        <WorkspaceDialogHeader>
+          <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
+          <WorkspaceDialogDescription>{description}</WorkspaceDialogDescription>
+        </WorkspaceDialogHeader>
+        <WorkspaceDialogBody className="flex min-h-0 overflow-hidden p-3 sm:p-6">
+          <div className="dashboard-chart-dialog__canvas h-full min-h-96 w-full">
+            {children}
+          </div>
+        </WorkspaceDialogBody>
+      </WorkspaceDialogContent>
+    </WorkspaceDialog>
+  );
+}
+
+function RevenueTrendChart({
+  data,
+  dateFormatter,
+  expanded = false,
+  reducedMotion,
+}: {
+  data: Array<{ date: string; newPurchase: number; renewal: number }>;
+  dateFormatter: (value: string) => string;
+  expanded?: boolean;
+  reducedMotion: boolean;
+}) {
+  const { t } = useTranslation("dashboard");
+  const gradientId = expanded ? "revenueBlueExpanded" : "revenueBlue";
+  return (
+    <ChartContainer
+      className="h-full max-h-none w-full"
+      config={{
+        newPurchase: {
+          label: t("newPurchase", "New purchase"),
+          color: "var(--chart-1)",
+        },
+        renewal: {
+          label: t("repurchase", "Renewal"),
+          color: "var(--chart-4)",
+        },
+      }}
+    >
+      <AreaChart data={data} margin={{ left: 4, right: 12 }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-newPurchase)"
+              stopOpacity={0.22}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-newPurchase)"
+              stopOpacity={0}
+            />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          axisLine={false}
+          dataKey="date"
+          minTickGap={28}
+          tickFormatter={dateFormatter}
+          tickLine={false}
+          tickMargin={10}
+        />
+        <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
+        <Area
+          animationDuration={650}
+          animationEasing="ease-out"
+          dataKey="newPurchase"
+          fill={`url(#${gradientId})`}
+          isAnimationActive={!reducedMotion}
+          stroke="var(--color-newPurchase)"
+          strokeWidth={2}
+          type="monotone"
+        />
+        <Area
+          animationDuration={650}
+          animationEasing="ease-out"
+          dataKey="renewal"
+          fill="transparent"
+          isAnimationActive={!reducedMotion}
+          stroke="var(--color-renewal)"
+          strokeWidth={2}
+          type="monotone"
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+      </AreaChart>
+    </ChartContainer>
+  );
+}
+
+function UserTrendChart({
+  data,
+  dateFormatter,
+  reducedMotion,
+}: {
+  data: Array<{ date: string; paid: number; register: number }>;
+  dateFormatter: (value: string) => string;
+  reducedMotion: boolean;
+}) {
+  const { t } = useTranslation("dashboard");
+  return (
+    <ChartContainer
+      className="h-full max-h-none w-full"
+      config={{
+        register: {
+          label: t("register", "Register"),
+          color: "var(--chart-2)",
+        },
+        paid: {
+          label: t("overview.firstPurchaseUsers", "First purchase"),
+          color: "var(--chart-3)",
+        },
+      }}
+    >
+      <LineChart data={data} margin={{ left: 4, right: 12 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          axisLine={false}
+          dataKey="date"
+          minTickGap={28}
+          tickFormatter={dateFormatter}
+          tickLine={false}
+          tickMargin={10}
+        />
+        <YAxis
+          allowDecimals={false}
+          axisLine={false}
+          tickLine={false}
+          width={30}
+        />
+        <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
+        <Line
+          animationDuration={650}
+          animationEasing="ease-out"
+          dataKey="register"
+          dot={false}
+          isAnimationActive={!reducedMotion}
+          stroke="var(--color-register)"
+          strokeWidth={2}
+          type="monotone"
+        />
+        <Line
+          animationDuration={650}
+          animationEasing="ease-out"
+          dataKey="paid"
+          dot={false}
+          isAnimationActive={!reducedMotion}
+          stroke="var(--color-paid)"
+          strokeWidth={2}
+          type="monotone"
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+      </LineChart>
+    </ChartContainer>
   );
 }
 
@@ -1253,7 +1375,7 @@ function TrafficRanking({
   return (
     <section className="dashboard-section">
       <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="flex flex-col gap-4 border-b px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+        <CardHeader className="dashboard-traffic-header flex flex-col gap-4 border-b px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <SectionHeading
             description={t(
               "overview.trafficRankingHint",
@@ -1261,21 +1383,23 @@ function TrafficRanking({
             )}
             title={t("trafficRank", "Traffic ranking")}
           />
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="dashboard-traffic-controls grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Tabs
+              className="dashboard-traffic-controls__tabs"
               onValueChange={(value) => onTypeChange(value as TrafficType)}
               value={trafficType}
             >
-              <TabsList>
+              <TabsList className="dashboard-traffic-controls__tabs-list">
                 <TabsTrigger value="nodes">{t("nodes", "Nodes")}</TabsTrigger>
                 <TabsTrigger value="users">{t("users", "Users")}</TabsTrigger>
               </TabsList>
             </Tabs>
             <Tabs
+              className="dashboard-traffic-controls__tabs"
               onValueChange={(value) => onPeriodChange(value as TrafficPeriod)}
               value={period}
             >
-              <TabsList>
+              <TabsList className="dashboard-traffic-controls__tabs-list">
                 <TabsTrigger value="today">{t("today", "Today")}</TabsTrigger>
                 <TabsTrigger value="yesterday">
                   {t("yesterday", "Yesterday")}
@@ -1290,7 +1414,7 @@ function TrafficRanking({
             >
               <SelectTrigger
                 aria-label={t("overview.rankingLimit", "Ranking size")}
-                className="h-9 w-full sm:w-28"
+                className="dashboard-traffic-controls__limit h-9 w-full sm:w-28"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -1304,7 +1428,12 @@ function TrafficRanking({
                 ))}
               </SelectContent>
             </Select>
-            <Button asChild size="sm" variant="outline">
+            <Button
+              asChild
+              className="dashboard-traffic-controls__logs w-full sm:w-auto"
+              size="sm"
+              variant="outline"
+            >
               <Link
                 search={{ date: activeDate }}
                 to={

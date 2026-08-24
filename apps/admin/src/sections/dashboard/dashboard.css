@@ -37,6 +37,16 @@ html.admin-console .dashboard-range-tabs__trigger {
   border-color: color-mix(in srgb, var(--foreground) 16%, var(--border));
 }
 
+.dashboard-traffic-controls__tabs-list {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-chart-dialog__canvas {
+  min-height: 0;
+}
+
 .dashboard-page [data-slot="progress-indicator"] {
   background: var(--admin-success);
 }
@@ -89,6 +99,93 @@ html.admin-console .dashboard-range-tabs__trigger {
 
   .dashboard-traffic-row {
     padding-inline: 0.75rem;
+  }
+
+  .dashboard-metric__content {
+    position: relative;
+    min-height: 8.75rem;
+    gap: 0.5rem;
+    padding: 0.875rem;
+  }
+
+  .dashboard-metric__body {
+    width: 100%;
+    padding-right: 1.75rem;
+  }
+
+  .dashboard-metric__body > p {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .dashboard-metric__value {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  .dashboard-metric__description {
+    display: -webkit-box;
+    min-height: 2rem;
+    overflow: hidden;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .dashboard-metric__description > .inline-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .dashboard-metric__icon {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .dashboard-metric__icon svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .dashboard-traffic-header {
+    padding-inline: 1rem;
+  }
+
+  .dashboard-traffic-controls {
+    width: 100%;
+  }
+
+  .dashboard-traffic-controls__tabs,
+  .dashboard-traffic-controls__tabs-list {
+    width: 100%;
+  }
+
+  .dashboard-traffic-controls__tabs-list > * {
+    min-width: 0;
+  }
+
+  .dashboard-trend-header {
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  .dashboard-trend-header__summary {
+    font-size: 0.8125rem;
+  }
+
+  .dashboard-chart-dialog__canvas {
+    min-height: 18rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1279px) {
+  .dashboard-traffic-controls {
+    width: 100%;
   }
 }
 

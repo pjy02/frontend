@@ -13,6 +13,7 @@
     "currentPeriod": "Current period: {{date}}",
     "description": "Monitor users, revenue, traffic, and system health in one place.",
     "download": "Download",
+    "expandChart": "Expand chart",
     "firstPurchaseUsers": "First purchase",
     "growth": "Growth",
     "incomeBreakdown": "New purchases and renewals",
