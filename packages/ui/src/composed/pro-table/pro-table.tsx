@@ -474,7 +474,7 @@ export function ProTable<
         <div aria-hidden="true" className="admin-pro-table-progress" />
         <ProTableWrapper data={data} onSort={onSort} setData={setData}>
           <Table className="w-full">
-            <TableHeader className="bg-muted/45">
+            <TableHeader className="bg-[color-mix(in_srgb,var(--muted)_45%,var(--card))]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
@@ -774,20 +774,20 @@ function RowActions({
 
 function getTableHeaderClass(columnId: string) {
   if (["sortable", "selected"].includes(columnId)) {
-    return "sticky left-0 z-10 bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [&:has([role=checkbox])]:pr-2";
+    return "sticky left-0 z-10 bg-[color-mix(in_srgb,var(--muted)_45%,var(--card))] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] [&:has([role=checkbox])]:pr-2";
   }
   if (columnId === "actions") {
-    return "sticky right-0 z-10 w-[116px] min-w-[116px] text-right bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+    return "sticky right-0 z-10 w-[116px] min-w-[116px] bg-[color-mix(in_srgb,var(--muted)_45%,var(--card))] text-right shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   return "truncate";
 }
 
 function getTableCellClass(columnId: string) {
   if (["sortable", "selected"].includes(columnId)) {
-    return "sticky left-0 bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+    return "sticky left-0 bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   if (columnId === "actions") {
-    return "sticky right-0 w-[116px] min-w-[116px] bg-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
+    return "sticky right-0 w-[116px] min-w-[116px] bg-card shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   }
   return "truncate";
 }
