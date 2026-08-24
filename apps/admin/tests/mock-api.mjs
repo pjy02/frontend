@@ -402,7 +402,22 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/user/detail") {
-    send(response, 200, { code: 200, data: userFixture });
+    const requestedId = Number(url.searchParams.get("id")) || userFixture.id;
+    const requestedUser =
+      requestedId === userFixture.id
+        ? userFixture
+        : {
+            ...userFixture,
+            id: requestedId,
+            auth_methods: [
+              {
+                auth_type: "email",
+                auth_identifier: `user-${requestedId}@example.com`,
+                verified: true,
+              },
+            ],
+          };
+    send(response, 200, { code: 200, data: requestedUser });
     return;
   }
 

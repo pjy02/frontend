@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -40,6 +40,7 @@ import {
   queryTicketWaitReply,
   queryUserStatistics,
 } from "@workspace/ui/services/admin/console";
+import { getUserDetail } from "@workspace/ui/services/admin/user";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import {
@@ -76,6 +77,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
+import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
 
 type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
@@ -1198,6 +1200,41 @@ function TrafficRanking({
   const { t } = useTranslation("dashboard");
   const { reducedMotion } = useAdminMotion();
   const visibleData = data.items.slice(0, limit);
+  const leaderTotal = visibleData.reduce(
+    (maximum, item) => Math.max(maximum, item.total),
+    0
+  );
+  const visibleUserIds =
+    trafficType === "users"
+      ? Array.from(
+          new Set(
+            visibleData
+              .map((item) => item.uid)
+              .filter((uid): uid is number => uid !== undefined)
+          )
+        )
+      : [];
+  const userQueries = useQueries({
+    queries: visibleUserIds.map((uid) => ({
+      gcTime: 30 * 60 * 1000,
+      queryFn: async () => {
+        const { data: response } = await getUserDetail(
+          { id: uid },
+          { skipErrorHandler: true }
+        );
+        return response.data ?? null;
+      },
+      queryKey: ["getUserDetail", uid],
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const userEmailById = new Map(
+    visibleUserIds.map((uid, index) => [
+      uid,
+      getUserEmail(userQueries[index]?.data),
+    ])
+  );
   const visibleTotal = visibleData.reduce((sum, item) => sum + item.total, 0);
   const upload = data.items.reduce((sum, item) => sum + item.upload, 0);
   const download = data.items.reduce((sum, item) => sum + item.download, 0);
@@ -1378,10 +1415,16 @@ function TrafficRanking({
                     index={index}
                     item={item}
                     key={`${trafficType}-${item.id}`}
+                    leaderTotal={leaderTotal}
                     previousLabel={previousLabel}
                     reducedMotion={reducedMotion}
                     selectedDate={activeDate}
                     trafficType={trafficType}
+                    userEmail={
+                      item.uid === undefined
+                        ? undefined
+                        : userEmailById.get(item.uid)
+                    }
                   />
                 ))}
               </ol>
@@ -1480,25 +1523,37 @@ function TrafficRankingRow({
   currentLabel,
   index,
   item,
+  leaderTotal,
   previousLabel,
   reducedMotion,
   selectedDate,
   trafficType,
+  userEmail,
 }: {
   currentLabel: string;
   index: number;
   item: TrafficRankingItem;
+  leaderTotal: number;
   previousLabel: string;
   reducedMotion: boolean;
   selectedDate: string;
   trafficType: TrafficType;
+  userEmail?: string;
 }) {
   const { t } = useTranslation("dashboard");
   const uploadShare = item.total ? (item.upload / item.total) * 100 : 0;
   const downloadShare = 100 - uploadShare;
-  const comparisonMax = Math.max(item.total, item.previousTotal, 1);
-  const currentWidth = (item.total / comparisonMax) * 100;
-  const previousWidth = (item.previousTotal / comparisonMax) * 100;
+  const previousUploadShare = item.previousTotal
+    ? (item.previousUpload / item.previousTotal) * 100
+    : 0;
+  const previousDownloadShare = item.previousTotal
+    ? 100 - previousUploadShare
+    : 0;
+  const rankingWidth = getTrafficRankWidth(item.total, leaderTotal);
+  const tooltipScale = Math.max(item.total, item.previousTotal, 1);
+  const tooltipCurrentWidth = (item.total / tooltipScale) * 100;
+  const tooltipPreviousWidth = (item.previousTotal / tooltipScale) * 100;
+  const displayName = userEmail || item.name;
   const changeLabel = `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
     Math.abs(item.absoluteChange)
   )}`;
@@ -1531,7 +1586,7 @@ function TrafficRankingRow({
             aria-label={t(
               "overview.trafficTooltipLabel",
               "Traffic details for {{name}}",
-              { name: item.name }
+              { name: displayName }
             )}
             className="min-w-0 rounded-lg p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
             type="button"
@@ -1544,7 +1599,7 @@ function TrafficRankingRow({
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <div className="min-w-0">
                     <div className="truncate font-medium text-sm">
-                      {item.name}
+                      {displayName}
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground tabular-nums">
                       {item.uid !== undefined ? (
@@ -1564,51 +1619,46 @@ function TrafficRankingRow({
                     </div>
                   </div>
                 </div>
-                <div className="dashboard-traffic-comparison mt-2.5 space-y-1.5">
-                  <div className="grid grid-cols-[3.75rem_minmax(0,1fr)_auto] items-center gap-2 text-[10px] tabular-nums sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]">
-                    <span className="truncate text-muted-foreground">
-                      {currentLabel}
-                    </span>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
-                        style={
-                          {
-                            "--traffic-share": `${Math.max(currentWidth, 1.5)}%`,
-                          } as React.CSSProperties
-                        }
-                      >
-                        <span
-                          className="h-full bg-chart-1"
-                          style={{ width: `${uploadShare}%` }}
-                        />
-                        <span
-                          className="h-full bg-chart-4"
-                          style={{ width: `${downloadShare}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-muted-foreground">
-                      {formatBytes(item.total)}
+                <div className="mt-2.5">
+                  <div className="mb-1 flex items-center justify-between gap-3 text-[10px] text-muted-foreground tabular-nums">
+                    <span>{currentLabel}</span>
+                    <span>
+                      {t(
+                        "overview.relativeToLeader",
+                        "{{share}}% of rank leader",
+                        { share: rankingWidth.toFixed(0) }
+                      )}
                     </span>
                   </div>
-                  <div className="grid grid-cols-[3.75rem_minmax(0,1fr)_auto] items-center gap-2 text-[10px] tabular-nums sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]">
-                    <span className="truncate text-muted-foreground">
-                      {previousLabel}
-                    </span>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="dashboard-traffic-previous-bar h-full rounded-full bg-muted-foreground/45"
-                        style={
-                          {
-                            "--traffic-share": `${previousWidth}%`,
-                          } as React.CSSProperties
-                        }
+                  <div
+                    aria-label={t(
+                      "overview.rankingBarLabel",
+                      "{{name}} has {{share}}% of the rank leader's traffic",
+                      {
+                        name: displayName,
+                        share: rankingWidth.toFixed(0),
+                      }
+                    )}
+                    className="h-2.5 overflow-hidden rounded-full bg-muted"
+                    role="img"
+                  >
+                    <div
+                      className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
+                      style={
+                        {
+                          "--traffic-share": `${rankingWidth}%`,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <span
+                        className="h-full bg-chart-1"
+                        style={{ width: `${uploadShare}%` }}
+                      />
+                      <span
+                        className="h-full bg-chart-4"
+                        style={{ width: `${downloadShare}%` }}
                       />
                     </div>
-                    <span className="text-muted-foreground">
-                      {formatBytes(item.previousTotal)}
-                    </span>
                   </div>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
@@ -1620,6 +1670,11 @@ function TrafficRankingRow({
                     <i className="size-1.5 rounded-full bg-chart-4" />
                     {t("overview.download", "Download")}{" "}
                     {formatBytes(item.download)}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
+                  <span>
+                    {previousLabel} {formatBytes(item.previousTotal)}
                   </span>
                   <span
                     className={cn(
@@ -1642,20 +1697,45 @@ function TrafficRankingRow({
         </TooltipTrigger>
         <TooltipContent className="w-72 space-y-3 p-3" side="top">
           <div>
-            <div className="font-semibold text-sm">{item.name}</div>
+            <div className="font-semibold text-sm">{displayName}</div>
             <div className="mt-1 flex gap-2 text-xs opacity-75">
               {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
               <span>SID {item.sid}</span>
             </div>
           </div>
+          <div className="space-y-2 rounded-lg bg-background/65 p-2.5">
+            <TrafficTooltipComparisonBar
+              downloadShare={downloadShare}
+              label={currentLabel}
+              total={item.total}
+              uploadShare={uploadShare}
+              width={tooltipCurrentWidth}
+            />
+            <TrafficTooltipComparisonBar
+              downloadShare={previousDownloadShare}
+              label={previousLabel}
+              muted
+              total={item.previousTotal}
+              uploadShare={previousUploadShare}
+              width={tooltipPreviousWidth}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <TrafficTooltipValue
-              label={t("overview.upload", "Upload")}
+              label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
               value={formatBytes(item.upload)}
             />
             <TrafficTooltipValue
-              label={t("overview.download", "Download")}
+              label={`${currentLabel} · ${t("overview.download", "Download")}`}
               value={formatBytes(item.download)}
+            />
+            <TrafficTooltipValue
+              label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
+              value={formatBytes(item.previousUpload)}
+            />
+            <TrafficTooltipValue
+              label={`${previousLabel} · ${t("overview.download", "Download")}`}
+              value={formatBytes(item.previousDownload)}
             />
             <TrafficTooltipValue
               label={t("traffic", "Total traffic")}
@@ -1722,6 +1802,50 @@ function TrafficRankingRow({
         )}
       </Button>
     </motion.li>
+  );
+}
+
+function TrafficTooltipComparisonBar({
+  downloadShare,
+  label,
+  muted = false,
+  total,
+  uploadShare,
+  width,
+}: {
+  downloadShare: number;
+  label: string;
+  muted?: boolean;
+  total: number;
+  uploadShare: number;
+  width: number;
+}) {
+  return (
+    <div className={cn("space-y-1", muted && "opacity-60")}>
+      <div className="flex items-center justify-between gap-3 text-[10px] tabular-nums">
+        <span>{label}</span>
+        <span>{formatBytes(total)}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="dashboard-traffic-tooltip-bar flex h-full overflow-hidden rounded-full"
+          style={
+            {
+              "--traffic-share": `${width}%`,
+            } as React.CSSProperties
+          }
+        >
+          <span
+            className="h-full bg-chart-1"
+            style={{ width: `${uploadShare}%` }}
+          />
+          <span
+            className="h-full bg-chart-4"
+            style={{ width: `${downloadShare}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

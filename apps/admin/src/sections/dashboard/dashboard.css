@@ -56,22 +56,15 @@ html.admin-console .dashboard-range-tabs__trigger {
 }
 
 .dashboard-traffic-bar,
-.dashboard-traffic-previous-bar {
+.dashboard-traffic-tooltip-bar {
   width: var(--traffic-share);
   transform-origin: left center;
   animation: dashboard-traffic-grow 520ms var(--admin-motion-enter) both;
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
 }
 
-.dashboard-traffic-bar {
-  min-width: 0.375rem;
-}
-
-.dashboard-traffic-previous-bar {
-  min-width: 0.2rem;
-}
-
-.dashboard-traffic-bar > span {
+.dashboard-traffic-bar > span,
+.dashboard-traffic-tooltip-bar > span {
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
 }
 
@@ -105,12 +98,13 @@ html.admin-console .dashboard-range-tabs__trigger {
   }
 
   .dashboard-traffic-bar,
-  .dashboard-traffic-previous-bar {
+  .dashboard-traffic-tooltip-bar {
     animation: none;
     transition: none;
   }
 
-  .dashboard-traffic-bar > span {
+  .dashboard-traffic-bar > span,
+  .dashboard-traffic-tooltip-bar > span {
     transition: none;
   }
 }
