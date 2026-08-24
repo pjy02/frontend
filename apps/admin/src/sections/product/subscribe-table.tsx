@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { Display } from "@/components/display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { useSubscribe } from "@/stores/subscribe";
 import SubscribeForm from "./subscribe-form";
 
@@ -276,6 +277,102 @@ export default function SubscribeTable({
             }}
             title={t("createSubscribe")}
             trigger={t("create")}
+          />
+        ),
+      }}
+      mobile={{
+        getAriaLabel: (row) => String(row.name || row.id),
+        render: (row) => (
+          <MobileListSummary
+            details={[
+              {
+                label: t("replacement"),
+                value: <MoneyValue value={row.replacement} />,
+              },
+              {
+                label: t("deviceLimit"),
+                value: (
+                  <Display type="number" unlimited value={row.device_limit} />
+                ),
+              },
+              {
+                label: t("quota"),
+                value: <Display type="number" unlimited value={row.quota} />,
+              },
+              {
+                label: t("language"),
+                value: row.language ? (
+                  <Badge variant="outline">{row.language}</Badge>
+                ) : (
+                  "—"
+                ),
+              },
+            ]}
+            fields={[
+              {
+                label: t("unitPrice"),
+                value: (
+                  <>
+                    <MoneyValue emphasis="strong" value={row.unit_price} />/
+                    {t(row.unit_time ? `form.${row.unit_time}` : "form.Month")}
+                  </>
+                ),
+              },
+              {
+                label: t("traffic"),
+                value: <Display type="traffic" unlimited value={row.traffic} />,
+              },
+              {
+                label: t("inventory"),
+                value: (
+                  <Display
+                    type="number"
+                    unlimited
+                    value={row.inventory === -1 ? 0 : row.inventory}
+                  />
+                ),
+              },
+              {
+                label: t("sold"),
+                value: <span className="tabular-nums">{row.sold ?? 0}</span>,
+              },
+            ]}
+            subtitle={`ID ${row.id ?? "—"}`}
+            title={row.name || "—"}
+            trailing={
+              <div className="grid gap-2 text-xs">
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-muted-foreground">{t("show")}</span>
+                  <Switch
+                    aria-label={t("show")}
+                    checked={Boolean(row.show)}
+                    onCheckedChange={async (checked) => {
+                      await updateSubscribe({
+                        ...row,
+                        show: checked,
+                      } as API.UpdateSubscribeRequest);
+                      ref.current?.refresh();
+                      fetchSubscribes();
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-muted-foreground">{t("sell")}</span>
+                  <Switch
+                    aria-label={t("sell")}
+                    checked={Boolean(row.sell)}
+                    onCheckedChange={async (checked) => {
+                      await updateSubscribe({
+                        ...row,
+                        sell: checked,
+                      } as API.UpdateSubscribeRequest);
+                      ref.current?.refresh();
+                      fetchSubscribes();
+                    }}
+                  />
+                </div>
+              </div>
+            }
           />
         ),
       }}

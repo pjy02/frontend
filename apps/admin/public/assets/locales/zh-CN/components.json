@@ -145,6 +145,7 @@
     "filterPlaceholder": "输入筛选条件...",
     "loadError": "暂时无法加载数据",
     "moreActions": "更多操作",
+    "moreDetails": "更多详情",
     "moreFilters": "更多筛选",
     "permissionDenied": "您没有权限查看这些数据",
     "recordLabel": "第 {{number}} 条记录",

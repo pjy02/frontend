@@ -21,6 +21,7 @@ import {
   EnabledStatusChip,
   MoneyValue,
 } from "@/components/commerce-display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { useSubscribe } from "@/stores/subscribe";
 import CouponForm from "./coupon-form";
 
@@ -221,6 +222,93 @@ export default function Coupon() {
             trigger={t("create", "Create")}
           />
         ),
+      }}
+      mobile={{
+        getAriaLabel: (row) => String(row.name || row.code || row.id),
+        render: (row) => {
+          const unlimited = row.count === 0;
+          const remaining = unlimited
+            ? t("unlimited", "Unlimited")
+            : Math.max(row.count - row.used_count, 0);
+          const validity = row.start_time ? (
+            <div className="space-y-0.5">
+              <DateTimeValue value={row.start_time} />
+              {row.expire_time ? (
+                <DateTimeValue value={row.expire_time} />
+              ) : null}
+            </div>
+          ) : (
+            "—"
+          );
+
+          return (
+            <MobileListSummary
+              details={[
+                {
+                  label: t("count", "Count"),
+                  value: unlimited ? t("unlimited", "Unlimited") : row.count,
+                },
+                {
+                  label: t("usedTimes", "Usage Times"),
+                  value: row.used_count,
+                },
+              ]}
+              fields={[
+                {
+                  label: t("discount", "Discount"),
+                  value:
+                    row.type === 1 ? (
+                      <span className="font-semibold">{row.discount}%</span>
+                    ) : (
+                      <MoneyValue emphasis="strong" value={row.discount} />
+                    ),
+                },
+                {
+                  label: t("remainingTimes", "Remaining"),
+                  value: <span className="tabular-nums">{remaining}</span>,
+                },
+                {
+                  label: t("type", "Type"),
+                  value: (
+                    <Badge variant="outline">
+                      {row.type === 1
+                        ? t("percentage", "Percentage")
+                        : t("amount", "Amount")}
+                    </Badge>
+                  ),
+                },
+                {
+                  label: t("validityPeriod", "Validity Period"),
+                  value: validity,
+                },
+              ]}
+              subtitle={
+                <span className="font-mono [overflow-wrap:anywhere]">
+                  {row.code || "—"}
+                </span>
+              }
+              title={row.name || "—"}
+              trailing={
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {t("enable", "Enable")}
+                  </span>
+                  <Switch
+                    aria-label={t("enable", "Enable")}
+                    checked={Boolean(row.enable)}
+                    onCheckedChange={async (checked) => {
+                      await updateCoupon({
+                        ...row,
+                        enable: checked,
+                      } as API.UpdateCouponRequest);
+                      ref.current?.refresh();
+                    }}
+                  />
+                </div>
+              }
+            />
+          );
+        },
       }}
       params={[
         {

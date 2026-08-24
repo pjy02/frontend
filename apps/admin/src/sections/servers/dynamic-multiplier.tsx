@@ -61,8 +61,8 @@ export default function DynamicMultiplier() {
           className="w-full rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           type="button"
         >
-          <Card className="h-full">
-            <CardContent>
+          <Card className="admin-server-shortcut h-full">
+            <CardContent className="admin-server-shortcut__content">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">

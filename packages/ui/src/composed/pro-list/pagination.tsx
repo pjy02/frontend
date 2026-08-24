@@ -23,15 +23,15 @@ export function Pagination<TData>({ table }: PaginationProps<TData>) {
   const { t } = useTranslation("components");
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex-1 whitespace-nowrap text-center text-muted-foreground sm:text-left">
+    <div className="admin-pagination flex items-center justify-between gap-2 px-1">
+      <div className="min-w-0 truncate whitespace-nowrap text-muted-foreground text-sm">
         {t("pagination.pageInfo", "Page {{page}} of {{total}}", {
           page: table.getState().pagination.pageIndex + 1,
           total: table.getPageCount(),
         })}
       </div>
-      <div className="flex flex-grow items-center justify-center gap-2 sm:justify-end">
-        <div className="flex items-center space-x-2">
+      <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="admin-pagination__page-size hidden items-center space-x-2 sm:flex">
           <p className="font-medium">
             {t("pagination.rowsPerPage", "Rows per page")}
           </p>

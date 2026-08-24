@@ -27,6 +27,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { DateTimeValue, TicketStatusChip } from "@/components/commerce-display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { UserDetail } from "../user/user-detail";
 
 export default function Page() {
@@ -139,6 +140,35 @@ export default function Page() {
         ]}
         header={{
           title: t("ticketList", "Ticket List"),
+        }}
+        mobile={{
+          getAriaLabel: (row) => String(row.title || row.id),
+          render: (row) => (
+            <MobileListSummary
+              details={[
+                {
+                  label: t("user", "User"),
+                  value: <UserDetail id={row.user_id} />,
+                  wide: true,
+                },
+              ]}
+              fields={[
+                {
+                  label: t("updatedAt", "Updated At"),
+                  value: <DateTimeValue value={row.updated_at} />,
+                  wide: true,
+                },
+              ]}
+              subtitle={`#${row.id}`}
+              title={row.title || "—"}
+              trailing={
+                <TicketStatusChip
+                  label={t(`status.${row.status}`)}
+                  status={row.status}
+                />
+              }
+            />
+          ),
         }}
         params={[
           {

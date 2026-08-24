@@ -143,8 +143,8 @@ export default function ServerConfig() {
   return (
     <WorkspaceDialog onOpenChange={setOpen} open={open}>
       <WorkspaceDialogTrigger asChild>
-        <Card>
-          <CardContent>
+        <Card className="admin-server-shortcut h-full">
+          <CardContent className="admin-server-shortcut__content">
             <div className="flex cursor-pointer items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">

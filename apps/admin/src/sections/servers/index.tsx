@@ -106,7 +106,7 @@ export default function Servers({ actionRef }: ServersProps) {
         eyebrow={t("infrastructure", "Infrastructure")}
         title={t("pageTitle", "Servers")}
       />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="admin-server-shortcuts grid grid-cols-2 gap-2 sm:gap-3">
         <DynamicMultiplier />
         <ServerConfig />
       </div>

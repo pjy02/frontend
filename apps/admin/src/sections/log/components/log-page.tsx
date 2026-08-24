@@ -16,7 +16,7 @@ interface LogPageProps<
   TFilters extends Record<string, unknown>,
 > extends Pick<
     ProTableProps<TData, TFilters>,
-    "actions" | "columns" | "empty" | "params" | "texts"
+    "actions" | "columns" | "empty" | "mobile" | "params" | "texts"
   > {
   title: React.ReactNode;
   description: React.ReactNode;
@@ -75,6 +75,7 @@ export function LogPage<
   description,
   filterTypes,
   load,
+  mobile,
   ...tableProps
 }: LogPageProps<TData, TFilters>) {
   const { t } = useTranslation("log");
@@ -95,6 +96,7 @@ export function LogPage<
         {...tableProps}
         header={{ title: t("records", "Records") }}
         initialFilters={initialFilters}
+        mobile={mobile === undefined ? { detailsLimit: 2 } : mobile}
         request={async (pagination, filters) =>
           normalizeLogResponse<TData>(await load(pagination, filters))
         }

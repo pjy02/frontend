@@ -22,6 +22,7 @@ import {
   MoneyValue,
   OrderStatusChip,
 } from "@/components/commerce-display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { useSubscribe } from "@/stores/subscribe";
 import { UserDetail } from "../user/user-detail";
 
@@ -231,6 +232,68 @@ export default function Order() {
       }}
       initialFilters={initialFilters}
       key={JSON.stringify(initialFilters)}
+      mobile={{
+        getAriaLabel: (row) => String(row.order_no || row.id),
+        render: (row) => {
+          const statusOption = statusOptions.find(
+            (option) => option.value === row.status
+          );
+          const typeLabel =
+            typeOptions.find((option) => option.value === row.type)?.label ||
+            t(`type.${row.type}`);
+          const subscribeLabel =
+            row.type === 4
+              ? typeLabel
+              : `${getSubscribeName(row.subscribe_id) || "—"} × ${row.quantity}`;
+          const status = [1, 3, 4].includes(row.status) ? (
+            <Combobox<number, false>
+              onChange={async (value) => {
+                await updateOrderStatus({ id: row.id, status: value });
+                ref.current?.refresh();
+              }}
+              options={statusOptions.map((item) => ({
+                ...item,
+                children: (
+                  <OrderStatusChip label={item.label} status={item.value} />
+                ),
+              }))}
+              placeholder={t("status.0", "Status")}
+              value={row.status}
+            />
+          ) : (
+            <OrderStatusChip
+              label={statusOption?.label || t(`status.${row.status}`)}
+              status={row.status}
+            />
+          );
+
+          return (
+            <MobileListSummary
+              fields={[
+                {
+                  label: t("amount", "Amount"),
+                  value: <MoneyValue emphasis="strong" value={row.amount} />,
+                },
+                {
+                  label: t("subscribe", "Subscribe"),
+                  value: subscribeLabel,
+                },
+                {
+                  label: t("user", "User"),
+                  value: <UserDetail id={row.user_id} />,
+                },
+                {
+                  label: t("updateTime", "Update Time"),
+                  value: <DateTimeValue value={row.updated_at} />,
+                },
+              ]}
+              subtitle={typeLabel}
+              title={row.order_no || `#${row.id}`}
+              trailing={status}
+            />
+          );
+        },
+      }}
       params={[
         {
           key: "status",

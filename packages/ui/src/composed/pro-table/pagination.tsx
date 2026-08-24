@@ -24,7 +24,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
   const end = total ? Math.min((pageIndex + 1) * pageSize, total) : 0;
 
   return (
-    <div className="admin-pagination flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="admin-pagination flex items-center justify-between gap-2 px-1">
       <div
         aria-live="polite"
         className="whitespace-nowrap text-muted-foreground text-sm"
@@ -40,8 +40,8 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
               total: pageCount,
             })}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-        <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="admin-pagination__page-size hidden items-center gap-2 sm:flex">
           <p className="whitespace-nowrap text-muted-foreground text-sm">
             {t("pagination.rowsPerPage", "Rows per page")}
           </p>
@@ -63,7 +63,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <Button
             aria-label={t("pagination.previous", "Go to previous page")}
             className="size-8 rounded-full"
@@ -74,7 +74,7 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
           >
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <span className="min-w-20 text-center font-medium text-sm">
+          <span className="min-w-16 text-center font-medium text-sm sm:min-w-20">
             {pageIndex + 1} / {pageCount}
           </span>
           <Button

@@ -16,6 +16,11 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@workspace/ui/components/collapsible";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -38,6 +43,7 @@ import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { cn } from "@workspace/ui/lib/utils";
 import {
+  ChevronDown,
   GripVertical,
   MoreHorizontal,
   ShieldX,
@@ -70,6 +76,7 @@ export interface ProTableProps<TData, TValue> {
   };
   mobile?:
     | {
+        detailsLimit?: number;
         render?: (row: TData) => React.ReactNode;
         getAriaLabel?: (row: TData) => string;
       }
@@ -386,7 +393,10 @@ export function ProTable<
                     {mobile?.render ? (
                       mobile.render(row.original)
                     ) : (
-                      <DefaultMobileCard row={row} />
+                      <DefaultMobileCard
+                        detailsLimit={mobile?.detailsLimit}
+                        row={row}
+                      />
                     )}
                   </div>
                   {(actions?.batchRender || rowActions.length > 0) && (
@@ -646,7 +656,8 @@ const MOBILE_IDENTITY_COLUMNS = [
 
 function DefaultMobileCard<
   TData extends Record<string, unknown> & { id?: string | number },
->({ row }: { row: Row<TData> }) {
+>({ row, detailsLimit }: { row: Row<TData>; detailsLimit?: number }) {
+  const { t } = useTranslation("components");
   const cells = row
     .getVisibleCells()
     .filter(
@@ -657,6 +668,10 @@ function DefaultMobileCard<
       cells.find((cell) => cell.column.id === id)
     ).find(Boolean) || cells[0];
   const details = cells.filter((cell) => cell.id !== identity?.id);
+  const visibleDetails =
+    detailsLimit === undefined ? details : details.slice(0, detailsLimit);
+  const collapsedDetails =
+    detailsLimit === undefined ? [] : details.slice(detailsLimit);
   const renderCell = (cell: (typeof cells)[number]) =>
     flexRender(cell.column.columnDef.cell, cell.getContext()) ??
     String(cell.getValue() ?? "—");
@@ -676,9 +691,9 @@ function DefaultMobileCard<
           </div>
         </div>
       ) : null}
-      {details.length > 0 ? (
+      {visibleDetails.length > 0 ? (
         <dl className="admin-mobile-record__details">
-          {details.map((cell) => (
+          {visibleDetails.map((cell) => (
             <div className="admin-mobile-record__field" key={cell.id}>
               <dt className="admin-mobile-record__label">
                 {getMobileColumnLabel(
@@ -690,6 +705,37 @@ function DefaultMobileCard<
             </div>
           ))}
         </dl>
+      ) : null}
+      {collapsedDetails.length > 0 ? (
+        <Collapsible className="admin-mobile-record__disclosure">
+          <CollapsibleTrigger asChild>
+            <Button
+              className="admin-mobile-record__disclosure-trigger group"
+              size="sm"
+              variant="ghost"
+            >
+              <span>{t("table.moreDetails", "More details")}</span>
+              <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <dl className="admin-mobile-record__details admin-mobile-record__details--collapsed">
+              {collapsedDetails.map((cell) => (
+                <div className="admin-mobile-record__field" key={cell.id}>
+                  <dt className="admin-mobile-record__label">
+                    {getMobileColumnLabel(
+                      cell.column.id,
+                      cell.column.columnDef.header
+                    )}
+                  </dt>
+                  <dd className="admin-mobile-record__value">
+                    {renderCell(cell)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </CollapsibleContent>
+        </Collapsible>
       ) : null}
     </div>
   );

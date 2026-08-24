@@ -17,10 +17,11 @@ import {
   getPaymentMethodList,
   updatePaymentMethod,
 } from "@workspace/ui/services/admin/payment";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import PaymentForm from "./payment-form";
 
 export default function PaymentTable() {
@@ -226,6 +227,70 @@ export default function PaymentTable() {
             trigger={<Button>{t("create", "Add Payment Method")}</Button>}
           />
         ),
+      }}
+      mobile={{
+        getAriaLabel: (row) => String(row.name || row.platform || row.id),
+        render: (row) => {
+          const notifyUrl =
+            (row as API.PaymentMethodDetail).notify_url || row.domain;
+          let fee: ReactNode = "—";
+          if (row.fee_mode === 1) {
+            fee = <span className="font-semibold">{row.fee_percent}%</span>;
+          } else if (row.fee_mode === 2) {
+            fee = <MoneyValue emphasis="strong" value={row.fee_amount} />;
+          }
+
+          return (
+            <MobileListSummary
+              details={[
+                {
+                  label: t("notify_url", "Notify URL"),
+                  value: (
+                    <span className="font-mono text-xs [overflow-wrap:anywhere]">
+                      {notifyUrl || "—"}
+                    </span>
+                  ),
+                  wide: true,
+                },
+              ]}
+              fields={[
+                {
+                  label: t("platform", "Platform"),
+                  value: <Badge variant="outline">{t(row.platform)}</Badge>,
+                },
+                {
+                  label: t("handlingFee", "Handling Fee"),
+                  value: fee,
+                },
+              ]}
+              leading={
+                <Avatar className="size-10">
+                  {row.icon ? (
+                    <AvatarImage alt={row.name} src={row.icon} />
+                  ) : null}
+                  <AvatarFallback>{row.name?.charAt(0) || "?"}</AvatarFallback>
+                </Avatar>
+              }
+              subtitle={`ID ${row.id}`}
+              title={row.name || "—"}
+              trailing={
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {t("enable", "Enable")}
+                  </span>
+                  <Switch
+                    aria-label={t("enable", "Enable")}
+                    checked={Boolean(row.enable)}
+                    onCheckedChange={async (checked) => {
+                      await updatePaymentMethod({ ...row, enable: checked });
+                      ref.current?.refresh();
+                    }}
+                  />
+                </div>
+              }
+            />
+          );
+        },
       }}
       params={[
         {

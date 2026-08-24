@@ -145,6 +145,7 @@
     "filterPlaceholder": "Filter...",
     "loadError": "Unable to load data",
     "moreActions": "More actions",
+    "moreDetails": "More details",
     "moreFilters": "More filters",
     "permissionDenied": "You do not have permission to view this data",
     "recordLabel": "Record {{number}}",
