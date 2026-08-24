@@ -964,7 +964,7 @@ html.admin-console [data-slot="table-body"] [data-slot="table-row"]:hover {
 html.admin-console
   [data-slot="table-body"]
   [data-slot="table-row"][data-state="selected"] {
-  background: var(--admin-info-surface);
+  background: transparent;
 }
 
 html.admin-console .admin-user-sheet [data-slot="card"] {
