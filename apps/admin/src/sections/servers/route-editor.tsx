@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { LoadingState, NotFoundState } from "@/components/states";
 import { useServer } from "@/stores/server";
+import { useServerListAction } from "./list-context";
 import ServerForm from "./server-form";
 
 interface ServerRouteEditorProps {
@@ -20,12 +21,14 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
   const { fetchServers, getServerById, loaded } = useServer();
+  const listAction = useServerListAction();
   const [saving, setSaving] = useState(false);
   const server = serverId === undefined ? undefined : getServerById(serverId);
 
   const close = () =>
     navigate({
       replace: true,
+      resetScroll: false,
       search,
       to: "/dashboard/servers",
     });
@@ -45,7 +48,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
       <NotFoundState
         action={
           <Button asChild variant="outline">
-            <Link search={search} to="/dashboard/servers">
+            <Link resetScroll={false} search={search} to="/dashboard/servers">
               {t("backToServers", "Back to servers")}
             </Link>
           </Button>
@@ -84,6 +87,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
             toast.success(t("created", "Created"));
           }
           await fetchServers();
+          listAction?.current?.refresh();
           return true;
         } catch {
           return false;

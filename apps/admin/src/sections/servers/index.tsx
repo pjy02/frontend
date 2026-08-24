@@ -17,7 +17,7 @@ import {
   resetSortWithServer,
   updateServerNodeConfig,
 } from "@workspace/ui/services/admin/server";
-import { useRef } from "react";
+import { type RefObject, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -83,13 +83,18 @@ function RegionIpCell({
   );
 }
 
-export default function Servers() {
+interface ServersProps {
+  actionRef?: RefObject<ProTableActions | null>;
+}
+
+export default function Servers({ actionRef }: ServersProps) {
   const { t } = useTranslation("servers");
   const routeSearch = useSearch({ strict: false });
   const { isServerReferencedByNodes } = useNode();
   const { fetchServers } = useServer();
 
-  const ref = useRef<ProTableActions>(null);
+  const internalActionRef = useRef<ProTableActions>(null);
+  const ref = actionRef ?? internalActionRef;
 
   return (
     <div className="space-y-6">
@@ -112,6 +117,7 @@ export default function Servers() {
             <Button asChild key="edit">
               <Link
                 params={{ serverId: String(row.id) }}
+                resetScroll={false}
                 search={routeSearch}
                 to="/dashboard/servers/$serverId"
               >
@@ -322,7 +328,11 @@ export default function Servers() {
           toolbar: (
             <div className="flex gap-2">
               <Button asChild>
-                <Link search={routeSearch} to="/dashboard/servers/new">
+                <Link
+                  resetScroll={false}
+                  search={routeSearch}
+                  to="/dashboard/servers/new"
+                >
                   {t("create", "Create")}
                 </Link>
               </Button>

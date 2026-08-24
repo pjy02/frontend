@@ -14,6 +14,9 @@ export default function DashboardLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const mainRef = useRef<HTMLElement>(null);
   const previousPathname = useRef(pathname);
+  const pageTransitionKey = pathname.startsWith("/dashboard/servers/")
+    ? "/dashboard/servers"
+    : pathname;
   const [open, setOpen] = useState(() => {
     const sidebarState = getCookie("sidebar_state");
     return sidebarState === undefined ? true : sidebarState === "true";
@@ -69,7 +72,7 @@ export default function DashboardLayout() {
         >
           <div
             className="admin-content__inner admin-page-transition"
-            key={pathname}
+            key={pageTransitionKey}
           >
             <Outlet />
           </div>
