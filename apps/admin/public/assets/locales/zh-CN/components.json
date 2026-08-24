@@ -139,10 +139,13 @@
     "choose": "请选择...",
     "columns": "选择显示列",
     "date": "日期",
+    "done": "完成",
     "filter": "筛选",
+    "filterDescription": "使用更多条件缩小当前列表范围。",
     "filterPlaceholder": "输入筛选条件...",
     "loadError": "暂时无法加载数据",
     "moreActions": "更多操作",
+    "moreFilters": "更多筛选",
     "permissionDenied": "您没有权限查看这些数据",
     "recordLabel": "第 {{number}} 条记录",
     "refresh": "刷新数据",
@@ -153,7 +156,8 @@
     "selectAll": "选择当前页全部行",
     "selectedRows": "已选择 {{count}} 行",
     "selectedRows_other": "已选择 {{count}} 行",
-    "selectRow": "选择行"
+    "selectRow": "选择行",
+    "clearFilters": "清除筛选"
   },
   "theme": {
     "dark": "深色",

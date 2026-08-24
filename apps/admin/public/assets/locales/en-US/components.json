@@ -139,10 +139,13 @@
     "choose": "Choose...",
     "columns": "Choose columns",
     "date": "Date",
+    "done": "Done",
     "filter": "Filter",
+    "filterDescription": "Narrow the current list with additional conditions.",
     "filterPlaceholder": "Filter...",
     "loadError": "Unable to load data",
     "moreActions": "More actions",
+    "moreFilters": "More filters",
     "permissionDenied": "You do not have permission to view this data",
     "recordLabel": "Record {{number}}",
     "refresh": "Refresh data",
@@ -154,7 +157,8 @@
     "selectedRows": "Selected {{count}} rows",
     "selectedRows_one": "Selected {{count}} row",
     "selectedRows_other": "Selected {{count}} rows",
-    "selectRow": "Select row"
+    "selectRow": "Select row",
+    "clearFilters": "Clear filters"
   },
   "theme": {
     "dark": "Dark",

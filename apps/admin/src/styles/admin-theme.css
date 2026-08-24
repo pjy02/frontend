@@ -745,6 +745,11 @@ html.admin-console [data-slot="table-body"] [data-slot="table-row"] {
   position: relative;
 }
 
+.admin-pro-table[data-selection-active="true"],
+.admin-pro-list[data-selection-active="true"] {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+}
+
 html.admin-console .admin-pro-table-selection {
   border-color: color-mix(in srgb, var(--primary) 44%, var(--border));
   background: var(--background);
@@ -1316,6 +1321,11 @@ html.admin-console
 
   .admin-pagination > :last-child > :last-child {
     margin-left: auto;
+  }
+
+  .admin-pro-table[data-selection-active="true"],
+  .admin-pro-list[data-selection-active="true"] {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }
 }
 

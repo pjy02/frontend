@@ -142,7 +142,10 @@ export function ProList<TData, TValue extends Record<string, unknown>>({
   const selectedCount = selectedRows.length;
 
   return (
-    <div className="flex max-w-full flex-col gap-4 overflow-hidden">
+    <div
+      className="admin-pro-list flex max-w-full flex-col gap-4 overflow-hidden"
+      data-selection-active={selectedCount > 0 && Boolean(batchRender)}
+    >
       <div className="flex flex-wrap-reverse items-center justify-between gap-4">
         <div>
           {params ? (
@@ -180,7 +183,7 @@ export function ProList<TData, TValue extends Record<string, unknown>>({
         batchRender &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[calc(1rem+env(safe-area-inset-bottom))]">
             <div
               aria-label={t("table.batchActions", "Batch actions")}
               className="admin-batch-actions pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border bg-popover/95 p-2 pl-3 text-popover-foreground shadow-xl backdrop-blur-md sm:justify-start"

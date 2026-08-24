@@ -36,7 +36,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Display } from "@/components/display";
@@ -135,23 +135,7 @@ export default function User() {
               <Switch
                 defaultChecked={row.getValue("enable")}
                 onCheckedChange={async (checked) => {
-                  const {
-                    auth_methods: _auth_methods,
-                    user_devices: _user_devices,
-                    enable_balance_notify: _enable_balance_notify,
-                    enable_login_notify: _enable_login_notify,
-                    enable_subscribe_notify: _enable_subscribe_notify,
-                    enable_trade_notify: _enable_trade_notify,
-                    updated_at: _updated_at,
-                    created_at: _created_at,
-                    id,
-                    ...rest
-                  } = row.original;
-                  await updateUserBasicInfo({
-                    user_id: id,
-                    ...rest,
-                    enable: checked,
-                  } as unknown as API.UpdateUserBasiceInfoRequest);
+                  await updateUserEnabled(row.original, checked);
                   toast.success(t("updateSuccess", "Updated successfully"));
                   ref.current?.refresh();
                 }}
@@ -254,6 +238,17 @@ export default function User() {
         header={{}}
         initialFilters={initialFilters}
         key={JSON.stringify(initialFilters)}
+        mobile={{
+          getAriaLabel: (row) =>
+            row.auth_methods?.[0]?.auth_identifier || `User ${row.id}`,
+          render: (row) => (
+            <UserMobileCard
+              onUpdated={() => ref.current?.refresh()}
+              user={row}
+            />
+          ),
+        }}
+        mobileFilterMode="drawer"
         params={[
           {
             key: "search",
@@ -297,6 +292,126 @@ export default function User() {
           };
         }}
       />
+    </div>
+  );
+}
+
+async function updateUserEnabled(user: API.User, checked: boolean) {
+  const {
+    auth_methods: _auth_methods,
+    user_devices: _user_devices,
+    enable_balance_notify: _enable_balance_notify,
+    enable_login_notify: _enable_login_notify,
+    enable_subscribe_notify: _enable_subscribe_notify,
+    enable_trade_notify: _enable_trade_notify,
+    updated_at: _updated_at,
+    created_at: _created_at,
+    id,
+    ...rest
+  } = user;
+  await updateUserBasicInfo({
+    user_id: id,
+    ...rest,
+    enable: checked,
+  } as unknown as API.UpdateUserBasiceInfoRequest);
+}
+
+function UserMobileCard({
+  user,
+  onUpdated,
+}: {
+  user: API.User;
+  onUpdated: () => void;
+}) {
+  const { t } = useTranslation("user");
+  const method = user.auth_methods?.[0];
+  const identifier = method?.auth_identifier || `User ${user.id}`;
+  const isDeleted = Boolean(user.deleted_at);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 font-semibold text-primary text-xs">
+          {identifier.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="break-all font-semibold text-sm leading-5">
+            {identifier}
+          </h2>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-muted-foreground text-xs tabular-nums">
+              ID {user.id}
+            </span>
+            {method?.auth_type ? (
+              <StatusChip className="min-h-5 px-2 text-[10px]" dot={false}>
+                {method.auth_type.toUpperCase()}
+              </StatusChip>
+            ) : null}
+            {method?.verified ? (
+              <StatusChip
+                className="min-h-5 px-2 text-[10px]"
+                dot={false}
+                tone="success"
+              >
+                {t("verified", "Verified")}
+              </StatusChip>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <StatusChip tone={isDeleted ? "danger" : "success"}>
+            {isDeleted ? t("deleted", "Deleted") : t("normal", "Normal")}
+          </StatusChip>
+          <Switch
+            aria-label={t("enable", "Enable")}
+            checked={Boolean(user.enable)}
+            disabled={isDeleted}
+            onCheckedChange={async (checked) => {
+              await updateUserEnabled(user, checked);
+              toast.success(t("updateSuccess", "Updated successfully"));
+              onUpdated();
+            }}
+          />
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-3 gap-2 border-y py-3">
+        <MobileValue label={t("balance", "Balance")}>
+          <Display type="currency" value={user.balance} />
+        </MobileValue>
+        <MobileValue label={t("giftAmount", "Gift Amount")}>
+          <Display type="currency" value={user.gift_amount} />
+        </MobileValue>
+        <MobileValue label={t("commission", "Commission")}>
+          <Display type="currency" value={user.commission} />
+        </MobileValue>
+      </dl>
+
+      <dl className="grid grid-cols-2 gap-3 text-sm">
+        <MobileValue label={t("inviteCode", "Invite Code")}>
+          <span className="break-all">{user.refer_code || "—"}</span>
+        </MobileValue>
+        <MobileValue label={t("createdAt", "Created At")}>
+          <span className="text-xs">{formatDate(user.created_at)}</span>
+        </MobileValue>
+      </dl>
+    </div>
+  );
+}
+
+function MobileValue({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="mb-1 text-[11px] text-muted-foreground leading-4">
+        {label}
+      </dt>
+      <dd className="min-w-0 font-medium text-sm tabular-nums">{children}</dd>
     </div>
   );
 }

@@ -18,6 +18,7 @@ interface DataToolbarProps<TData> {
   toolbar?: ReactNode | ReactNode[];
   loading?: boolean;
   mobileCards?: boolean;
+  mobileFilterMode?: "inline" | "drawer";
   onRefresh: () => void;
   onReset: () => void;
   labels?: Partial<{
@@ -35,6 +36,7 @@ export function DataToolbar<TData>({
   toolbar,
   loading,
   mobileCards,
+  mobileFilterMode,
   onRefresh,
   onReset,
   labels,
@@ -50,7 +52,12 @@ export function DataToolbar<TData>({
             <div className="px-1 font-medium text-sm">{title}</div>
           ) : null}
           {params?.length ? (
-            <ColumnFilter filters={filters} params={params} table={table} />
+            <ColumnFilter
+              filters={filters}
+              mobileMode={mobileFilterMode}
+              params={params}
+              table={table}
+            />
           ) : null}
         </div>
 

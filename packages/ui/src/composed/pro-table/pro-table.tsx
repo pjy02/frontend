@@ -74,6 +74,7 @@ export interface ProTableProps<TData, TValue> {
         getAriaLabel?: (row: TData) => string;
       }
     | false;
+  mobileFilterMode?: "inline" | "drawer";
   action?: React.Ref<ProTableActions | undefined>;
   texts?: Partial<{
     actions: string;
@@ -120,6 +121,7 @@ export function ProTable<
   onSort,
   initialFilters,
   mobile,
+  mobileFilterMode,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -301,6 +303,7 @@ export function ProTable<
       className="admin-pro-table flex min-w-0 flex-col gap-4"
       data-loading={isLoading}
       data-refreshing={isLoading && data.length > 0}
+      data-selection-active={selectedCount > 0 && Boolean(actions?.batchRender)}
     >
       {!header?.hidden && (
         <DataToolbar
@@ -314,6 +317,7 @@ export function ProTable<
           }}
           loading={isLoading}
           mobileCards={mobileCardsEnabled}
+          mobileFilterMode={mobileFilterMode}
           onRefresh={fetchData}
           onReset={reset}
           params={params}
@@ -327,7 +331,7 @@ export function ProTable<
         actions?.batchRender &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[calc(1rem+env(safe-area-inset-bottom))]">
             <div
               aria-label={t("table.batchActions", "Batch actions")}
               className="admin-batch-actions pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border bg-popover/95 p-2 pl-3 text-popover-foreground shadow-xl backdrop-blur-md sm:justify-start"
