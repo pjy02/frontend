@@ -14,9 +14,10 @@ export default function DashboardLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const mainRef = useRef<HTMLElement>(null);
   const previousPathname = useRef(pathname);
-  const pageTransitionKey = pathname.startsWith("/dashboard/servers/")
-    ? "/dashboard/servers"
-    : pathname;
+  const routeWorkspaceRoot = ["/dashboard/servers", "/dashboard/product"].find(
+    (root) => pathname === root || pathname.startsWith(`${root}/`)
+  );
+  const pageTransitionKey = routeWorkspaceRoot ?? pathname;
   const [open, setOpen] = useState(() => {
     const sidebarState = getCookie("sidebar_state");
     return sidebarState === undefined ? true : sidebarState === "true";

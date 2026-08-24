@@ -4,6 +4,7 @@ import { updateSubscribe } from "@workspace/ui/services/admin/subscribe";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useRouteTableAction } from "@/components/route-table-context";
 import { LoadingState, NotFoundState } from "@/components/states";
 import { useSubscribe } from "@/stores/subscribe";
 import SubscribeForm from "./subscribe-form";
@@ -17,12 +18,14 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
   const { fetchSubscribes, getSubscribeById, loaded } = useSubscribe();
+  const listAction = useRouteTableAction();
   const [saving, setSaving] = useState(false);
   const product = getSubscribeById(productId);
 
   const close = () =>
     navigate({
       replace: true,
+      resetScroll: false,
       search,
       to: "/dashboard/product",
     });
@@ -42,7 +45,7 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
       <NotFoundState
         action={
           <Button asChild variant="outline">
-            <Link search={search} to="/dashboard/product">
+            <Link resetScroll={false} search={search} to="/dashboard/product">
               {t("backToProducts", "Back to products")}
             </Link>
           </Button>
@@ -74,6 +77,7 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
           } as API.UpdateSubscribeRequest);
           toast.success(t("updateSuccess"));
           await fetchSubscribes();
+          listAction?.current?.refresh();
           return true;
         } catch {
           return false;

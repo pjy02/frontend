@@ -6,10 +6,10 @@ import {
   useContext,
 } from "react";
 
-const ServerListActionContext =
+const RouteTableActionContext =
   createContext<RefObject<ProTableActions | null> | null>(null);
 
-export function ServerListActionProvider({
+export function RouteTableActionProvider({
   actionRef,
   children,
 }: {
@@ -17,12 +17,12 @@ export function ServerListActionProvider({
   children: ReactNode;
 }) {
   return (
-    <ServerListActionContext.Provider value={actionRef}>
+    <RouteTableActionContext.Provider value={actionRef}>
       {children}
-    </ServerListActionContext.Provider>
+    </RouteTableActionContext.Provider>
   );
 }
 
-export function useServerListAction() {
-  return useContext(ServerListActionContext);
+export function useRouteTableAction() {
+  return useContext(RouteTableActionContext);
 }

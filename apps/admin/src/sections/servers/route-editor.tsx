@@ -7,9 +7,9 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useRouteTableAction } from "@/components/route-table-context";
 import { LoadingState, NotFoundState } from "@/components/states";
 import { useServer } from "@/stores/server";
-import { useServerListAction } from "./list-context";
 import ServerForm from "./server-form";
 
 interface ServerRouteEditorProps {
@@ -21,7 +21,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
   const { fetchServers, getServerById, loaded } = useServer();
-  const listAction = useServerListAction();
+  const listAction = useRouteTableAction();
   const [saving, setSaving] = useState(false);
   const server = serverId === undefined ? undefined : getServerById(serverId);
 

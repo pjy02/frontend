@@ -17,7 +17,7 @@ import {
   subscribeSort,
   updateSubscribe,
 } from "@workspace/ui/services/admin/subscribe";
-import { useRef, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
@@ -25,11 +25,16 @@ import { Display } from "@/components/display";
 import { useSubscribe } from "@/stores/subscribe";
 import SubscribeForm from "./subscribe-form";
 
-export default function SubscribeTable() {
+export default function SubscribeTable({
+  actionRef,
+}: {
+  actionRef?: RefObject<ProTableActions | null>;
+}) {
   const { t } = useTranslation("product");
   const routeSearch = useSearch({ strict: false });
   const [loading, setLoading] = useState(false);
-  const ref = useRef<ProTableActions>(null);
+  const internalActionRef = useRef<ProTableActions>(null);
+  const ref = actionRef ?? internalActionRef;
   const { fetchSubscribes } = useSubscribe();
   return (
     <ProTable<API.SubscribeItem, { group_id: number; query: string }>
@@ -39,6 +44,7 @@ export default function SubscribeTable() {
           <Button asChild key="edit">
             <Link
               params={{ productId: String(row.id) }}
+              resetScroll={false}
               search={routeSearch}
               to="/dashboard/product/$productId"
             >
