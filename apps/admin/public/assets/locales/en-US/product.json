@@ -16,6 +16,7 @@
   "sortSuccess": "Sort completed successfully",
   "form": {
     "annualReset": "Annual Reset",
+    "auto": "Auto",
     "basic": "Basic",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -65,13 +66,22 @@
   },
   "inventory": "Subscription Limit",
   "language": "Language",
+  "loadingProduct": "Loading product",
   "name": "Name",
+  "notForSale": "Not for sale",
+  "onSale": "On sale",
+  "productManagement": "Product management",
+  "productNotFound": "Product not found",
+  "productNotFoundDescription": "The requested product may have been deleted or is unavailable.",
   "quota": "Purchase Limit/Time",
   "replacement": "Reset Price/Time",
   "sell": "Sell",
   "show": "Display",
+  "hidden": "Hidden",
   "sold": "Subscription Count",
   "traffic": "Traffic",
   "unitPrice": "Unit Price",
-  "updateSuccess": "Update Successful"
+  "updateSuccess": "Update Successful",
+  "visible": "Visible",
+  "backToProducts": "Back to products"
 }

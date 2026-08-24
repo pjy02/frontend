@@ -12,9 +12,11 @@
   "deleteSuccess": "删除成功",
   "deleteWarning": "删除后数据无法恢复，请谨慎操作。",
   "discount": "折扣",
+  "disabled": "已禁用",
   "edit": "编辑",
   "editCoupon": "编辑优惠券",
   "enable": "启用",
+  "enabled": "已启用",
   "form": {
     "amountDiscount": "金额折扣",
     "cancel": "取消",
@@ -35,6 +37,7 @@
     "userLimit": "每用户最大使用次数",
     "userLimitPlaceholder": "每用户最大使用次数（留空不限制）"
   },
+  "couponManagement": "优惠券管理",
   "name": "名称",
   "percentage": "百分比",
   "remainingTimes": "剩余次数",

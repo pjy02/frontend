@@ -13,11 +13,6 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
@@ -47,6 +42,7 @@ import {
   MoreHorizontal,
   ShieldX,
   TriangleAlert,
+  X,
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -169,7 +165,14 @@ export function ProTable<
             },
           ]
         : []),
-      ...(actions?.batchRender ? [createSelectColumn<TData, TValue>()] : []),
+      ...(actions?.batchRender
+        ? [
+            createSelectColumn<TData, TValue>({
+              selectAll: t("table.selectAll", "Select all rows on this page"),
+              selectRow: t("table.selectRow", "Select row"),
+            }),
+          ]
+        : []),
       ...columns.map(
         (column) =>
           ({
@@ -320,15 +323,33 @@ export function ProTable<
       )}
 
       {selectedCount > 0 && actions?.batchRender && (
-        <Alert className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <AlertTitle className="m-0">
-            {texts?.selectedRowsText?.(selectedCount) ||
-              `Selected ${selectedCount} rows`}
-          </AlertTitle>
-          <AlertDescription className="flex flex-wrap justify-end gap-2">
-            {actions.batchRender(selectedRows)}
-          </AlertDescription>
-        </Alert>
+        <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[max(1rem,env(safe-area-inset-bottom))]">
+          <div
+            aria-label={t("table.batchActions", "Batch actions")}
+            className="admin-batch-actions pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border bg-popover/95 p-2 pl-3 text-popover-foreground shadow-xl backdrop-blur-md sm:justify-start"
+            role="toolbar"
+          >
+            <span aria-live="polite" className="shrink-0 font-medium text-sm">
+              {texts?.selectedRowsText?.(selectedCount) ||
+                t("table.selectedRows", "Selected {{count}} rows", {
+                  count: selectedCount,
+                })}
+            </span>
+            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 sm:justify-end">
+              {actions.batchRender(selectedRows)}
+            </div>
+            <Button
+              aria-label={t("table.clearSelection", "Clear selection")}
+              className="ml-0 rounded-full sm:ml-1"
+              onClick={() => table.resetRowSelection()}
+              size="icon-sm"
+              title={t("table.clearSelection", "Clear selection")}
+              variant="ghost"
+            >
+              <X />
+            </Button>
+          </div>
+        </div>
       )}
 
       {mobileCardsEnabled ? (
@@ -365,6 +386,7 @@ export function ProTable<
                         <Checkbox
                           aria-label={t("table.selectRow", "Select row")}
                           checked={row.getIsSelected()}
+                          className="admin-pro-table-selection"
                           onCheckedChange={(value) =>
                             row.toggleSelected(!!value)
                           }
@@ -673,23 +695,28 @@ function getMobileColumnLabel(columnId: string, header: unknown) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function createSelectColumn<TData, TValue>(): ColumnDef<TData, TValue> {
+function createSelectColumn<TData, TValue>(labels: {
+  selectAll: string;
+  selectRow: string;
+}): ColumnDef<TData, TValue> {
   return {
     id: "selected",
     header: ({ table }) => (
       <Checkbox
-        aria-label="Select all"
+        aria-label={labels.selectAll}
         checked={
           table.getIsAllPageRowsSelected() ||
           (table.getIsSomePageRowsSelected() && "indeterminate")
         }
+        className="admin-pro-table-selection"
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
       />
     ),
     cell: ({ row }) => (
       <Checkbox
-        aria-label="Select row"
+        aria-label={labels.selectRow}
         checked={row.getIsSelected()}
+        className="admin-pro-table-selection"
         onCheckedChange={(value) => row.toggleSelected(!!value)}
       />
     ),

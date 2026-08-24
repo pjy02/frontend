@@ -12,9 +12,11 @@
   "deleteSuccess": "Delete Success",
   "deleteWarning": "Once deleted, data cannot be recovered. Please proceed with caution.",
   "discount": "Discount",
+  "disabled": "Disabled",
   "edit": "Edit",
   "editCoupon": "Edit Coupon",
   "enable": "Enable",
+  "enabled": "Enabled",
   "form": {
     "amountDiscount": "Amount Discount",
     "cancel": "Cancel",
@@ -35,6 +37,7 @@
     "userLimit": "Max Usage Count per User",
     "userLimitPlaceholder": "Max Usage Count per User (leave blank for no limit)"
   },
+  "couponManagement": "Coupon management",
   "name": "Name",
   "percentage": "Percentage",
   "remainingTimes": "Remaining",

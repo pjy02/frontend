@@ -1,4 +1,6 @@
 {
+  "disabled": "Disabled",
+  "enabled": "Enabled",
   "applyForPayment": "Apply for Payment",
   "batchDelete": "Batch Delete",
   "cancel": "Cancel",

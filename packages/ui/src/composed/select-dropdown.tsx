@@ -9,6 +9,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { Loader } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 type SelectDropdownProps = {
   onValueChange?: (value: string) => void;
@@ -31,6 +32,7 @@ export function SelectDropdown({
   className = "",
   isControlled = false,
 }: SelectDropdownProps) {
+  const { t } = useTranslation("components");
   const defaultState = isControlled
     ? { value: defaultValue, onValueChange }
     : { defaultValue, onValueChange };
@@ -38,7 +40,9 @@ export function SelectDropdown({
     <Select {...defaultState}>
       <FormControl>
         <SelectTrigger className={cn(className)} disabled={disabled}>
-          <SelectValue placeholder={placeholder ?? "Select"} />
+          <SelectValue
+            placeholder={placeholder ?? t("select.placeholder", "Select")}
+          />
         </SelectTrigger>
       </FormControl>
       <SelectContent>
@@ -47,7 +51,7 @@ export function SelectDropdown({
             <div className="flex items-center justify-center gap-2">
               <Loader className="h-5 w-5 animate-spin" />
               {"  "}
-              Loading...
+              {t("loading", "Loading...")}
             </div>
           </SelectItem>
         ) : (

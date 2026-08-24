@@ -16,6 +16,7 @@
   "enabled": "Enabled",
   "enabled_off": "Disabled",
   "enabled_on": "Enabled",
+  "inventoryTitle": "Node inventory",
   "name": "Name",
   "pageTitle": "Nodes",
   "port": "Port",

@@ -818,7 +818,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
                               onValueChange={(value) => {
                                 form.setValue(field.name, value);
                               }}
-                              placeholder="Auto"
+                              placeholder={t("form.auto", "Auto")}
                               suffix="%"
                             />
                           </FormControl>

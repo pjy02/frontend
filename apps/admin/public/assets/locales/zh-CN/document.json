@@ -11,6 +11,7 @@
   "DocumentList": "文档列表",
   "edit": "编辑",
   "editDocument": "编辑文档",
+  "hidden": "已隐藏",
   "form": {
     "cancel": "取消",
     "confirm": "确认",
@@ -35,5 +36,6 @@
   "tags": "标签",
   "title": "标题",
   "updatedAt": "更新时间",
-  "updateSuccess": "更新成功"
+  "updateSuccess": "更新成功",
+  "visible": "可见"
 }

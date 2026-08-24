@@ -1,5 +1,14 @@
 {
+  "accessibility": {
+    "skipToContent": "跳到主要内容"
+  },
+  "actions": {
+    "cancel": "取消",
+    "confirm": "确认"
+  },
   "admin": {
+    "consoleDescription": "管理控制台",
+    "consoleName": "PPanel 控制台",
     "search": {
       "description": "搜索并打开管理端页面",
       "empty": "未找到匹配的页面",
@@ -8,9 +17,41 @@
       "placeholder": "搜索页面和设置",
       "title": "管理端搜索"
     },
-    "timezone": "时区"
+    "timezone": "时区",
+    "timezoneCurrent": "当前时区",
+    "timezoneRecommended": "推荐时区",
+    "timezoneSearch": "搜索时区...",
+    "timezoneServer": "服务器时区"
+  },
+  "areaCode": {
+    "search": "搜索区号...",
+    "select": "选择区号"
+  },
+  "combobox": {
+    "search": "搜索...",
+    "select": "请选择..."
+  },
+  "editor": {
+    "enterFullscreen": "进入全屏",
+    "exitFullscreen": "退出全屏",
+    "goTemplateDescription": "支持 Go text/template 语法",
+    "goTemplateDescriptionWithSprig": "支持 Go text/template 语法和 Sprig 函数",
+    "goTemplatePlaceholder": "在此输入 Go 模板...",
+    "goTemplateTitle": "Go 模板编辑器",
+    "hidePreview": "隐藏预览",
+    "htmlDescription": "支持 HTML 语法",
+    "htmlPreviewTitle": "HTML 预览",
+    "htmlTitle": "HTML 编辑器",
+    "jsonTitle": "编辑 JSON",
+    "markdownDescription": "支持 Markdown 和 HTML 语法",
+    "markdownTitle": "Markdown 编辑器",
+    "placeholder": "开始输入...",
+    "showPreview": "显示预览",
+    "title": "编辑器"
   },
   "empty": {
+    "description": "没有符合当前筛选条件的记录，请调整或清除筛选条件。",
+    "title": "暂无数据",
     "tips": {
       "0": "想象一下这里充满了精彩的内容！现在，你只能发挥你的想象力了...",
       "1": "这个区域神秘消失了，但我们正在召唤它回来！",
@@ -64,19 +105,54 @@
     "unknown": "系统发生错误，请稍后再试。"
   },
   "language": "语言",
+  "loading": "加载中...",
   "pagination": {
+    "first": "前往第一页",
+    "last": "前往最后一页",
+    "next": "前往下一页",
     "pageInfo": "第 {{page}} 页，共 {{total}} 页",
+    "previous": "前往上一页",
     "rangeInfo": "第 {{start}}–{{end}} 条，共 {{total}} 条",
-    "rowsPerPage": "每页行数"
+    "rowsPerPage": "每页行数",
+    "selectPage": "选择页码"
+  },
+  "select": {
+    "placeholder": "请选择"
+  },
+  "sidebar": {
+    "toggle": "切换侧边栏"
+  },
+  "state": {
+    "backToDashboard": "返回仪表盘",
+    "errorDescription": "页面加载失败，请检查网络连接后重试。",
+    "errorTitle": "出现问题",
+    "loading": "页面加载中",
+    "notFoundDescription": "请求的页面可能已移动或不存在。",
+    "notFoundTitle": "未找到页面",
+    "permissionDescription": "当前账户无权访问此页面；如有疑问，请联系管理员。",
+    "permissionTitle": "访问受限",
+    "retry": "重试"
   },
   "table": {
+    "batchActions": "批量操作",
+    "clearSelection": "清除选择",
+    "choose": "请选择...",
     "columns": "选择显示列",
+    "date": "日期",
+    "filter": "筛选",
+    "filterPlaceholder": "输入筛选条件...",
     "loadError": "暂时无法加载数据",
     "moreActions": "更多操作",
+    "permissionDenied": "您没有权限查看这些数据",
     "recordLabel": "第 {{number}} 条记录",
     "refresh": "刷新数据",
     "reset": "重置表格",
     "retry": "重试",
+    "search": "搜索",
+    "searchPlaceholder": "搜索...",
+    "selectAll": "选择当前页全部行",
+    "selectedRows": "已选择 {{count}} 行",
+    "selectedRows_other": "已选择 {{count}} 行",
     "selectRow": "选择行"
   },
   "theme": {

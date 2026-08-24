@@ -1,5 +1,14 @@
 {
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
   "admin": {
+    "consoleDescription": "Admin console",
+    "consoleName": "PPanel Console",
     "search": {
       "description": "Search and open an admin page",
       "empty": "No matching page found",
@@ -8,9 +17,41 @@
       "placeholder": "Search pages and settings",
       "title": "Admin search"
     },
-    "timezone": "Timezone"
+    "timezone": "Timezone",
+    "timezoneCurrent": "Current",
+    "timezoneRecommended": "Recommended",
+    "timezoneSearch": "Search timezones...",
+    "timezoneServer": "Server"
+  },
+  "areaCode": {
+    "search": "Search area code...",
+    "select": "Select area code"
+  },
+  "combobox": {
+    "search": "Search...",
+    "select": "Select..."
+  },
+  "editor": {
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "goTemplateDescription": "Go text/template syntax",
+    "goTemplateDescriptionWithSprig": "Go text/template syntax with Sprig functions",
+    "goTemplatePlaceholder": "Enter your Go template here...",
+    "goTemplateTitle": "Go template editor",
+    "hidePreview": "Hide preview",
+    "htmlDescription": "Supports HTML syntax",
+    "htmlPreviewTitle": "HTML preview",
+    "htmlTitle": "HTML editor",
+    "jsonTitle": "Edit JSON",
+    "markdownDescription": "Supports Markdown and HTML syntax",
+    "markdownTitle": "Markdown editor",
+    "placeholder": "Start typing...",
+    "showPreview": "Show preview",
+    "title": "Editor"
   },
   "empty": {
+    "description": "No records match the current filters. Try adjusting or clearing them.",
+    "title": "No data",
     "tips": {
       "0": "Imagine this space filled with exciting content! For now, you'll have to use your imagination...",
       "1": "This area mysteriously disappeared, but we're summoning it back!",
@@ -64,19 +105,55 @@
     "unknown": "An error occurred in the system, please try again later."
   },
   "language": "Language",
+  "loading": "Loading...",
   "pagination": {
+    "first": "Go to first page",
+    "last": "Go to last page",
+    "next": "Go to next page",
     "pageInfo": "Page {{page}} of {{total}}",
+    "previous": "Go to previous page",
     "rangeInfo": "{{start}}–{{end}} of {{total}}",
-    "rowsPerPage": "Rows per page"
+    "rowsPerPage": "Rows per page",
+    "selectPage": "Select page number"
+  },
+  "select": {
+    "placeholder": "Select"
+  },
+  "sidebar": {
+    "toggle": "Toggle sidebar"
+  },
+  "state": {
+    "backToDashboard": "Back to dashboard",
+    "errorDescription": "The page could not be loaded. Check your connection and try again.",
+    "errorTitle": "Something went wrong",
+    "loading": "Loading page",
+    "notFoundDescription": "The requested page may have moved or no longer exists.",
+    "notFoundTitle": "Page not found",
+    "permissionDescription": "Your account does not have permission to open this page. Contact an administrator if you think this is a mistake.",
+    "permissionTitle": "Access restricted",
+    "retry": "Try again"
   },
   "table": {
+    "batchActions": "Batch actions",
+    "clearSelection": "Clear selection",
+    "choose": "Choose...",
     "columns": "Choose columns",
+    "date": "Date",
+    "filter": "Filter",
+    "filterPlaceholder": "Filter...",
     "loadError": "Unable to load data",
     "moreActions": "More actions",
+    "permissionDenied": "You do not have permission to view this data",
     "recordLabel": "Record {{number}}",
     "refresh": "Refresh data",
     "reset": "Reset table",
     "retry": "Try again",
+    "search": "Search",
+    "searchPlaceholder": "Search...",
+    "selectAll": "Select all rows on this page",
+    "selectedRows": "Selected {{count}} rows",
+    "selectedRows_one": "Selected {{count}} row",
+    "selectedRows_other": "Selected {{count}} rows",
     "selectRow": "Select row"
   },
   "theme": {

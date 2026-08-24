@@ -1,4 +1,6 @@
 {
+  "disabled": "已禁用",
+  "enabled": "已启用",
   "applyForPayment": "申请支付",
   "batchDelete": "批量删除",
   "cancel": "取消",

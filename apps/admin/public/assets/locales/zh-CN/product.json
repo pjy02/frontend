@@ -16,6 +16,7 @@
   "sortSuccess": "排序成功",
   "form": {
     "annualReset": "年度重置",
+    "auto": "自动",
     "basic": "基本",
     "cancel": "取消",
     "confirm": "确认",
@@ -65,13 +66,22 @@
   },
   "inventory": "订阅库存",
   "language": "语言",
+  "loadingProduct": "正在加载商品",
   "name": "名称",
+  "notForSale": "未上架",
+  "onSale": "销售中",
+  "productManagement": "商品管理",
+  "productNotFound": "未找到商品",
+  "productNotFoundDescription": "请求的商品可能已删除或暂不可用。",
   "quota": "购买限制/次",
   "replacement": "重置价格/次",
   "sell": "销售",
   "show": "显示",
+  "hidden": "已隐藏",
   "sold": "订阅数量",
   "traffic": "流量",
   "unitPrice": "单价",
-  "updateSuccess": "更新成功"
+  "updateSuccess": "更新成功",
+  "visible": "可见",
+  "backToProducts": "返回商品列表"
 }

@@ -419,7 +419,7 @@ export function ProtocolForm() {
                 target="_blank"
               >
                 <Icon className="h-4 w-4" icon="mdi:github" />
-                <span>Template Repo</span>
+                <span>{t("protocol.templateRepo", "Template repository")}</span>
                 <Icon
                   className="h-4 w-4 text-muted-foreground"
                   icon="mdi:open-in-new"
@@ -517,7 +517,9 @@ export function ProtocolForm() {
                       name="user_agent"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>User-Agent</FormLabel>
+                          <FormLabel>
+                            {t("form.fields.userAgent", "User agent")}
+                          </FormLabel>
                           <FormControl>
                             <Input placeholder="Clash" {...field} />
                           </FormControl>

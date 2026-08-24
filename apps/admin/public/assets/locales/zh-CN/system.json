@@ -1,5 +1,6 @@
 {
   "basicSettings": "基本设置",
+  "basicSettingsDescription": "配置站点标识、货币和政策内容。",
   "common": {
     "cancel": "取消",
     "save": "保存设置",
@@ -42,6 +43,10 @@
     "title": "日志清理设置"
   },
   "logSettings": "日志设置",
+  "logSettingsDescription": "配置日志保留期限和自动清理。",
+  "pageDescription": "管理平台标识、用户安全和系统维护设置。",
+  "pageTitle": "系统设置",
+  "platform": "平台设置",
   "privacyPolicy": {
     "description": "编辑和管理隐私政策内容",
     "title": "隐私政策"
@@ -78,12 +83,16 @@
     "customHtml": "自定义 HTML",
     "customHtmlDescription": "注入到站点 body 标签底部的自定义 HTML 代码",
     "description": "配置基本站点信息、Logo、域名和其他设置",
+    "identity": "站点标识",
+    "identityDescription": "配置站点名称、Logo、描述和搜索元数据。",
     "keywords": "关键词",
     "keywordsDescription": "用于 SEO 目的",
     "keywordsPlaceholder": "关键词1, 关键词2, 关键词3",
     "logo": "站点 Logo",
     "logoDescription": "用于在指定位置显示 Logo",
     "logoPlaceholder": "输入 Logo 的 URL，不要以 '/' 结尾",
+    "runtime": "运行配置",
+    "runtimeDescription": "配置站点域名和注入站点的自定义数据。",
     "siteDesc": "站点描述",
     "siteDescDescription": "用于在指定位置显示站点描述",
     "siteDescPlaceholder": "输入站点描述",
@@ -100,6 +109,7 @@
     "title": "服务条款"
   },
   "userSecuritySettings": "用户与安全",
+  "userSecuritySettingsDescription": "配置注册、邀请、验证和账户安全。",
   "verify": {
     "description": "配置 Turnstile 验证码和验证设置",
     "enableLoginVerify": "登录验证",

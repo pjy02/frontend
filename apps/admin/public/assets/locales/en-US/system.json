@@ -1,5 +1,6 @@
 {
   "basicSettings": "Basic Settings",
+  "basicSettingsDescription": "Configure site identity, currency, and policy content.",
   "common": {
     "cancel": "Cancel",
     "save": "Save Settings",
@@ -42,6 +43,10 @@
     "title": "Log Cleanup Settings"
   },
   "logSettings": "Log Settings",
+  "logSettingsDescription": "Configure log retention and automatic cleanup.",
+  "pageDescription": "Manage platform identity, user security, and system maintenance settings.",
+  "pageTitle": "System settings",
+  "platform": "Platform settings",
   "privacyPolicy": {
     "description": "Edit and manage privacy policy content",
     "title": "Privacy Policy"
@@ -78,12 +83,16 @@
     "customHtml": "Custom HTML",
     "customHtmlDescription": "Custom HTML code to be injected into the bottom of the site's body tag",
     "description": "Configure basic site information, logo, domain and other settings",
+    "identity": "Site identity",
+    "identityDescription": "Configure the name, logo, description, and search metadata.",
     "keywords": "Keywords",
     "keywordsDescription": "Used for SEO purposes",
     "keywordsPlaceholder": "keyword1, keyword2, keyword3",
     "logo": "Site Logo",
     "logoDescription": "Used for displaying the logo in designated locations",
     "logoPlaceholder": "Enter the URL of the logo, without ending with '/'",
+    "runtime": "Runtime configuration",
+    "runtimeDescription": "Configure domains and custom data injected into the site.",
     "siteDesc": "Site Description",
     "siteDescDescription": "Used for displaying the site description in designated locations",
     "siteDescPlaceholder": "Enter site description",
@@ -100,6 +109,7 @@
     "title": "Terms of Service"
   },
   "userSecuritySettings": "User & Security",
+  "userSecuritySettingsDescription": "Configure registration, invitations, verification, and account security.",
   "verify": {
     "description": "Configure Turnstile CAPTCHA and verification settings",
     "enableLoginVerify": "Enable Verification on Login",

@@ -213,9 +213,9 @@ export default function TimezoneSwitch() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <Command>
-          <CommandInput placeholder="Search..." />
+          <CommandInput placeholder={t("admin.timezoneSearch", "Search...")} />
           <CommandList>
-            <CommandGroup heading="Current">
+            <CommandGroup heading={t("admin.timezoneCurrent", "Current")}>
               {timezoneOptions
                 .filter((option) => option.value === timezone)
                 .map((option) => (
@@ -238,7 +238,7 @@ export default function TimezoneSwitch() {
                 ))}
             </CommandGroup>
             {serverTimezones.length > 0 && (
-              <CommandGroup heading="Server">
+              <CommandGroup heading={t("admin.timezoneServer", "Server")}>
                 {serverTimezones.map((option) => (
                   <CommandItem
                     key={option.value}
@@ -259,7 +259,9 @@ export default function TimezoneSwitch() {
               </CommandGroup>
             )}
 
-            <CommandGroup heading="Recommended">
+            <CommandGroup
+              heading={t("admin.timezoneRecommended", "Recommended")}
+            >
               {timezoneOptions
                 .filter(
                   (option) =>

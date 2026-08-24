@@ -1,4 +1,13 @@
 {
+  "address": "Address",
+  "alpn": "ALPN",
+  "cipher": "Cipher",
+  "congestion_controller": "Congestion controller",
+  "encryption": "Encryption",
+  "encryption_client_padding": "Client padding",
+  "encryption_mode": "Encryption mode",
+  "encryption_password": "Encryption password",
+  "encryption_rtt": "Encryption RTT",
   "errors": {
     "nameRequired": "Please enter a name",
     "portRange": "Port must be between 1 and 65535",
@@ -12,5 +21,40 @@
       "userAgentRequiredSuffix": "is required"
     }
   },
-  "tos": "tos"
+  "flow": "Flow",
+  "heartbeat": "Heartbeat",
+  "host": "Host",
+  "multiplex": "Multiplex",
+  "name": "Name",
+  "path": "Path",
+  "port": "Port",
+  "protocol": "Protocol",
+  "reduce_rtt": "Reduce RTT",
+  "security": "Security",
+  "security_allow_insecure": "Allow insecure connections",
+  "security_fingerprint": "Client fingerprint",
+  "security_public_key": "Public key",
+  "security_short_id": "Short ID",
+  "security_sni": "SNI",
+  "server_config": {
+    "fields": {
+      "outbound_address_placeholder": "Server address",
+      "outbound_name_placeholder": "Configuration name",
+      "outbound_password_placeholder": "Password (optional)",
+      "outbound_rules_placeholder": "One rule per line",
+      "outbound_user": "Username"
+    },
+    "tabs": {
+      "outbound": "Outbound rules"
+    }
+  },
+  "service_name": "Service name",
+  "settings": "Settings",
+  "tos": "tos",
+  "transport": "Transport",
+  "uot": "UDP over TCP",
+  "uot_version": "UoT version",
+  "udp_stream": "UDP stream",
+  "xhttp_extra": "XHTTP extra configuration",
+  "xhttp_mode": "XHTTP mode"
 }

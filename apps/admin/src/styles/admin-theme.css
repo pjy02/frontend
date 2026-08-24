@@ -745,6 +745,26 @@ html.admin-console [data-slot="table-body"] [data-slot="table-row"] {
   position: relative;
 }
 
+html.admin-console .admin-pro-table-selection {
+  border-color: color-mix(in srgb, var(--primary) 44%, var(--border));
+  background: var(--background);
+}
+
+html.admin-console
+  .admin-pro-table-selection:is(
+    [data-state="checked"],
+    [data-state="indeterminate"]
+  ) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.admin-batch-actions {
+  animation: admin-data-enter var(--admin-motion-normal)
+    var(--admin-motion-enter) both;
+}
+
 .admin-pro-table-progress {
   position: absolute;
   z-index: 20;
@@ -1284,18 +1304,6 @@ html.admin-console
   .admin-data-toolbar__actions :where(button, a[role="button"]) {
     width: 100%;
     white-space: normal;
-  }
-
-  .admin-pro-table > [data-slot="alert"] {
-    align-items: stretch;
-  }
-
-  .admin-pro-table > [data-slot="alert"] [data-slot="alert-description"] {
-    justify-content: stretch;
-  }
-
-  .admin-pro-table > [data-slot="alert"] [data-slot="alert-description"] > * {
-    flex: 1 1 auto;
   }
 
   .admin-pagination > :last-child {

@@ -22,6 +22,10 @@
   },
   "config": {
     "description": "Manage subscription system settings",
+    "profileUpdateInterval": "Profile update interval",
+    "profileUpdateIntervalDescription": "How often clients should refresh the subscription profile.",
+    "profileWebPageUrl": "Profile web page URL",
+    "profileWebPageUrlDescription": "Web page shown by clients for subscription profile details.",
     "singleSubscriptionMode": "Single Subscription Mode",
     "singleSubscriptionModeDescription": "Limit users to one active subscription. Existing subscriptions unaffected",
     "showTutorial": "Show Tutorial Section",
@@ -82,7 +86,8 @@
       "name": "Name",
       "outputFormat": "Output Format",
       "scheme": "URL Scheme",
-      "template": "Subscription File Template"
+      "template": "Subscription File Template",
+      "userAgent": "User agent"
     },
     "tabs": {
       "basic": "Basic Info",
@@ -97,7 +102,10 @@
     "plain": "Plain Text",
     "yaml": "YAML"
   },
+  "infrastructure": "Infrastructure",
+  "pageDescription": "Manage subscription behavior, client templates, and delivery settings.",
   "protocol": {
+    "templateRepo": "Template repository",
     "title": "Client Management"
   },
   "table": {

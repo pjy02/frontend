@@ -22,6 +22,7 @@
     "saveSuccess": "Saved successfully"
   },
   "communicationMethods": "Communication Methods",
+  "communicationMethodsDescription": "Configure email, SMS, and Telegram communication channels.",
   "device": {
     "blockVirtualMachine": "Block Virtual Machine",
     "blockVirtualMachineDescription": "Block virtual machine login, only allow real device",
@@ -37,6 +38,7 @@
     "title": "Device Sign-In"
   },
   "deviceAuthMethods": "Device Authentication Methods",
+  "deviceAuthMethodsDescription": "Configure device sign-in and application security policies.",
   "email": {
     "basicSettings": "Basic Settings",
     "description": "Configure email authentication and templates",
@@ -143,8 +145,11 @@
     "title": "Google Sign-In"
   },
   "phone": {
+    "access": "Access settings",
+    "accessDescription": "Configure service credentials and request endpoints.",
     "accessLabel": "Access Key",
     "applyPlatform": "Apply",
+    "deliveryTest": "Delivery test",
     "description": "Configure SMS authentication",
     "enable": "Enable",
     "enableTip": "When enabled, users can sign in with their phone number",
@@ -154,6 +159,8 @@
       "template": "Use {{code}} for verification code"
     },
     "platform": "SMS Platform",
+    "provider": "Service provider",
+    "providerDescription": "Select and configure the SMS delivery provider.",
     "platformConfigTip": "Please enter {{key}}",
     "platformTip": "Select SMS service provider",
     "secretLabel": "Secret Key",
@@ -172,7 +179,11 @@
     "whitelistValidation": "Whitelist Validation",
     "whitelistValidationTip": "Only allow phone numbers with whitelisted area codes"
   },
+  "pageDescription": "Configure platform authentication, communication channels, and device access.",
+  "pageTitle": "Authentication control",
+  "platform": "Platform",
   "socialAuthMethods": "Social Authentication Methods",
+  "socialAuthMethodsDescription": "Configure third-party account sign-in providers.",
   "telegram": {
     "botToken": "Bot Token",
     "botTokenDescription": "Telegram Bot Token from @BotFather",
@@ -181,6 +192,8 @@
     "enableDescription": "When enabled, users can sign in with their Telegram account",
     "enableNotify": "Enable Notifications",
     "enableNotifyDescription": "Send order and expiry notifications to users via Telegram",
+    "groupChatId": "Group chat ID",
+    "groupChatIdDescription": "Chat ID used to receive administrator notifications.",
     "title": "Telegram Sign-In",
     "webhookDomain": "Webhook Domain",
     "webhookDomainDescription": "Public HTTPS URL of this server. Leave empty to use long-polling."

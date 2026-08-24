@@ -11,6 +11,7 @@
   "DocumentList": "Document List",
   "edit": "Edit",
   "editDocument": "Edit Document",
+  "hidden": "Hidden",
   "form": {
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -35,5 +36,6 @@
   "tags": "Tags",
   "title": "Title",
   "updatedAt": "Updated At",
-  "updateSuccess": "Updated successfully"
+  "updateSuccess": "Updated successfully",
+  "visible": "Visible"
 }

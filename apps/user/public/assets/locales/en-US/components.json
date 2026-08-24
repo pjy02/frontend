@@ -1,5 +1,40 @@
 {
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "areaCode": {
+    "search": "Search area code...",
+    "select": "Select area code"
+  },
+  "combobox": {
+    "search": "Search...",
+    "select": "Select..."
+  },
+  "editor": {
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "goTemplateDescription": "Go text/template syntax",
+    "goTemplateDescriptionWithSprig": "Go text/template syntax with Sprig functions",
+    "goTemplatePlaceholder": "Enter your Go template here...",
+    "goTemplateTitle": "Go template editor",
+    "hidePreview": "Hide preview",
+    "htmlDescription": "Supports HTML syntax",
+    "htmlPreviewTitle": "HTML preview",
+    "htmlTitle": "HTML editor",
+    "jsonTitle": "Edit JSON",
+    "markdownDescription": "Supports Markdown and HTML syntax",
+    "markdownTitle": "Markdown editor",
+    "placeholder": "Start typing...",
+    "showPreview": "Show preview",
+    "title": "Editor"
+  },
   "empty": {
+    "description": "No records match the current filters. Try adjusting or clearing them.",
+    "title": "No data",
     "tips": {
       "0": "Imagine this space filled with exciting content! For now, you'll have to use your imagination...",
       "1": "This area mysteriously disappeared, but we're summoning it back!",
@@ -58,6 +93,7 @@
     "tos": "Terms of Service"
   },
   "language": "Language",
+  "loading": "Loading...",
   "loginRegister": "Login / Register",
   "menu": {
     "affiliate": "Commission",
@@ -76,8 +112,34 @@
     "wallet": "Balance"
   },
   "pagination": {
+    "first": "Go to first page",
+    "last": "Go to last page",
+    "next": "Go to next page",
     "pageInfo": "Page {{page}} of {{total}}",
-    "rowsPerPage": "Rows per page"
+    "previous": "Go to previous page",
+    "rowsPerPage": "Rows per page",
+    "selectPage": "Select page number"
+  },
+  "select": {
+    "placeholder": "Select"
+  },
+  "sidebar": {
+    "toggle": "Toggle sidebar"
+  },
+  "table": {
+    "batchActions": "Batch actions",
+    "clearSelection": "Clear selection",
+    "choose": "Choose...",
+    "date": "Date",
+    "filter": "Filter",
+    "filterPlaceholder": "Filter...",
+    "search": "Search",
+    "searchPlaceholder": "Search...",
+    "selectAll": "Select all rows on this page",
+    "selectedRows": "Selected {{count}} rows",
+    "selectedRows_one": "Selected {{count}} row",
+    "selectedRows_other": "Selected {{count}} rows",
+    "selectRow": "Select row"
   },
   "theme": {
     "dark": "Dark",

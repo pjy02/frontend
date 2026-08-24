@@ -22,6 +22,7 @@
     "saveSuccess": "保存成功"
   },
   "communicationMethods": "通讯方式",
+  "communicationMethodsDescription": "配置邮件、短信和 Telegram 通讯渠道。",
   "device": {
     "blockVirtualMachine": "阻止虚拟机",
     "blockVirtualMachineDescription": "阻止虚拟机登录，只允许真实设备",
@@ -37,6 +38,7 @@
     "title": "设备登录"
   },
   "deviceAuthMethods": "设备认证方式",
+  "deviceAuthMethodsDescription": "配置设备登录和应用安全策略。",
   "email": {
     "basicSettings": "基本设置",
     "description": "配置邮箱认证和模板",
@@ -143,8 +145,11 @@
     "title": "Google 登录"
   },
   "phone": {
+    "access": "接入设置",
+    "accessDescription": "配置服务凭据和请求端点。",
     "accessLabel": "访问密钥",
     "applyPlatform": "申请",
+    "deliveryTest": "发送测试",
     "description": "配置短信认证",
     "enable": "启用",
     "enableTip": "启用后，用户可以使用手机号登录",
@@ -154,6 +159,8 @@
       "template": "使用 {{code}} 表示验证码"
     },
     "platform": "短信平台",
+    "provider": "服务提供商",
+    "providerDescription": "选择并配置短信发送服务商。",
     "platformConfigTip": "请输入 {{key}}",
     "platformTip": "选择短信服务提供商",
     "secretLabel": "密钥",
@@ -172,7 +179,11 @@
     "whitelistValidation": "白名单验证",
     "whitelistValidationTip": "只允许白名单区号的手机号"
   },
+  "pageDescription": "配置平台认证、通讯渠道和设备访问。",
+  "pageTitle": "认证控制",
+  "platform": "平台设置",
   "socialAuthMethods": "社交账号认证方式",
+  "socialAuthMethodsDescription": "配置第三方账号登录服务。",
   "telegram": {
     "botToken": "机器人令牌",
     "botTokenDescription": "Telegram 机器人令牌，从 @BotFather 获取",
@@ -181,6 +192,8 @@
     "enableDescription": "启用后，用户可以使用 Telegram 账户登录",
     "enableNotify": "启用通知",
     "enableNotifyDescription": "向用户发送订单和到期通知",
+    "groupChatId": "群聊 ID",
+    "groupChatIdDescription": "用于接收管理员通知的聊天 ID。",
     "title": "Telegram 登录",
     "webhookDomain": "Webhook 域名",
     "webhookDomainDescription": "本服务器的公共 HTTPS 地址。留空则使用长轮询模式。"

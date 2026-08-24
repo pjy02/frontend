@@ -24,6 +24,7 @@ import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
 import { cn } from "@workspace/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
 import React, { type CSSProperties, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGlobalStore } from "@/stores/global";
 import packageJson from "../../../../package.json";
 import { type NavItem, useNavs } from "./navs";
@@ -37,6 +38,7 @@ export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { common } = useGlobalStore();
+  const { t } = useTranslation("components");
   const { site } = common;
   const navs = useNavs();
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -245,7 +247,8 @@ export function SidebarLeft({
                     {site.site_name || "PPanel"}
                   </div>
                   <div className="mt-0.5 truncate text-sidebar-foreground/60 text-xs">
-                    {site.site_desc || "Admin Console"}
+                    {site.site_desc ||
+                      t("admin.consoleDescription", "Admin console")}
                   </div>
                 </div>
               </Link>
@@ -398,7 +401,7 @@ export function SidebarLeft({
         <div className="flex items-center gap-2 px-2 text-sidebar-foreground/60 text-xs group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <span className="size-2 rounded-full bg-emerald-500" />
           <span className="truncate group-data-[collapsible=icon]:hidden">
-            PPanel Console · v{packageJson.version}
+            {t("admin.consoleName", "PPanel Console")} · v{packageJson.version}
           </span>
         </div>
       </SidebarFooter>

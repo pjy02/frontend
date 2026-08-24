@@ -9,6 +9,7 @@ import DraculaTheme from "monaco-themes/themes/Dracula.json" with {
   type: "json",
 };
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface MonacoEditorProps {
   value?: string;
@@ -39,9 +40,9 @@ export function MonacoEditor({
   value: propValue,
   onChange,
   onBlur,
-  title = "Editor Title",
+  title,
   description,
-  placeholder = "Start typing...",
+  placeholder,
   render,
   onMount,
   beforeMount,
@@ -50,6 +51,10 @@ export function MonacoEditor({
   showLineNumbers = false,
   readOnly = false,
 }: MonacoEditorProps) {
+  const { t } = useTranslation("components");
+  const resolvedTitle = title ?? t("editor.title", "Editor");
+  const resolvedPlaceholder =
+    placeholder ?? t("editor.placeholder", "Start typing...");
   const [internalValue, setInternalValue] = useState<string | undefined>(
     propValue
   );
@@ -108,7 +113,7 @@ export function MonacoEditor({
           <div className="flex items-center justify-between border-b p-2">
             <div>
               <h1 className="text-left font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                {title}
+                {resolvedTitle}
               </h1>
               <p className="text-[0.8rem] text-muted-foreground">
                 {description}
@@ -118,6 +123,11 @@ export function MonacoEditor({
             <div className="flex items-center space-x-2">
               {render && (
                 <Button
+                  aria-label={
+                    isPreviewVisible
+                      ? t("editor.hidePreview", "Hide preview")
+                      : t("editor.showPreview", "Show preview")
+                  }
                   onClick={togglePreview}
                   size="icon"
                   type="button"
@@ -127,6 +137,11 @@ export function MonacoEditor({
                 </Button>
               )}
               <Button
+                aria-label={
+                  isFullscreen
+                    ? t("editor.exitFullscreen", "Exit fullscreen")
+                    : t("editor.enterFullscreen", "Enter fullscreen")
+                }
                 onClick={toggleFullscreen}
                 size="icon"
                 type="button"
@@ -189,7 +204,7 @@ export function MonacoEditor({
                 theme="transparentTheme"
                 value={internalValue}
               />
-              {!internalValue?.trim() && placeholder && (
+              {!internalValue?.trim() && resolvedPlaceholder && (
                 <pre
                   className={cn(
                     "pointer-events-none absolute top-4 left-7 text-muted-foreground text-sm",
@@ -199,7 +214,7 @@ export function MonacoEditor({
                   )}
                   style={{ userSelect: "none" }}
                 >
-                  {placeholder}
+                  {resolvedPlaceholder}
                 </pre>
               )}
             </div>

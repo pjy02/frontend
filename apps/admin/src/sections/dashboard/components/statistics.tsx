@@ -1297,7 +1297,9 @@ function TrafficRanking({
               <SelectContent>
                 {[5, 8, 10, 20].map((value) => (
                   <SelectItem key={value} value={String(value)}>
-                    Top {value}
+                    {t("overview.topLabel", "Top {{count}}", {
+                      count: value,
+                    })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1371,7 +1373,9 @@ function TrafficRanking({
                         ? t("overview.rankingDataset", "ranking data")
                         : t("overview.systemTraffic", "system traffic"),
                   })}
-                  label={`Top ${limit}`}
+                  label={t("overview.topLabel", "Top {{count}}", {
+                    count: limit,
+                  })}
                   value={visibleTotal}
                 />
                 <div className="border-t border-l px-5 py-4 xl:border-t-0">

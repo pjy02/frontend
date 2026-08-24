@@ -1,4 +1,5 @@
 {
+  "orderManagement": "Order management",
   "amount": "Amount",
   "couponDiscount": "Coupon Discount",
   "discount": "Discount Amount",

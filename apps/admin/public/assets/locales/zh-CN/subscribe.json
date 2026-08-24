@@ -20,6 +20,10 @@
   },
   "config": {
     "description": "管理订阅系统设置",
+    "profileUpdateInterval": "配置更新间隔",
+    "profileUpdateIntervalDescription": "客户端刷新订阅配置的时间间隔。",
+    "profileWebPageUrl": "配置网页地址",
+    "profileWebPageUrlDescription": "客户端展示订阅配置详情时使用的网页地址。",
     "singleSubscriptionMode": "单一订阅模式",
     "singleSubscriptionModeDescription": "限制用户只能有一个活跃订阅。现有订阅不受影响",
     "showTutorial": "显示教程板块",
@@ -80,7 +84,8 @@
       "name": "名称",
       "outputFormat": "输出格式",
       "scheme": "URL Scheme",
-      "template": "订阅文件模板"
+      "template": "订阅文件模板",
+      "userAgent": "用户代理（User-Agent）"
     },
     "tabs": {
       "basic": "基本信息",
@@ -95,7 +100,10 @@
     "plain": "纯文本",
     "yaml": "YAML"
   },
+  "infrastructure": "基础设施",
+  "pageDescription": "管理订阅行为、客户端模板和下发设置。",
   "protocol": {
+    "templateRepo": "模板仓库",
     "title": "客户端管理"
   },
   "table": {
