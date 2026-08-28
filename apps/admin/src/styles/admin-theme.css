@@ -85,6 +85,105 @@
   }
 }
 
+@keyframes admin-floating-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(
+        var(--admin-floating-x, 0),
+        var(--admin-floating-y, -0.25rem),
+        0
+      )
+      scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes admin-floating-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.99);
+  }
+}
+
+@keyframes admin-dialog-enter {
+  from {
+    opacity: 0;
+    scale: 0.985;
+    translate: -50% calc(-50% + 0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: -50% -50%;
+  }
+}
+
+@keyframes admin-dialog-exit {
+  from {
+    opacity: 1;
+    scale: 1;
+    translate: -50% -50%;
+  }
+
+  to {
+    opacity: 0;
+    scale: 0.99;
+    translate: -50% calc(-50% + 0.25rem);
+  }
+}
+
+@keyframes admin-overlay-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes admin-overlay-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-row-added {
+  0% {
+    background-color: var(--admin-info-surface);
+    box-shadow: inset 0.1875rem 0 var(--admin-info);
+  }
+
+  100% {
+    background-color: var(--card);
+    box-shadow: inset 0 0 transparent;
+  }
+}
+
+@keyframes admin-row-updated {
+  0% {
+    background-color: var(--admin-success-surface);
+  }
+
+  100% {
+    background-color: var(--card);
+  }
+}
+
 @keyframes admin-progress-track {
   0% {
     transform: translateX(-100%) scaleX(0.42);
@@ -229,18 +328,86 @@ html.admin-console [data-slot="sidebar-menu-sub-button"] {
 }
 
 html.admin-console [data-slot="button"] {
+  position: relative;
+  isolation: isolate;
   transform: translateZ(0);
   transition-property:
     color, background-color, border-color, box-shadow, opacity, transform;
 }
 
+html.admin-console [data-slot="button"]:not([data-variant="link"])::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: currentColor;
+  content: "";
+  pointer-events: none;
+  transition: opacity var(--admin-motion-fast) var(--admin-motion-easing);
+}
+
+html.admin-console
+  [data-slot="button"]:not([data-variant="link"]):hover::before {
+  opacity: 0.06;
+}
+
+html.admin-console
+  [data-slot="button"]:not([data-variant="link"]):active::before {
+  opacity: 0.1;
+}
+
 html.admin-console [data-slot="button"]:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
   transition-duration: var(--admin-motion-instant);
 }
 
 html.admin-console [data-slot="button"][aria-busy="true"] {
   cursor: progress;
+}
+
+html.admin-console
+  [data-slot="button"]:disabled:is(
+    [data-status="loading"],
+    [data-status="success"]
+  ) {
+  opacity: 1;
+}
+
+.admin-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.admin-button-status {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: none;
+  transition:
+    opacity var(--admin-motion-fast) var(--admin-motion-easing),
+    transform var(--admin-motion-normal) var(--admin-motion-spring);
+}
+
+.admin-button-status > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+html.admin-console
+  [data-slot="button"][data-status="success"]
+  .admin-button-status {
+  animation: admin-success-pop var(--admin-motion-slow)
+    var(--admin-motion-enter) both;
 }
 
 html.admin-console .animate-spin {
@@ -257,8 +424,12 @@ html.admin-console [data-slot="card"] {
 html.admin-console [data-slot="popover-content"],
 html.admin-console [data-slot="dropdown-menu-content"],
 html.admin-console [data-slot="dropdown-menu-sub-content"],
+html.admin-console [data-slot="context-menu-content"],
+html.admin-console [data-slot="menubar-content"],
+html.admin-console [data-slot="select-content"],
 html.admin-console [data-slot="hover-card-content"],
 html.admin-console [data-slot="dialog-content"],
+html.admin-console [data-slot="alert-dialog-content"],
 html.admin-console [data-slot="sheet-content"] {
   border-color: var(--border);
   box-shadow: 0 8px 24px rgb(60 64 67 / 16%);
@@ -267,8 +438,12 @@ html.admin-console [data-slot="sheet-content"] {
 html.admin-console.dark [data-slot="popover-content"],
 html.admin-console.dark [data-slot="dropdown-menu-content"],
 html.admin-console.dark [data-slot="dropdown-menu-sub-content"],
+html.admin-console.dark [data-slot="context-menu-content"],
+html.admin-console.dark [data-slot="menubar-content"],
+html.admin-console.dark [data-slot="select-content"],
 html.admin-console.dark [data-slot="hover-card-content"],
 html.admin-console.dark [data-slot="dialog-content"],
+html.admin-console.dark [data-slot="alert-dialog-content"],
 html.admin-console.dark [data-slot="sheet-content"] {
   box-shadow: 0 12px 32px rgb(0 0 0 / 48%);
 }
@@ -278,12 +453,16 @@ html.admin-console
     [data-slot="popover-content"],
     [data-slot="dropdown-menu-content"],
     [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
     [data-slot="select-content"],
     [data-slot="tooltip-content"],
     [data-slot="hover-card-content"]
   )[data-state="open"] {
-  animation-duration: var(--admin-motion-normal);
+  animation-name: admin-floating-enter;
+  animation-duration: 160ms;
   animation-timing-function: var(--admin-motion-enter);
+  animation-fill-mode: both;
 }
 
 html.admin-console
@@ -291,32 +470,131 @@ html.admin-console
     [data-slot="popover-content"],
     [data-slot="dropdown-menu-content"],
     [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
+    [data-slot="select-content"],
+    [data-slot="tooltip-content"],
+    [data-slot="hover-card-content"]
+  )[data-side="bottom"] {
+  --admin-floating-x: 0;
+  --admin-floating-y: -0.25rem;
+}
+
+html.admin-console
+  :where(
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
+    [data-slot="select-content"],
+    [data-slot="tooltip-content"],
+    [data-slot="hover-card-content"]
+  )[data-side="top"] {
+  --admin-floating-x: 0;
+  --admin-floating-y: 0.25rem;
+}
+
+html.admin-console
+  :where(
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
+    [data-slot="select-content"],
+    [data-slot="tooltip-content"],
+    [data-slot="hover-card-content"]
+  )[data-side="left"] {
+  --admin-floating-x: 0.25rem;
+  --admin-floating-y: 0;
+}
+
+html.admin-console
+  :where(
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
+    [data-slot="select-content"],
+    [data-slot="tooltip-content"],
+    [data-slot="hover-card-content"]
+  )[data-side="right"] {
+  --admin-floating-x: -0.25rem;
+  --admin-floating-y: 0;
+}
+
+html.admin-console
+  [data-slot="tooltip-content"]:is(
+    [data-state="delayed-open"],
+    [data-state="instant-open"]
+  ) {
+  animation-name: admin-floating-enter;
+  animation-duration: var(--admin-motion-fast);
+  animation-timing-function: var(--admin-motion-enter);
+  animation-fill-mode: both;
+}
+
+html.admin-console
+  :where(
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"],
+    [data-slot="context-menu-content"],
+    [data-slot="menubar-content"],
     [data-slot="select-content"],
     [data-slot="tooltip-content"],
     [data-slot="hover-card-content"]
   )[data-state="closed"] {
+  animation-name: admin-floating-exit;
   animation-duration: var(--admin-motion-fast);
   animation-timing-function: var(--admin-motion-exit);
+  animation-fill-mode: both;
 }
 
-html.admin-console [data-slot="dialog-overlay"][data-state="open"] {
+html.admin-console
+  :where(
+    [data-slot="dialog-overlay"],
+    [data-slot="alert-dialog-overlay"]
+  )[data-state="open"] {
+  animation-name: admin-overlay-enter;
   animation-duration: var(--admin-motion-normal);
   animation-timing-function: var(--admin-motion-enter);
+  animation-fill-mode: both;
 }
 
-html.admin-console [data-slot="dialog-overlay"][data-state="closed"] {
+html.admin-console
+  :where(
+    [data-slot="dialog-overlay"],
+    [data-slot="alert-dialog-overlay"]
+  )[data-state="closed"] {
+  animation-name: admin-overlay-exit;
   animation-duration: var(--admin-motion-fast);
   animation-timing-function: var(--admin-motion-exit);
+  animation-fill-mode: both;
 }
 
-html.admin-console [data-slot="dialog-content"][data-state="open"] {
+html.admin-console
+  :where(
+    [data-slot="dialog-content"],
+    [data-slot="alert-dialog-content"]
+  )[data-state="open"] {
+  animation-name: admin-dialog-enter;
   animation-duration: var(--admin-motion-slow);
   animation-timing-function: var(--admin-motion-enter);
+  animation-fill-mode: both;
 }
 
-html.admin-console [data-slot="dialog-content"][data-state="closed"] {
+html.admin-console
+  :where(
+    [data-slot="dialog-content"],
+    [data-slot="alert-dialog-content"]
+  )[data-state="closed"] {
+  animation-name: admin-dialog-exit;
   animation-duration: var(--admin-motion-normal);
   animation-timing-function: var(--admin-motion-exit);
+  animation-fill-mode: both;
 }
 
 html.admin-console [data-slot="sheet-overlay"][data-state="open"],
@@ -347,11 +625,81 @@ html.admin-console
     [data-slot="dropdown-menu-item"],
     [data-slot="dropdown-menu-checkbox-item"],
     [data-slot="dropdown-menu-radio-item"],
-    [data-slot="dropdown-menu-sub-trigger"]
+    [data-slot="dropdown-menu-sub-trigger"],
+    [data-slot="context-menu-item"],
+    [data-slot="context-menu-checkbox-item"],
+    [data-slot="context-menu-radio-item"],
+    [data-slot="context-menu-sub-trigger"],
+    [data-slot="menubar-item"],
+    [data-slot="menubar-checkbox-item"],
+    [data-slot="menubar-radio-item"],
+    [data-slot="menubar-sub-trigger"],
+    [data-slot="select-item"]
   ) {
   transition:
     color var(--admin-motion-fast) var(--admin-motion-easing),
     background-color var(--admin-motion-fast) var(--admin-motion-easing);
+}
+
+.admin-form-message-region {
+  grid-template-rows: 0fr;
+  margin-top: -0.5rem;
+  opacity: 0;
+  transform: translateY(-0.125rem);
+  transition:
+    grid-template-rows var(--admin-motion-normal) var(--admin-motion-enter),
+    margin-top var(--admin-motion-normal) var(--admin-motion-enter),
+    opacity var(--admin-motion-fast) var(--admin-motion-easing),
+    transform var(--admin-motion-normal) var(--admin-motion-enter);
+}
+
+.admin-form-message-region[data-state="visible"] {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.admin-confirm-action {
+  position: relative;
+}
+
+.admin-confirm-action:disabled:is(
+    [data-status="loading"],
+    [data-status="success"]
+  ) {
+  opacity: 1;
+}
+
+.admin-confirm-action__label {
+  transition:
+    opacity var(--admin-motion-fast) var(--admin-motion-easing),
+    transform var(--admin-motion-normal) var(--admin-motion-spring);
+}
+
+.admin-confirm-action[data-status="loading"] .admin-confirm-action__label,
+.admin-confirm-action[data-status="success"] .admin-confirm-action__label {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.admin-confirm-action__status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.admin-confirm-action__status > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-confirm-action[data-status="success"] .admin-confirm-action__status {
+  animation: admin-success-pop var(--admin-motion-slow)
+    var(--admin-motion-enter) both;
 }
 
 html.admin-console [data-sonner-toast][data-type="success"] [data-icon] {
@@ -765,11 +1113,6 @@ html.admin-console
   color: var(--primary-foreground);
 }
 
-.admin-batch-actions {
-  animation: admin-data-enter var(--admin-motion-normal)
-    var(--admin-motion-enter) both;
-}
-
 .admin-pro-table-progress {
   position: absolute;
   z-index: 20;
@@ -801,29 +1144,28 @@ html.admin-console
 
 .admin-pro-table[data-refreshing="true"] [data-slot="table-body"],
 .admin-pro-table[data-refreshing="true"] .admin-pro-table-mobile {
-  opacity: 0.58;
+  opacity: 0.82;
   transition: opacity var(--admin-motion-fast) var(--admin-motion-easing);
 }
 
 .admin-pro-table-row,
 .admin-pro-table-card {
+  will-change: transform, opacity;
+}
+
+.admin-pro-table-row[data-feedback="added"] > [data-slot="table-cell"],
+.admin-pro-table-card[data-feedback="added"] {
+  animation: admin-row-added 900ms var(--admin-motion-enter) both;
+}
+
+.admin-pro-table-row[data-feedback="updated"] > [data-slot="table-cell"],
+.admin-pro-table-card[data-feedback="updated"] {
+  animation: admin-row-updated 900ms var(--admin-motion-enter) both;
+}
+
+.admin-pro-table-stale-alert {
   animation: admin-data-enter var(--admin-motion-normal)
     var(--admin-motion-enter) both;
-}
-
-.admin-pro-table-row:nth-child(2),
-.admin-pro-table-card:nth-child(2) {
-  animation-delay: 18ms;
-}
-
-.admin-pro-table-row:nth-child(3),
-.admin-pro-table-card:nth-child(3) {
-  animation-delay: 36ms;
-}
-
-.admin-pro-table-row:nth-child(n + 4),
-.admin-pro-table-card:nth-child(n + 4) {
-  animation-delay: 48ms;
 }
 
 .admin-mobile-record {

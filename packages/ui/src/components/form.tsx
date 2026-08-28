@@ -133,21 +133,28 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? "") : props.children;
-
-  if (!body) {
-    return null;
-  }
+  const { children, ...messageProps } = props;
+  const body = error ? String(error?.message ?? "") : children;
 
   return (
-    <p
-      className={cn("text-destructive text-sm", className)}
-      data-slot="form-message"
+    <div
+      aria-hidden={body ? undefined : true}
+      aria-live="polite"
+      className="admin-form-message-region grid"
+      data-slot="form-message-region"
+      data-state={body ? "visible" : "hidden"}
       id={formMessageId}
-      {...props}
     >
-      {body}
-    </p>
+      <div className="min-h-0 overflow-hidden">
+        <p
+          className={cn("text-destructive text-sm", className)}
+          data-slot="form-message"
+          {...messageProps}
+        >
+          {body}
+        </p>
+      </div>
+    </div>
   );
 }
 

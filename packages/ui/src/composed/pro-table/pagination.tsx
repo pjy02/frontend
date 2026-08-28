@@ -8,20 +8,33 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 interface PaginationProps<TData> {
   table: Table<TData>;
   total?: number;
+  motionEnabled?: boolean;
 }
 
-export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
+export function Pagination<TData>({
+  table,
+  total,
+  motionEnabled = false,
+}: PaginationProps<TData>) {
   const { t } = useTranslation("components");
   const pageIndex = table.getState().pagination.pageIndex;
+  const previousPageRef = useRef(pageIndex);
+  const direction = pageIndex >= previousPageRef.current ? 1 : -1;
   const pageCount = Math.max(table.getPageCount(), 1);
   const pageSize = table.getState().pagination.pageSize;
   const start = total ? pageIndex * pageSize + 1 : 0;
   const end = total ? Math.min((pageIndex + 1) * pageSize, total) : 0;
+
+  useEffect(() => {
+    previousPageRef.current = pageIndex;
+  }, [pageIndex]);
 
   return (
     <div className="admin-pagination flex items-center justify-between gap-2 px-1">
@@ -74,8 +87,22 @@ export function Pagination<TData>({ table, total }: PaginationProps<TData>) {
           >
             <ChevronLeftIcon className="size-4" />
           </Button>
-          <span className="min-w-16 text-center font-medium text-sm sm:min-w-20">
-            {pageIndex + 1} / {pageCount}
+          <span className="relative grid min-w-16 overflow-hidden text-center font-medium text-sm sm:min-w-20">
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.span
+                animate={{ opacity: 1, x: 0 }}
+                exit={
+                  motionEnabled ? { opacity: 0, x: direction * -6 } : undefined
+                }
+                initial={
+                  motionEnabled ? { opacity: 0, x: direction * 6 } : false
+                }
+                key={pageIndex}
+                transition={{ duration: motionEnabled ? 0.16 : 0 }}
+              >
+                {pageIndex + 1} / {pageCount}
+              </motion.span>
+            </AnimatePresence>
           </span>
           <Button
             aria-label={t("pagination.next", "Go to next page")}

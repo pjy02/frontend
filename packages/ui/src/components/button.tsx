@@ -1,6 +1,7 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@workspace/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Check, LoaderCircle } from "lucide-react";
 import type * as React from "react";
 
 const buttonVariants = cva(
@@ -40,19 +41,56 @@ function Button({
   variant,
   size,
   asChild = false,
+  children,
+  disabled,
+  loading = false,
+  loadingLabel = "Loading",
+  success = false,
+  successLabel = "Completed",
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    loading?: boolean;
+    loadingLabel?: string;
+    success?: boolean;
+    successLabel?: string;
   }) {
   const Comp = asChild ? Slot : "button";
+  const status = loading ? "loading" : success ? "success" : "idle";
+  const statusActive = status !== "idle" && !asChild;
 
   return (
     <Comp
+      aria-busy={loading || undefined}
       className={cn(buttonVariants({ variant, size, className }))}
+      data-size={size || "default"}
       data-slot="button"
+      data-status={status}
+      data-variant={variant || "default"}
+      disabled={asChild ? undefined : disabled || statusActive}
       {...props}
-    />
+    >
+      {statusActive ? (
+        <>
+          <span aria-hidden="true" className="admin-button-content">
+            {children}
+          </span>
+          <span aria-live="polite" className="admin-button-status">
+            {status === "loading" ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <Check />
+            )}
+            <span className="sr-only">
+              {status === "loading" ? loadingLabel : successLabel}
+            </span>
+          </span>
+        </>
+      ) : (
+        children
+      )}
+    </Comp>
   );
 }
 

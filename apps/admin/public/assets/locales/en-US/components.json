@@ -4,7 +4,9 @@
   },
   "actions": {
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "completed": "Completed",
+    "confirm": "Confirm",
+    "processing": "Processing"
   },
   "admin": {
     "consoleDescription": "Admin console",
@@ -151,6 +153,8 @@
     "recordLabel": "Record {{number}}",
     "reorderRow": "Reorder",
     "refresh": "Refresh data",
+    "refreshed": "Data refreshed",
+    "refreshing": "Refreshing data",
     "reset": "Reset table",
     "retry": "Try again",
     "search": "Search",
@@ -160,6 +164,7 @@
     "selectedRows_one": "Selected {{count}} row",
     "selectedRows_other": "Selected {{count}} rows",
     "selectRow": "Select row",
+    "staleData": "Refresh failed. Showing the previously loaded data.",
     "clearFilters": "Clear filters"
   },
   "theme": {

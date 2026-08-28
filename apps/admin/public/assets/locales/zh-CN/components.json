@@ -4,7 +4,9 @@
   },
   "actions": {
     "cancel": "取消",
-    "confirm": "确认"
+    "completed": "已完成",
+    "confirm": "确认",
+    "processing": "处理中"
   },
   "admin": {
     "consoleDescription": "管理控制台",
@@ -151,6 +153,8 @@
     "recordLabel": "第 {{number}} 条记录",
     "reorderRow": "调整位置",
     "refresh": "刷新数据",
+    "refreshed": "数据已刷新",
+    "refreshing": "正在刷新数据",
     "reset": "重置表格",
     "retry": "重试",
     "search": "搜索",
@@ -159,6 +163,7 @@
     "selectedRows": "已选择 {{count}} 行",
     "selectedRows_other": "已选择 {{count}} 行",
     "selectRow": "选择行",
+    "staleData": "刷新失败，当前显示上一次成功加载的数据。",
     "clearFilters": "清除筛选"
   },
   "theme": {

@@ -1,15 +1,20 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TableCell, TableRow } from "@workspace/ui/components/table";
+import { TableCell } from "@workspace/ui/components/table";
 import { cn } from "@workspace/ui/lib/utils";
 import { GripVertical } from "lucide-react";
+import { motion } from "motion/react";
 import type React from "react";
+import type { RowFeedback } from "./data-continuity.js";
 
 interface SortableRowProps {
   id: string;
   children: React.ReactNode;
   isSortable: boolean;
   className?: string;
+  feedback?: RowFeedback;
+  motionEnabled: boolean;
+  selected: boolean;
 }
 
 export function SortableRow({
@@ -17,8 +22,10 @@ export function SortableRow({
   children,
   isSortable,
   className,
-  ...props
-}: SortableRowProps & React.ComponentProps<typeof TableRow>) {
+  feedback,
+  motionEnabled,
+  selected,
+}: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id,
@@ -36,11 +43,20 @@ export function SortableRow({
   };
 
   return (
-    <TableRow
-      className={cn("admin-pro-table-row", className)}
+    <motion.tr
+      animate={{ opacity: 1 }}
+      className={cn(
+        "admin-pro-table-row border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        className
+      )}
+      data-feedback={feedback}
+      data-slot="table-row"
+      data-state={selected ? "selected" : undefined}
+      exit={motionEnabled ? { opacity: 0 } : undefined}
+      initial={motionEnabled ? { opacity: 0 } : false}
       ref={setNodeRef}
       style={style}
-      {...props}
+      transition={{ duration: motionEnabled ? 0.16 : 0 }}
     >
       {isSortable ? (
         <TableCell className="cursor-move" {...listeners} {...attributes}>
@@ -48,6 +64,6 @@ export function SortableRow({
         </TableCell>
       ) : null}
       {children}
-    </TableRow>
+    </motion.tr>
   );
 }

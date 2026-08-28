@@ -17,12 +17,15 @@ interface DataToolbarProps<TData> {
   title?: ReactNode;
   toolbar?: ReactNode | ReactNode[];
   loading?: boolean;
+  refreshSucceeded?: boolean;
   mobileCards?: boolean;
   mobileFilterMode?: "inline" | "drawer";
   onRefresh: () => void;
   onReset: () => void;
   labels?: Partial<{
     refresh: string;
+    refreshed: string;
+    refreshing: string;
     reset: string;
     columns: string;
   }>;
@@ -35,6 +38,7 @@ export function DataToolbar<TData>({
   title,
   toolbar,
   loading,
+  refreshSucceeded,
   mobileCards,
   mobileFilterMode,
   onRefresh,
@@ -64,12 +68,14 @@ export function DataToolbar<TData>({
         <div className="admin-data-toolbar__controls flex w-full shrink-0 flex-wrap items-center justify-between gap-2 xl:w-auto xl:justify-start">
           <div className="flex items-center rounded-lg border bg-background p-0.5">
             <Button
-              aria-busy={loading}
               aria-label={labels?.refresh || "Refresh data"}
               className="size-8"
-              disabled={loading}
+              loading={loading}
+              loadingLabel={labels?.refreshing || "Refreshing data"}
               onClick={onRefresh}
               size="icon"
+              success={refreshSucceeded}
+              successLabel={labels?.refreshed || "Data refreshed"}
               title={labels?.refresh || "Refresh data"}
               variant="ghost"
             >
