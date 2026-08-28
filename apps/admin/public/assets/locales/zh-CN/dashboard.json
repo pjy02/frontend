@@ -77,6 +77,8 @@
     "unavailable": "数据暂时不可用",
     "upload": "上传",
     "updatedAt": "更新于 {{time}}",
+    "loadingUserEmail": "正在加载用户邮箱",
+    "userFallback": "用户",
     "users": "用户",
     "userTrend": "新增用户趋势",
     "userTrendHint": "注册用户与首次购买用户变化",

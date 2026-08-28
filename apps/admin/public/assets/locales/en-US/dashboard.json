@@ -79,6 +79,8 @@
     "unavailable": "Data unavailable",
     "upload": "Upload",
     "updatedAt": "Updated {{time}}",
+    "loadingUserEmail": "Loading user email",
+    "userFallback": "User",
     "users": "Users",
     "userTrend": "New user trend",
     "userTrendHint": "Registrations and first-time purchasers",

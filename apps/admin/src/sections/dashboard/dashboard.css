@@ -85,6 +85,59 @@ html.admin-console .dashboard-range-tabs__trigger {
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
 }
 
+.dashboard-traffic-tooltip {
+  --dashboard-traffic-tooltip-upload: var(--chart-1);
+  --dashboard-traffic-tooltip-download: var(--chart-5);
+
+  border: 1px solid var(--border);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 8px 24px rgb(60 64 67 / 18%);
+}
+
+html.admin-console.dark .dashboard-traffic-tooltip {
+  box-shadow: 0 12px 32px rgb(0 0 0 / 52%);
+}
+
+.dashboard-traffic-tooltip__comparison {
+  border-color: color-mix(in srgb, var(--border) 82%, transparent);
+  background: color-mix(in srgb, var(--muted) 38%, var(--popover));
+}
+
+.dashboard-traffic-tooltip__legend-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+}
+
+.dashboard-traffic-tooltip__legend-dot--upload,
+.dashboard-traffic-tooltip__segment--upload {
+  background: var(--dashboard-traffic-tooltip-upload);
+}
+
+.dashboard-traffic-tooltip__legend-dot--download,
+.dashboard-traffic-tooltip__segment--download {
+  background: var(--dashboard-traffic-tooltip-download);
+}
+
+.dashboard-traffic-tooltip__track {
+  background: color-mix(in srgb, var(--muted) 78%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 52%, transparent);
+}
+
+.dashboard-traffic-tooltip__period[data-period="previous"]
+  .dashboard-traffic-tooltip__segment {
+  opacity: 0.48;
+}
+
+.dashboard-traffic-tooltip__value--upload {
+  color: var(--dashboard-traffic-tooltip-upload);
+}
+
+.dashboard-traffic-tooltip__value--download {
+  color: var(--dashboard-traffic-tooltip-download);
+}
+
 @keyframes dashboard-traffic-grow {
   from {
     transform: scaleX(0);
@@ -211,4 +264,9 @@ html.admin-console .dashboard-range-tabs__trigger {
   .dashboard-traffic-tooltip-bar > span {
     transition: none;
   }
+}
+
+.dashboard-traffic-tooltip > span > svg {
+  background: var(--popover);
+  fill: var(--popover);
 }

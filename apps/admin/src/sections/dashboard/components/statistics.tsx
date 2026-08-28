@@ -382,6 +382,38 @@ export default function Statistics() {
     },
   });
   const server = serverQuery.data;
+  const rankedUserIds = Array.from(
+    new Set(
+      [
+        ...(server?.user_traffic_ranking_today || []).slice(0, 20),
+        ...(server?.user_traffic_ranking_yesterday || []).slice(0, 20),
+      ].map((item) => item.uid)
+    )
+  );
+  const rankedUserQueries = useQueries({
+    queries: rankedUserIds.map((uid) => ({
+      gcTime: 30 * 60 * 1000,
+      queryFn: async () => {
+        const { data: response } = await getUserDetail(
+          { id: uid },
+          { skipErrorHandler: true }
+        );
+        return response.data ?? null;
+      },
+      queryKey: ["getUserDetail", uid],
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const rankedUserEmailById = new Map(
+    rankedUserIds.map((uid, index) => [
+      uid,
+      getUserEmail(rankedUserQueries[index]?.data),
+    ])
+  );
+  const pendingRankedUserIds = new Set(
+    rankedUserIds.filter((_, index) => rankedUserQueries[index]?.isPending)
+  );
   const pendingTickets = ticketQuery.data || 0;
   const offlineServers = server?.offline_servers || 0;
   const onlineServers = server?.online_servers || 0;
@@ -561,6 +593,7 @@ export default function Statistics() {
         onLimitChange={setTrafficLimit}
         onPeriodChange={setTrafficPeriod}
         onTypeChange={setTrafficType}
+        pendingUserIds={pendingRankedUserIds}
         period={trafficPeriod}
         serverError={serverQuery.isError}
         systemTotal={
@@ -569,6 +602,7 @@ export default function Statistics() {
             : undefined
         }
         trafficType={trafficType}
+        userEmailById={rankedUserEmailById}
       />
 
       <BusinessTrends
@@ -1302,10 +1336,12 @@ function TrafficRanking({
   onLimitChange,
   onPeriodChange,
   onTypeChange,
+  pendingUserIds,
   period,
   serverError,
   systemTotal,
   trafficType,
+  userEmailById,
 }: {
   activeDate: string;
   data: TrafficRankingDataset;
@@ -1314,10 +1350,12 @@ function TrafficRanking({
   onLimitChange: (value: TrafficLimit) => void;
   onPeriodChange: (period: TrafficPeriod) => void;
   onTypeChange: (type: TrafficType) => void;
+  pendingUserIds: Set<number>;
   period: TrafficPeriod;
   serverError: boolean;
   systemTotal?: number;
   trafficType: TrafficType;
+  userEmailById: Map<number, string | undefined>;
 }) {
   const { t } = useTranslation("dashboard");
   const { reducedMotion } = useAdminMotion();
@@ -1325,37 +1363,6 @@ function TrafficRanking({
   const leaderTotal = visibleData.reduce(
     (maximum, item) => Math.max(maximum, item.total),
     0
-  );
-  const visibleUserIds =
-    trafficType === "users"
-      ? Array.from(
-          new Set(
-            visibleData
-              .map((item) => item.uid)
-              .filter((uid): uid is number => uid !== undefined)
-          )
-        )
-      : [];
-  const userQueries = useQueries({
-    queries: visibleUserIds.map((uid) => ({
-      gcTime: 30 * 60 * 1000,
-      queryFn: async () => {
-        const { data: response } = await getUserDetail(
-          { id: uid },
-          { skipErrorHandler: true }
-        );
-        return response.data ?? null;
-      },
-      queryKey: ["getUserDetail", uid],
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-    })),
-  });
-  const userEmailById = new Map(
-    visibleUserIds.map((uid, index) => [
-      uid,
-      getUserEmail(userQueries[index]?.data),
-    ])
   );
   const visibleTotal = visibleData.reduce((sum, item) => sum + item.total, 0);
   const upload = data.items.reduce((sum, item) => sum + item.upload, 0);
@@ -1558,6 +1565,11 @@ function TrafficRanking({
                         ? undefined
                         : userEmailById.get(item.uid)
                     }
+                    userEmailLoading={
+                      item.uid === undefined
+                        ? false
+                        : pendingUserIds.has(item.uid)
+                    }
                   />
                 ))}
               </ol>
@@ -1662,6 +1674,7 @@ function TrafficRankingRow({
   selectedDate,
   trafficType,
   userEmail,
+  userEmailLoading,
 }: {
   currentLabel: string;
   index: number;
@@ -1672,6 +1685,7 @@ function TrafficRankingRow({
   selectedDate: string;
   trafficType: TrafficType;
   userEmail?: string;
+  userEmailLoading: boolean;
 }) {
   const { t } = useTranslation("dashboard");
   const uploadShare = item.total ? (item.upload / item.total) * 100 : 0;
@@ -1686,7 +1700,10 @@ function TrafficRankingRow({
   const tooltipScale = Math.max(item.total, item.previousTotal, 1);
   const tooltipCurrentWidth = (item.total / tooltipScale) * 100;
   const tooltipPreviousWidth = (item.previousTotal / tooltipScale) * 100;
-  const displayName = userEmail || item.name;
+  const displayName =
+    userEmail ||
+    (trafficType === "users" ? t("overview.userFallback", "User") : item.name);
+  const accessibleName = userEmail || item.name;
   const changeLabel = `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
     Math.abs(item.absoluteChange)
   )}`;
@@ -1719,7 +1736,7 @@ function TrafficRankingRow({
             aria-label={t(
               "overview.trafficTooltipLabel",
               "Traffic details for {{name}}",
-              { name: displayName }
+              { name: accessibleName }
             )}
             className="min-w-0 rounded-lg p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
             type="button"
@@ -1731,9 +1748,19 @@ function TrafficRankingRow({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <div className="min-w-0">
-                    <div className="truncate font-medium text-sm">
-                      {displayName}
-                    </div>
+                    {userEmailLoading && trafficType === "users" ? (
+                      <Skeleton
+                        aria-label={t(
+                          "overview.loadingUserEmail",
+                          "Loading user email"
+                        )}
+                        className="h-5 w-36 max-w-full"
+                      />
+                    ) : (
+                      <div className="truncate font-medium text-sm">
+                        {displayName}
+                      </div>
+                    )}
                     <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground tabular-nums">
                       {item.uid !== undefined ? (
                         <span>UID {item.uid}</span>
@@ -1828,15 +1855,28 @@ function TrafficRankingRow({
             </div>
           </button>
         </TooltipTrigger>
-        <TooltipContent className="w-72 space-y-3 p-3" side="top">
+        <TooltipContent
+          className="dashboard-traffic-tooltip w-72 space-y-3 p-3"
+          side="top"
+        >
           <div>
             <div className="font-semibold text-sm">{displayName}</div>
-            <div className="mt-1 flex gap-2 text-xs opacity-75">
+            <div className="mt-1 flex gap-2 text-muted-foreground text-xs">
               {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
               <span>SID {item.sid}</span>
             </div>
           </div>
-          <div className="space-y-2 rounded-lg bg-background/65 p-2.5">
+          <div className="dashboard-traffic-tooltip__comparison space-y-2.5 rounded-xl border p-2.5">
+            <div className="dashboard-traffic-tooltip__legend flex items-center gap-3 text-[10px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--upload" />
+                {t("overview.upload", "Upload")}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--download" />
+                {t("overview.download", "Download")}
+              </span>
+            </div>
             <TrafficTooltipComparisonBar
               downloadShare={downloadShare}
               label={currentLabel}
@@ -1856,18 +1896,22 @@ function TrafficRankingRow({
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <TrafficTooltipValue
               label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
+              tone="upload"
               value={formatBytes(item.upload)}
             />
             <TrafficTooltipValue
               label={`${currentLabel} · ${t("overview.download", "Download")}`}
+              tone="download"
               value={formatBytes(item.download)}
             />
             <TrafficTooltipValue
               label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
+              tone="upload"
               value={formatBytes(item.previousUpload)}
             />
             <TrafficTooltipValue
               label={`${previousLabel} · ${t("overview.download", "Download")}`}
+              tone="download"
               value={formatBytes(item.previousDownload)}
             />
             <TrafficTooltipValue
@@ -1902,7 +1946,9 @@ function TrafficRankingRow({
             />
           </div>
           <div className="flex items-center justify-between border-t pt-2 text-xs">
-            <span className="opacity-75">{t("overview.growth", "Growth")}</span>
+            <span className="text-muted-foreground">
+              {t("overview.growth", "Growth")}
+            </span>
             <GrowthChip value={item.growth} />
           </div>
         </TooltipContent>
@@ -1954,12 +2000,17 @@ function TrafficTooltipComparisonBar({
   width: number;
 }) {
   return (
-    <div className={cn("space-y-1", muted && "opacity-60")}>
-      <div className="flex items-center justify-between gap-3 text-[10px] tabular-nums">
+    <div
+      className="dashboard-traffic-tooltip__period space-y-1.5"
+      data-period={muted ? "previous" : "current"}
+    >
+      <div className="flex items-center justify-between gap-3 text-[10px] text-muted-foreground tabular-nums">
         <span>{label}</span>
-        <span>{formatBytes(total)}</span>
+        <span className="font-medium text-foreground">
+          {formatBytes(total)}
+        </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+      <div className="dashboard-traffic-tooltip__track h-2 overflow-hidden rounded-full">
         <div
           className="dashboard-traffic-tooltip-bar flex h-full overflow-hidden rounded-full"
           style={
@@ -1969,11 +2020,11 @@ function TrafficTooltipComparisonBar({
           }
         >
           <span
-            className="h-full bg-chart-1"
+            className="dashboard-traffic-tooltip__segment dashboard-traffic-tooltip__segment--upload h-full"
             style={{ width: `${uploadShare}%` }}
           />
           <span
-            className="h-full bg-chart-4"
+            className="dashboard-traffic-tooltip__segment dashboard-traffic-tooltip__segment--download h-full"
             style={{ width: `${downloadShare}%` }}
           />
         </div>
@@ -1984,15 +2035,25 @@ function TrafficTooltipComparisonBar({
 
 function TrafficTooltipValue({
   label,
+  tone,
   value,
 }: {
   label: string;
+  tone?: "upload" | "download";
   value: string;
 }) {
   return (
     <div>
-      <div className="opacity-70">{label}</div>
-      <div className="mt-0.5 font-medium tabular-nums">{value}</div>
+      <div className="text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "mt-0.5 font-semibold tabular-nums",
+          tone === "upload" && "dashboard-traffic-tooltip__value--upload",
+          tone === "download" && "dashboard-traffic-tooltip__value--download"
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
