@@ -1,6 +1,8 @@
 import { createServer } from "node:http";
 
 const port = Number(process.env.MOCK_API_PORT || 43_123);
+const dashboardMode = process.env.DASHBOARD_ACCEPTANCE_MODE || "normal";
+const dashboardDelay = Number(process.env.DASHBOARD_ACCEPTANCE_DELAY || 1800);
 
 const serverFixture = {
   id: 42,
@@ -294,6 +296,17 @@ function send(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
+async function prepareDashboardFixture(response) {
+  if (dashboardMode === "loading") {
+    await new Promise((resolve) => setTimeout(resolve, dashboardDelay));
+  }
+  if (dashboardMode === "error") {
+    send(response, 200, { code: 500, msg: "Dashboard acceptance error" });
+    return false;
+  }
+  return true;
+}
+
 createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
     send(response, 204, {});
@@ -365,57 +378,95 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/console/server") {
-    send(response, 200, { code: 200, data: consoleServerFixture });
+    if (!(await prepareDashboardFixture(response))) return;
+    send(response, 200, {
+      code: 200,
+      data:
+        dashboardMode === "empty"
+          ? {
+              ...consoleServerFixture,
+              month_total: 0,
+              monthly_download: 0,
+              monthly_upload: 0,
+              offline_servers: 0,
+              online_servers: 0,
+              online_users: 0,
+              server_traffic_ranking_today: [],
+              server_traffic_ranking_yesterday: [],
+              today_download: 0,
+              today_upload: 0,
+              user_traffic_ranking_today: [],
+              user_traffic_ranking_yesterday: [],
+            }
+          : consoleServerFixture,
+    });
     return;
   }
 
   if (url.pathname === "/v1/admin/console/revenue") {
+    if (!(await prepareDashboardFixture(response))) return;
     send(response, 200, {
       code: 200,
-      data: {
-        today: revenueDay("2026-08-21", 38_600, 25_800, 12_800),
-        monthly: {
-          ...revenueDay("2026-08", 486_900, 321_500, 165_400),
-          list: [
-            revenueDay("2026-08-15", 29_400, 18_600, 10_800),
-            revenueDay("2026-08-16", 35_200, 22_400, 12_800),
-            revenueDay("2026-08-17", 31_800, 21_000, 10_800),
-            revenueDay("2026-08-18", 42_600, 28_600, 14_000),
-            revenueDay("2026-08-19", 39_900, 25_500, 14_400),
-            revenueDay("2026-08-20", 45_800, 30_000, 15_800),
-            revenueDay("2026-08-21", 38_600, 25_800, 12_800),
-          ],
-        },
-        all: revenueDay("all", 5_486_900, 3_621_500, 1_865_400),
-      },
+      data:
+        dashboardMode === "empty"
+          ? {
+              today: revenueDay("2026-08-21", 0, 0, 0),
+              monthly: { ...revenueDay("2026-08", 0, 0, 0), list: [] },
+              all: { ...revenueDay("all", 0, 0, 0), list: [] },
+            }
+          : {
+              today: revenueDay("2026-08-21", 38_600, 25_800, 12_800),
+              monthly: {
+                ...revenueDay("2026-08", 486_900, 321_500, 165_400),
+                list: [
+                  revenueDay("2026-08-15", 29_400, 18_600, 10_800),
+                  revenueDay("2026-08-16", 35_200, 22_400, 12_800),
+                  revenueDay("2026-08-17", 31_800, 21_000, 10_800),
+                  revenueDay("2026-08-18", 42_600, 28_600, 14_000),
+                  revenueDay("2026-08-19", 39_900, 25_500, 14_400),
+                  revenueDay("2026-08-20", 45_800, 30_000, 15_800),
+                  revenueDay("2026-08-21", 38_600, 25_800, 12_800),
+                ],
+              },
+              all: revenueDay("all", 5_486_900, 3_621_500, 1_865_400),
+            },
     });
     return;
   }
 
   if (url.pathname === "/v1/admin/console/user") {
+    if (!(await prepareDashboardFixture(response))) return;
     send(response, 200, {
       code: 200,
-      data: {
-        today: userDay("2026-08-21", 12, 8, 5),
-        monthly: {
-          ...userDay("2026-08", 184, 96, 57),
-          list: [
-            userDay("2026-08-15", 18, 10, 5),
-            userDay("2026-08-16", 21, 12, 6),
-            userDay("2026-08-17", 17, 8, 5),
-            userDay("2026-08-18", 26, 14, 7),
-            userDay("2026-08-19", 23, 11, 8),
-            userDay("2026-08-20", 28, 15, 9),
-            userDay("2026-08-21", 12, 8, 5),
-          ],
-        },
-        all: userDay("all", 4812, 2430, 1642),
-      },
+      data:
+        dashboardMode === "empty"
+          ? {
+              today: userDay("2026-08-21", 0, 0, 0),
+              monthly: { ...userDay("2026-08", 0, 0, 0), list: [] },
+              all: { ...userDay("all", 0, 0, 0), list: [] },
+            }
+          : {
+              today: userDay("2026-08-21", 12, 8, 5),
+              monthly: {
+                ...userDay("2026-08", 184, 96, 57),
+                list: [
+                  userDay("2026-08-15", 18, 10, 5),
+                  userDay("2026-08-16", 21, 12, 6),
+                  userDay("2026-08-17", 17, 8, 5),
+                  userDay("2026-08-18", 26, 14, 7),
+                  userDay("2026-08-19", 23, 11, 8),
+                  userDay("2026-08-20", 28, 15, 9),
+                  userDay("2026-08-21", 12, 8, 5),
+                ],
+              },
+              all: userDay("all", 4812, 2430, 1642),
+            },
     });
     return;
   }
 
   if (url.pathname === "/v1/admin/console/ticket") {
+    if (!(await prepareDashboardFixture(response))) return;
     send(response, 200, { code: 200, data: { count: 3 } });
     return;
   }
