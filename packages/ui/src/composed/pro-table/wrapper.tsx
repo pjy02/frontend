@@ -29,7 +29,11 @@ export function ProTableWrapper<TData extends { id?: string | number }>({
   setData: React.Dispatch<React.SetStateAction<TData[]>>;
 }) {
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 

@@ -39,6 +39,7 @@ import type { IParams } from "@workspace/ui/composed/pro-table/column-filter";
 import { ColumnHeader } from "@workspace/ui/composed/pro-table/column-header";
 import { DataToolbar } from "@workspace/ui/composed/pro-table/data-toolbar";
 import { Pagination } from "@workspace/ui/composed/pro-table/pagination";
+import { SortableMobileCard } from "@workspace/ui/composed/pro-table/sortable-mobile-card";
 import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { cn } from "@workspace/ui/lib/utils";
@@ -369,114 +370,135 @@ export function ProTable<
         )}
 
       {mobileCardsEnabled ? (
-        <div
-          className="admin-pro-table-mobile grid gap-3 lg:hidden"
-          key={adminMotionEnabled ? `mobile-${dataVersion}` : undefined}
-        >
-          {table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map((row) => {
-              const rowActions = actions?.render?.(row.original) || [];
-              return (
-                <article
-                  aria-label={
-                    mobile?.getAriaLabel
-                      ? mobile.getAriaLabel(row.original)
-                      : t("table.recordLabel", "Record {{number}}", {
-                          number: row.index + 1,
-                        })
-                  }
-                  className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
-                  data-state={row.getIsSelected() ? "selected" : undefined}
-                  key={row.id}
-                >
-                  <div className="p-4">
-                    {mobile?.render ? (
-                      mobile.render(row.original)
-                    ) : (
-                      <DefaultMobileCard
-                        detailsLimit={mobile?.detailsLimit}
-                        row={row}
-                      />
-                    )}
-                  </div>
-                  {(actions?.batchRender || rowActions.length > 0) && (
-                    <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
-                      {actions?.batchRender ? (
-                        <Checkbox
-                          aria-label={t("table.selectRow", "Select row")}
-                          checked={row.getIsSelected()}
-                          className="admin-pro-table-selection"
-                          onCheckedChange={(value) =>
-                            row.toggleSelected(!!value)
-                          }
-                        />
-                      ) : (
-                        <span />
-                      )}
-                      <RowActions
-                        items={rowActions}
-                        moreLabel={
-                          texts?.moreActions ||
-                          t("table.moreActions", "More actions")
-                        }
-                      />
-                    </div>
-                  )}
-                </article>
-              );
-            })
-          ) : isLoading ? (
-            Array.from({ length: 3 }, (_, index) => (
-              <div
-                className="space-y-3 rounded-xl border bg-card p-4"
-                key={`mobile-skeleton-${index}`}
-              >
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-4/5" />
-              </div>
-            ))
-          ) : fetchError ? (
-            <div
-              className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-center"
-              role="alert"
-            >
-              <div
-                className={cn(
-                  "grid size-10 place-items-center rounded-full",
-                  fetchError === "forbidden"
-                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                    : "bg-destructive/10 text-destructive"
-                )}
-              >
-                {fetchError === "forbidden" ? (
-                  <ShieldX className="size-5" />
+        <ProTableWrapper data={data} onSort={onSort} setData={setData}>
+          <div
+            className="admin-pro-table-mobile grid gap-3 lg:hidden"
+            key={adminMotionEnabled ? `mobile-${dataVersion}` : undefined}
+          >
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => {
+                const rowActions = actions?.render?.(row.original) || [];
+                const label = mobile?.getAriaLabel
+                  ? mobile.getAriaLabel(row.original)
+                  : t("table.recordLabel", "Record {{number}}", {
+                      number: row.index + 1,
+                    });
+                const body = mobile?.render ? (
+                  mobile.render(row.original)
                 ) : (
-                  <TriangleAlert className="size-5" />
-                )}
+                  <DefaultMobileCard
+                    detailsLimit={mobile?.detailsLimit}
+                    row={row}
+                  />
+                );
+                const selection = actions?.batchRender ? (
+                  <Checkbox
+                    aria-label={t("table.selectRow", "Select row")}
+                    checked={row.getIsSelected()}
+                    className="admin-pro-table-selection"
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                  />
+                ) : null;
+                const rowActionsMenu = (
+                  <RowActions
+                    items={rowActions}
+                    moreLabel={
+                      texts?.moreActions ||
+                      t("table.moreActions", "More actions")
+                    }
+                  />
+                );
+
+                if (onSort) {
+                  return (
+                    <SortableMobileCard
+                      dragLabel={t("table.reorderRow", "Reorder")}
+                      footerEnd={rowActionsMenu}
+                      footerStart={selection}
+                      id={
+                        row.original.id
+                          ? String(row.original.id)
+                          : String(row.index)
+                      }
+                      key={row.id}
+                      label={label}
+                      selected={row.getIsSelected()}
+                    >
+                      {body}
+                    </SortableMobileCard>
+                  );
+                }
+
+                return (
+                  <article
+                    aria-label={label}
+                    className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                    key={row.id}
+                  >
+                    <div className="p-4">{body}</div>
+                    {(actions?.batchRender || rowActions.length > 0) && (
+                      <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+                        {selection || <span />}
+                        {rowActionsMenu}
+                      </div>
+                    )}
+                  </article>
+                );
+              })
+            ) : isLoading ? (
+              Array.from({ length: 3 }, (_, index) => (
+                <div
+                  className="space-y-3 rounded-xl border bg-card p-4"
+                  key={`mobile-skeleton-${index}`}
+                >
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+              ))
+            ) : fetchError ? (
+              <div
+                className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-center"
+                role="alert"
+              >
+                <div
+                  className={cn(
+                    "grid size-10 place-items-center rounded-full",
+                    fetchError === "forbidden"
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      : "bg-destructive/10 text-destructive"
+                  )}
+                >
+                  {fetchError === "forbidden" ? (
+                    <ShieldX className="size-5" />
+                  ) : (
+                    <TriangleAlert className="size-5" />
+                  )}
+                </div>
+                <p className="font-medium text-sm">
+                  {fetchError === "forbidden"
+                    ? texts?.permissionDenied ||
+                      t(
+                        "table.permissionDenied",
+                        "You do not have permission to view this data"
+                      )
+                    : texts?.fetchError ||
+                      t("table.loadError", "Unable to load data")}
+                </p>
+                {fetchError === "error" ? (
+                  <Button onClick={fetchData} size="sm" variant="outline">
+                    {texts?.retry || t("table.retry", "Try again")}
+                  </Button>
+                ) : null}
               </div>
-              <p className="font-medium text-sm">
-                {fetchError === "forbidden"
-                  ? texts?.permissionDenied ||
-                    t(
-                      "table.permissionDenied",
-                      "You do not have permission to view this data"
-                    )
-                  : texts?.fetchError ||
-                    t("table.loadError", "Unable to load data")}
-              </p>
-              {fetchError === "error" ? (
-                <Button onClick={fetchData} size="sm" variant="outline">
-                  {texts?.retry || t("table.retry", "Try again")}
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="rounded-xl border bg-card py-10">
-              {empty || <Empty />}
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="rounded-xl border bg-card py-10">
+                {empty || <Empty />}
+              </div>
+            )}
+          </div>
+        </ProTableWrapper>
       ) : null}
 
       <div

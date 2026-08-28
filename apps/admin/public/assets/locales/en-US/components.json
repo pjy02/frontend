@@ -149,6 +149,7 @@
     "moreFilters": "More filters",
     "permissionDenied": "You do not have permission to view this data",
     "recordLabel": "Record {{number}}",
+    "reorderRow": "Reorder",
     "refresh": "Refresh data",
     "reset": "Reset table",
     "retry": "Try again",

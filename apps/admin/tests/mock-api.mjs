@@ -38,6 +38,30 @@ const nodeFixture = {
   sort: 1,
 };
 
+const nodeFixtures = [
+  nodeFixture,
+  {
+    ...nodeFixture,
+    id: 85,
+    name: "Singapore VMess mobile sorting verification node",
+    protocol: "vmess",
+    address: "singapore-mobile-sort.example.com",
+    port: 8443,
+    tags: ["standard", "singapore"],
+    sort: 2,
+  },
+  {
+    ...nodeFixture,
+    id: 86,
+    name: "Frankfurt Trojan mobile sorting verification node",
+    protocol: "trojan",
+    address: "frankfurt-mobile-sort.example.com",
+    port: 9443,
+    tags: ["premium", "frankfurt"],
+    sort: 3,
+  },
+];
+
 const userFixture = {
   id: 7,
   avatar: "",
@@ -293,7 +317,7 @@ createServer(async (request, response) => {
   if (url.pathname === "/v1/admin/server/node/list") {
     send(response, 200, {
       code: 200,
-      data: { list: [nodeFixture], total: 1 },
+      data: { list: nodeFixtures, total: nodeFixtures.length },
     });
     return;
   }

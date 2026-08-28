@@ -149,6 +149,7 @@
     "moreFilters": "更多筛选",
     "permissionDenied": "您没有权限查看这些数据",
     "recordLabel": "第 {{number}} 条记录",
+    "reorderRow": "调整位置",
     "refresh": "刷新数据",
     "reset": "重置表格",
     "retry": "重试",
