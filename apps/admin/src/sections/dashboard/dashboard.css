@@ -33,6 +33,34 @@ html.admin-console .dashboard-range-tabs__trigger {
   background: var(--card);
 }
 
+.dashboard-data-transition,
+.dashboard-chart-tooltip-transition,
+.dashboard-traffic-tooltip__data {
+  will-change: opacity, transform;
+}
+
+.dashboard-system-health {
+  transition:
+    border-color var(--admin-motion-normal) var(--admin-motion-easing),
+    box-shadow var(--admin-motion-normal) var(--admin-motion-easing);
+}
+
+.dashboard-system-health[data-health-tone="success"] {
+  border-color: color-mix(in srgb, var(--admin-success) 28%, var(--border));
+}
+
+.dashboard-system-health[data-health-tone="warning"] {
+  border-color: color-mix(in srgb, var(--admin-warning) 30%, var(--border));
+}
+
+.dashboard-system-health[data-health-tone="danger"] {
+  border-color: color-mix(in srgb, var(--destructive) 30%, var(--border));
+}
+
+.dashboard-system-health__status {
+  transform-origin: right top;
+}
+
 .dashboard-metric:hover {
   border-color: color-mix(in srgb, var(--foreground) 16%, var(--border));
 }
@@ -63,6 +91,7 @@ html.admin-console .dashboard-range-tabs__trigger {
 }
 
 .dashboard-traffic-row {
+  will-change: transform;
   transition: background-color var(--admin-motion-fast)
     var(--admin-motion-easing);
 }
@@ -254,6 +283,10 @@ html.admin-console.dark .dashboard-traffic-tooltip {
     transition: none;
   }
 
+  .dashboard-system-health {
+    transition: none;
+  }
+
   .dashboard-traffic-bar,
   .dashboard-traffic-tooltip-bar {
     animation: none;
@@ -263,6 +296,13 @@ html.admin-console.dark .dashboard-traffic-tooltip {
   .dashboard-traffic-bar > span,
   .dashboard-traffic-tooltip-bar > span {
     transition: none;
+  }
+
+  .dashboard-data-transition,
+  .dashboard-chart-tooltip-transition,
+  .dashboard-traffic-tooltip__data,
+  .dashboard-traffic-row {
+    will-change: auto;
   }
 }
 
