@@ -83,6 +83,7 @@ export interface ProTableProps<TData, TValue> {
       }
     | false;
   mobileFilterMode?: "inline" | "drawer";
+  pagination?: boolean;
   action?: React.Ref<ProTableActions | undefined>;
   texts?: Partial<{
     actions: string;
@@ -130,6 +131,7 @@ export function ProTable<
   initialFilters,
   mobile,
   mobileFilterMode,
+  pagination: paginationEnabled = true,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -659,7 +661,9 @@ export function ProTable<
           </Table>
         </ProTableWrapper>
       </div>
-      {rowCount > 0 && <Pagination table={table} total={rowCount} />}
+      {paginationEnabled && rowCount > 0 && (
+        <Pagination table={table} total={rowCount} />
+      )}
     </div>
   );
 }
@@ -833,7 +837,7 @@ function RowActions({
           </PopoverTrigger>
           <PopoverContent
             align="end"
-            className="w-52 rounded-xl p-1.5 [&_[data-slot=button]]:h-9 [&_[data-slot=button]]:w-full [&_[data-slot=button]]:justify-start [&_[data-slot=button]]:px-3"
+            className="w-52 rounded-xl p-1.5 text-center [&_[data-slot=button]]:h-9 [&_[data-slot=button]]:w-full [&_[data-slot=button]]:justify-center [&_[data-slot=button]]:px-3"
             sideOffset={6}
           >
             <div className="grid gap-1">{secondary}</div>

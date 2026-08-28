@@ -24,6 +24,58 @@ import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
 import NodeForm from "./node-form";
 
+const NODE_SORT_BATCH_SIZE = 100;
+
+function sortNodes(nodes: API.Node[]) {
+  return nodes.slice().sort((a, b) => {
+    const as = a.sort;
+    const bs = b.sort;
+    const an = typeof as === "number" ? as : Number.POSITIVE_INFINITY;
+    const bn = typeof bs === "number" ? bs : Number.POSITIVE_INFINITY;
+    if (an !== bn) return an - bn;
+    return Number(a.id) - Number(b.id);
+  });
+}
+
+async function filterAllNodes(search?: string) {
+  const firstResponse = await filterNodeList({
+    page: 1,
+    size: NODE_SORT_BATCH_SIZE,
+    search: search || undefined,
+  });
+  const firstPage = (firstResponse.data?.data?.list || []) as API.Node[];
+  const total = Number(firstResponse.data?.data?.total || firstPage.length);
+
+  if (total <= firstPage.length) {
+    return sortNodes(firstPage);
+  }
+
+  // Older backends may enforce a lower cap than the documented 100 records.
+  // Derive the effective size so the sortable workspace still loads every page.
+  const effectivePageSize = firstPage.length || NODE_SORT_BATCH_SIZE;
+  const pageCount = Math.ceil(total / effectivePageSize);
+  const remainingResponses = await Promise.all(
+    Array.from({ length: Math.max(pageCount - 1, 0) }, (_, index) =>
+      filterNodeList({
+        page: index + 2,
+        size: NODE_SORT_BATCH_SIZE,
+        search: search || undefined,
+      })
+    )
+  );
+  const merged = [
+    ...firstPage,
+    ...remainingResponses.flatMap(
+      (response) => (response.data?.data?.list || []) as API.Node[]
+    ),
+  ];
+  const uniqueNodes = Array.from(
+    new Map(merged.map((node) => [String(node.id), node])).values()
+  );
+
+  return sortNodes(uniqueNodes);
+}
+
 export default function Nodes() {
   const { t } = useTranslation("nodes");
   const ref = useRef<ProTableActions>(null);
@@ -316,8 +368,8 @@ export default function Nodes() {
         ),
       }}
       onSort={async (source, target, items) => {
-        // NOTE: `items` is the current page's items from ProTable.
-        // Avoid mutating it in-place, and persist sort changes reliably.
+        // The node page loads the complete filtered list, so this re-indexes the
+        // global order instead of only changing one visible page.
         const sourceIndex = items.findIndex(
           (item) => String(item.id) === source
         );
@@ -367,27 +419,11 @@ export default function Nodes() {
 
         return updatedItems;
       }}
+      pagination={false}
       params={[{ key: "search" }]}
-      request={async (pagination, filter) => {
-        const { data } = await filterNodeList({
-          page: pagination.page,
-          size: pagination.size,
-          search: filter?.search || undefined,
-        });
-        const rawList = (data?.data?.list || []) as API.Node[];
-        // Backend should ideally return nodes already sorted, but we also sort on the
-        // frontend to keep the UI stable (and avoid "random" order after refresh).
-        const list = rawList.slice().sort((a, b) => {
-          const as = a.sort;
-          const bs = b.sort;
-          const an = typeof as === "number" ? as : Number.POSITIVE_INFINITY;
-          const bn = typeof bs === "number" ? bs : Number.POSITIVE_INFINITY;
-          if (an !== bn) return an - bn;
-          // Tie-breaker to keep a stable order.
-          return Number(a.id) - Number(b.id);
-        });
-        const total = Number(data?.data?.total || list.length);
-        return { list, total };
+      request={async (_pagination, filter) => {
+        const list = await filterAllNodes(filter?.search);
+        return { list, total: list.length };
       }}
     />
   );

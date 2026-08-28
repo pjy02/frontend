@@ -60,6 +60,15 @@ const nodeFixtures = [
     tags: ["premium", "frankfurt"],
     sort: 3,
   },
+  ...Array.from({ length: 9 }, (_, index) => ({
+    ...nodeFixture,
+    id: 87 + index,
+    name: `Mobile cross-page sorting node ${index + 4}`,
+    address: `cross-page-node-${index + 4}.example.com`,
+    port: 10_000 + index,
+    tags: ["cross-page", `group-${(index % 3) + 1}`],
+    sort: index + 4,
+  })),
 ];
 
 const userFixture = {
@@ -315,9 +324,19 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/server/node/list") {
+    const page = Math.max(Number(url.searchParams.get("page")) || 1, 1);
+    // Use a lower fixture cap to exercise the frontend's multi-page loader.
+    const size = Math.min(
+      Math.max(Number(url.searchParams.get("size")) || 10, 1),
+      10
+    );
+    const start = (page - 1) * size;
     send(response, 200, {
       code: 200,
-      data: { list: nodeFixtures, total: nodeFixtures.length },
+      data: {
+        list: nodeFixtures.slice(start, start + size),
+        total: nodeFixtures.length,
+      },
     });
     return;
   }
