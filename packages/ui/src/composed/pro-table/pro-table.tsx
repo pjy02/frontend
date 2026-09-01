@@ -116,6 +116,7 @@ export interface ProTableProps<TData, TValue> {
     targetId: string | number | null,
     items: TData[]
   ) => Promise<TData[]>;
+  onFiltersChange?: (filters: Record<string, unknown>) => void;
   initialFilters?: Record<string, unknown>;
 }
 
@@ -137,6 +138,7 @@ export function ProTable<
   texts,
   empty,
   onSort,
+  onFiltersChange,
   initialFilters,
   mobile,
   mobileFilterMode,
@@ -162,6 +164,8 @@ export function ProTable<
     pageSize: 10,
   });
   const requestIdRef = useRef(0);
+  const onFiltersChangeRef = useRef(onFiltersChange);
+  onFiltersChangeRef.current = onFiltersChange;
   const [isLoading, setIsLoading] = useState(false);
   const dataRef = useRef<TData[]>([]);
   const lastLoadedPageRef = useRef(0);
@@ -362,14 +366,22 @@ export function ProTable<
     []
   );
 
+  const filtersSnapshot = JSON.stringify(columnFilters);
+
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    pagination.pageIndex,
-    pagination.pageSize,
-    JSON.stringify(columnFilters),
-  ]);
+  }, [pagination.pageIndex, pagination.pageSize, filtersSnapshot]);
+
+  useEffect(() => {
+    onFiltersChangeRef.current?.(
+      Object.fromEntries(
+        columnFilters.map((filter) => [filter.id, filter.value])
+      )
+    );
+    // The serialized value changes only when the committed filters change;
+    // callback identity changes must not cause router update loops.
+  }, [filtersSnapshot]);
 
   const selectedRows = table
     .getSelectedRowModel()

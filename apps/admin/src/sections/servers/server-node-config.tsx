@@ -31,9 +31,9 @@ import { ArrayInput } from "@workspace/ui/composed/dynamic-Inputs";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
   getServerNodeConfig,
-  updateServerNodeConfig,
-} from "@workspace/ui/services/admin/server";
-import { useEffect, useState } from "react";
+  postServerNodeConfigUpdate as updateServerNodeConfig,
+} from "@workspace/ui/services/admin/admin";
+import { type ReactNode, useEffect, useState } from "react";
 import { type Control, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ import { z } from "zod";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
+  WorkspaceDialogDescription,
   WorkspaceDialogFooter,
   WorkspaceDialogHeader,
   WorkspaceDialogTitle,
@@ -104,10 +105,29 @@ function ToggleField({
       render={({ field }) => (
         <div className="flex items-center justify-between rounded-md border px-3 py-2">
           <span className="font-medium text-sm">{label}</span>
-          <Switch checked={field.value} onCheckedChange={field.onChange} />
+          <Switch
+            aria-label={label}
+            checked={field.value}
+            onCheckedChange={field.onChange}
+          />
         </div>
       )}
     />
+  );
+}
+
+function InheritedPreview({
+  description,
+  title,
+}: {
+  description: ReactNode;
+  title: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-muted/35 px-4 py-3">
+      <p className="font-medium text-sm">{title}</p>
+      <p className="mt-1 text-muted-foreground text-sm">{description}</p>
+    </div>
   );
 }
 
@@ -120,6 +140,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
     data: cfgResp,
     refetch,
     isError,
+    isLoading,
   } = useQuery({
     queryKey: ["getServerNodeConfig", server.id],
     queryFn: async () => {
@@ -173,6 +194,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
   const inheritDNS = form.watch("inherit_dns");
   const inheritOutbound = form.watch("inherit_outbound");
   const inheritBlock = form.watch("inherit_block");
+  const { isDirty } = form.formState;
 
   async function onSubmit(values: ServerNodeConfigFormData) {
     setSaving(true);
@@ -207,17 +229,49 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
       <WorkspaceDialogContent size="xl">
         <WorkspaceDialogHeader>
           <WorkspaceDialogTitle>
-            {t("server_node_config.title", "Node Config")} - {server.name}
+            {t("server_node_config.title", "Node configuration overrides")}
           </WorkspaceDialogTitle>
+          <WorkspaceDialogDescription>
+            {t(
+              "server_node_config.description",
+              "Choose which global settings this server inherits and which ones it overrides."
+            )}{" "}
+            {server.name}
+          </WorkspaceDialogDescription>
         </WorkspaceDialogHeader>
 
         <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
+          {isLoading && !cfgResp && (
+            <div
+              className="mt-4 rounded-xl border border-border/70 bg-muted/30 px-4 py-6 text-center text-muted-foreground text-sm"
+              role="status"
+            >
+              {t("server_node_config.loading", "Loading configuration")}
+            </div>
+          )}
           {isError && (
             <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive text-sm">
-              {t(
-                "server_node_config.loadError",
-                "Failed to load node config. Please close and try again."
-              )}
+              <p className="font-medium">
+                {t(
+                  "server_node_config.loadErrorTitle",
+                  "Unable to load configuration"
+                )}
+              </p>
+              <p className="mt-1">
+                {t(
+                  "server_node_config.loadError",
+                  "Nothing can be changed until the current server configuration is loaded."
+                )}
+              </p>
+              <Button
+                className="mt-3"
+                onClick={() => refetch()}
+                size="sm"
+                variant="outline"
+              >
+                <Icon icon="mdi:refresh" />
+                {t("server_node_config.retry", "Retry")}
+              </Button>
             </div>
           )}
           <Tabs className="mt-4" defaultValue="dns">
@@ -244,15 +298,34 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                     control={form.control}
                     label={t(
                       "server_node_config.inherit_ip_strategy",
-                      "Inherit global IP strategy"
+                      "Use global IP strategy"
                     )}
                     name="inherit_ip_strategy"
                   />
-                  <div
-                    className={
-                      inheritIPStrategy ? "pointer-events-none opacity-50" : ""
-                    }
-                  >
+                  {inheritIPStrategy && cfgResp ? (
+                    <InheritedPreview
+                      description={t(
+                        "server_node_config.global_ip_strategy_summary",
+                        "Current global value: {{value}}",
+                        {
+                          value:
+                            cfgResp.global.ip_strategy === "prefer_ipv6"
+                              ? t(
+                                  "server_config.fields.ip_strategy_ipv6",
+                                  "Prefer IPv6"
+                                )
+                              : t(
+                                  "server_config.fields.ip_strategy_ipv4",
+                                  "Prefer IPv4"
+                                ),
+                        }
+                      )}
+                      title={t(
+                        "server_node_config.globalPreview",
+                        "Using global configuration"
+                      )}
+                    />
+                  ) : (
                     <FormField
                       control={form.control}
                       name="ip_strategy"
@@ -297,21 +370,29 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                         </FormItem>
                       )}
                     />
-                  </div>
+                  )}
 
                   <ToggleField
                     control={form.control}
                     label={t(
                       "server_node_config.inherit_dns",
-                      "Inherit global DNS"
+                      "Use global DNS configuration"
                     )}
                     name="inherit_dns"
                   />
-                  <div
-                    className={
-                      inheritDNS ? "pointer-events-none opacity-50" : ""
-                    }
-                  >
+                  {inheritDNS && cfgResp ? (
+                    <InheritedPreview
+                      description={t(
+                        "server_node_config.global_dns_summary",
+                        "{{count}} global DNS entries",
+                        { count: cfgResp.global.dns?.length || 0 }
+                      )}
+                      title={t(
+                        "server_node_config.globalPreview",
+                        "Using global configuration"
+                      )}
+                    />
+                  ) : (
                     <FormField
                       control={form.control}
                       name="dns"
@@ -389,7 +470,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                         </FormItem>
                       )}
                     />
-                  </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent className="space-y-4" value="outbound">
@@ -397,15 +478,23 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                     control={form.control}
                     label={t(
                       "server_node_config.inherit_outbound",
-                      "Inherit global outbound"
+                      "Use global outbound rules"
                     )}
                     name="inherit_outbound"
                   />
-                  <div
-                    className={
-                      inheritOutbound ? "pointer-events-none opacity-50" : ""
-                    }
-                  >
+                  {inheritOutbound && cfgResp ? (
+                    <InheritedPreview
+                      description={t(
+                        "server_node_config.global_outbound_summary",
+                        "{{count}} global outbound rules",
+                        { count: cfgResp.global.outbound?.length || 0 }
+                      )}
+                      title={t(
+                        "server_node_config.globalPreview",
+                        "Using global configuration"
+                      )}
+                    />
+                  ) : (
                     <FormField
                       control={form.control}
                       name="outbound"
@@ -427,7 +516,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                         </FormItem>
                       )}
                     />
-                  </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent className="space-y-4" value="block">
@@ -435,15 +524,23 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                     control={form.control}
                     label={t(
                       "server_node_config.inherit_block",
-                      "Inherit global block rules"
+                      "Use global block rules"
                     )}
                     name="inherit_block"
                   />
-                  <div
-                    className={
-                      inheritBlock ? "pointer-events-none opacity-50" : ""
-                    }
-                  >
+                  {inheritBlock && cfgResp ? (
+                    <InheritedPreview
+                      description={t(
+                        "server_node_config.global_block_summary",
+                        "{{count}} global block rules",
+                        { count: cfgResp.global.block?.length || 0 }
+                      )}
+                      title={t(
+                        "server_node_config.globalPreview",
+                        "Using global configuration"
+                      )}
+                    />
+                  ) : (
                     <FormField
                       control={form.control}
                       name="block"
@@ -466,7 +563,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
                         </FormItem>
                       )}
                     />
-                  </div>
+                  )}
                 </TabsContent>
               </form>
             </Form>
@@ -482,7 +579,7 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
             {t("actions.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={saving}
+            disabled={saving || isLoading || isError || !cfgResp || !isDirty}
             form="server-node-config-form"
             type="submit"
           >

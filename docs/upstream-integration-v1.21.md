@@ -14,6 +14,18 @@ customized PPanel frontend without regressing the current Admin experience.
 - Merge base: `87f85306461ed46d5d24ecaed0505838f7069aea`
 - Visual baseline: `apps/admin/tests/visual-baseline/pre-upstream-1.21-f067389`
 
+## Current merge state
+
+- A non-fast-forward merge of `upstream/main@d32c456` is prepared in the
+  working tree and intentionally remains uncommitted.
+- All merge conflicts are resolved and staged; `HEAD` remains at the
+  integration baseline `595b1a4639cd` until the final review approves the
+  merge commit.
+- Legacy split service modules are temporarily retained (except plugin
+  management) while callers move to the aggregated generated clients. This
+  keeps the intermediate merge buildable without weakening the final removal
+  target.
+
 ## Confirmed product decisions
 
 - Preserve the current Admin layout, theme, motion system, Dashboard,
@@ -47,25 +59,25 @@ Status values: `pending`, `in-progress`, `verified`, `not-applicable`.
 
 | Upstream change | Scope | Local landing rule | Status |
 | --- | --- | --- | --- |
-| `cdde298` quota reset log label | Admin log locales | Add type `234` in both locales | pending |
-| `317c460` reset-subscription warning | User Dashboard | Port behavior and copy without restyling User Web | pending |
-| `2df835d`, `db7b9dd`, `b3facb3` Swagger sync | API docs | Already patch-equivalent locally; verify in final Swagger | pending |
+| `cdde298` quota reset log label | Admin log locales | Add type `234` in both locales | verified |
+| `317c460` reset-subscription warning | User Dashboard | Port behavior and copy without restyling User Web | verified |
+| `2df835d`, `db7b9dd`, `b3facb3` Swagger sync | API docs | Already patch-equivalent locally; verify in final Swagger | verified |
 | `61a1b1d` API architecture | Shared services | Adopt templates and aggregated generated clients | pending |
-| `61a1b1d` commission withdrawals | Admin | Rebuild in the current Admin table/dialog/mobile system | pending |
-| `61a1b1d` plugin removal | Admin/shared services | Delete all plugin code and references | pending |
-| `3ff807f` trusted client IP | Pages function | Adopt upstream proxy behavior and tests | pending |
-| `f5f362e` OAuth callbacks | User/Pages function | Adopt upstream logic and tests | pending |
-| `6c202953` loading performance | Both apps/shared UI | Port route locales, icons, Markdown, Lottie, and safe query caching | pending |
-| `117ad816`, `411e72b`, `db65b6f` Swagger sync | API docs | Adopt final upstream documents | pending |
+| `61a1b1d` commission withdrawals | Admin | Rebuild in the current Admin table/dialog/mobile system | in-progress |
+| `61a1b1d` plugin removal | Admin/shared services | Delete all plugin code and references | verified |
+| `3ff807f` trusted client IP | Pages function | Adopt upstream proxy behavior and tests | verified |
+| `f5f362e` OAuth callbacks | User/Pages function | Adopt upstream logic and tests | verified |
+| `6c202953` loading performance | Both apps/shared UI | Port route locales, icons, Markdown, Lottie, and safe query caching | verified |
+| `117ad816`, `411e72b`, `db65b6f` Swagger sync | API docs | Adopt final upstream documents | verified |
 | `6a0bb81`, `9565d73` API regeneration | Shared services | Regenerate once from the final contract | pending |
-| `e444a13` Admin user/log workflows | Admin/ProTable | Port URL filters and workflow behavior into local UI | pending |
-| `9f6a3ca` OAuth invite codes | User/shared types | Adopt session handoff and request field | pending |
-| `e79fa78` server node configuration | Admin servers | Port inherit/override logic into local workspace UI | pending |
+| `e444a13` Admin user/log workflows | Admin/ProTable | Port URL filters and workflow behavior into local UI | verified |
+| `9f6a3ca` OAuth invite codes | User/shared types | Adopt session handoff and request field | verified |
+| `e79fa78` server node configuration | Admin servers | Port inherit/override logic into local workspace UI | verified |
 | `41dd6c7` sponsor restoration | Admin Dashboard/payment | Do not restore; remove sponsor module completely | not-applicable |
-| `c25838e` commission naming | Admin | Use final commission-management naming | pending |
-| `6ce8a8a` request risk metadata | Admin logs/shared types | Integrate into the unified local log experience | pending |
-| `4e6d5ff` timezone offset | Admin header | Adopt final calculation and tests | pending |
-| `9e51a57` order creation log | Admin logs/API | Add through the unified local log component | pending |
+| `c25838e` commission naming | Admin | Use final commission-management naming | verified |
+| `6ce8a8a` request risk metadata | Admin logs/shared types | Integrate into the unified local log experience | verified |
+| `4e6d5ff` timezone offset | Admin header | Adopt final calculation and tests | verified |
+| `9e51a57` order creation log | Admin logs/API | Add through the unified local log component | verified |
 
 Release-only and branch-merge commits are covered by the final merge commit and
 are not implemented as separate features. Duplicate timezone and order-log

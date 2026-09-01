@@ -110,7 +110,7 @@ export default function User() {
         eyebrow={t("userManagement", "User management")}
         title={t("userList", "Users")}
       />
-      <ProTable<API.User, API.GetUserListParams>
+      <ProTable<API.User, API.getUserListParams>
         action={ref}
         actions={{
           render: (row) => [

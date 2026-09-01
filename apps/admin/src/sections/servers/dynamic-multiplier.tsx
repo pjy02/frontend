@@ -7,9 +7,9 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { ArrayInput } from "@workspace/ui/composed/dynamic-Inputs";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
-  getNodeMultiplier,
-  setNodeMultiplier,
-} from "@workspace/ui/services/admin/system";
+  getSystemGetNodeMultiplier as getNodeMultiplier,
+  postSystemSetNodeMultiplier as setNodeMultiplier,
+} from "@workspace/ui/services/admin/admin";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";

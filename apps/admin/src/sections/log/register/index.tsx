@@ -9,6 +9,7 @@ import {
   UserAgentValue,
 } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail } from "@/sections/user/user-detail";
 
 export default function RegisterLogPage() {
@@ -47,6 +48,16 @@ export default function RegisterLogPage() {
           accessorKey: "user_agent",
           header: t("column.userAgent", "User Agent"),
           cell: ({ row }) => <UserAgentValue value={row.original.user_agent} />,
+        },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => (
+            <RequestSource
+              ip={row.original.register_ip}
+              metadata={row.original}
+            />
+          ),
         },
         {
           accessorKey: "timestamp",

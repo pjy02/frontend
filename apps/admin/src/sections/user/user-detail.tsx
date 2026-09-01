@@ -177,8 +177,9 @@ export function UserDetail({ id }: { id: number }) {
   if (!id) return "--";
 
   const identifier =
-    data?.auth_methods.find((m) => m.auth_type === "email")?.auth_identifier ||
-    data?.auth_methods[0]?.auth_identifier;
+    data?.auth_methods.find(
+      (method: API.UserAuthMethod) => method.auth_type === "email"
+    )?.auth_identifier || data?.auth_methods[0]?.auth_identifier;
 
   return (
     <HoverCard>

@@ -14,9 +14,9 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { MarkdownEditor } from "@workspace/ui/composed/editor/markdown";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
-  getTosConfig,
-  updateTosConfig,
-} from "@workspace/ui/services/admin/system";
+  getSystemTosConfig as getTosConfig,
+  putSystemTosConfig as updateTosConfig,
+} from "@workspace/ui/services/admin/admin";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";

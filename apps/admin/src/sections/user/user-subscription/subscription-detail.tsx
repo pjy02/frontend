@@ -3,9 +3,9 @@ import { Switch } from "@workspace/ui/components/switch";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
 import {
-  getUserSubscribeDevices,
-  kickOfflineByUserDevice,
-} from "@workspace/ui/services/admin/user";
+  getUserSubscribeDevice as getUserSubscribeDevices,
+  putUserDeviceKickOffline as kickOfflineByUserDevice,
+} from "@workspace/ui/services/admin/admin";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -96,7 +96,7 @@ export function SubscriptionDetail({
               { accessorKey: "identifier", header: "IMEI" },
               {
                 accessorKey: "user_agent",
-                header: t("userAgent", "User Agent"),
+                header: t("userAgent", "User-Agent"),
               },
               {
                 accessorKey: "ip",

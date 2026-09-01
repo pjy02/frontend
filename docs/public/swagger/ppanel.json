@@ -2049,9 +2049,14 @@
                         "required": true
                     },
                     {
+                        "enum": [
+                            10,
+                            11
+                        ],
                         "type": "integer",
                         "name": "type",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -2131,6 +2136,75 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/dto.FilterMobileLogResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/log/order/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Filter order creation logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "type": "integer",
+                        "name": "size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/result.ResponseSuccessBean"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.FilterOrderLogResponse"
                                         }
                                     }
                                 }
@@ -11401,11 +11475,35 @@
         "dto.BalanceLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "amount": {
                     "type": "integer"
                 },
                 "balance": {
                     "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "order_no": {
                     "type": "string"
@@ -11415,6 +11513,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -11703,8 +11804,32 @@
         "dto.CommissionLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "amount": {
                     "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "order_no": {
                     "type": "string"
@@ -11714,6 +11839,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -12913,6 +13041,20 @@
                 }
             }
         },
+        "dto.FilterOrderLogResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderLog"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.FilterRegisterLogResponse": {
             "type": "object",
             "properties": {
@@ -13649,11 +13791,35 @@
         "dto.GiftLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "amount": {
                     "type": "integer"
                 },
                 "balance": {
                     "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "order_no": {
                     "type": "string"
@@ -13669,6 +13835,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -13722,18 +13891,45 @@
         },
         "dto.LogSetting": {
             "type": "object",
+            "required": [
+                "auto_clear",
+                "clear_days"
+            ],
             "properties": {
                 "auto_clear": {
                     "type": "boolean"
                 },
                 "clear_days": {
-                    "type": "integer"
+                    "type": "integer",
+                    "maximum": 3650,
+                    "minimum": 1
                 }
             }
         },
         "dto.LoginLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
+                },
                 "login_ip": {
                     "type": "string"
                 },
@@ -13765,12 +13961,36 @@
         "dto.MessageLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
                 "content": {},
                 "created_at": {
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "platform": {
                     "type": "string"
@@ -13786,6 +14006,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 }
             }
         },
@@ -14080,6 +14303,9 @@
                 "cf_token": {
                     "type": "string"
                 },
+                "invite": {
+                    "type": "string"
+                },
                 "method": {
                     "description": "google, facebook, apple, telegram, github etc.",
                     "type": "string"
@@ -14249,6 +14475,86 @@
                 },
                 "updated_at": {
                     "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.OrderLog": {
+            "type": "object",
+            "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
+                "amount": {
+                    "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "coupon_discount": {
+                    "type": "integer"
+                },
+                "discount": {
+                    "type": "integer"
+                },
+                "fee_amount": {
+                    "type": "integer"
+                },
+                "gift_amount": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "order_no": {
+                    "type": "string"
+                },
+                "order_type": {
+                    "type": "integer"
+                },
+                "payment_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "subscribe_id": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -15339,10 +15645,31 @@
         "dto.RegisterLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "auth_method": {
                     "type": "string"
                 },
                 "identifier": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
                     "type": "string"
                 },
                 "register_ip": {
@@ -15433,6 +15760,30 @@
         "dto.ResetSubscribeLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
+                },
                 "order_no": {
                     "type": "string"
                 },
@@ -15441,6 +15792,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
@@ -15453,8 +15807,32 @@
         "dto.ResetSubscribeTrafficLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
+                "client_ip": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "order_no": {
                     "type": "string"
@@ -15464,6 +15842,9 @@
                 },
                 "type": {
                     "type": "integer"
+                },
+                "user_agent": {
+                    "type": "string"
                 },
                 "user_subscribe_id": {
                     "type": "integer"
@@ -16329,7 +16710,28 @@
         "dto.SubscribeLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "client_ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
                     "type": "string"
                 },
                 "timestamp": {
@@ -17481,8 +17883,29 @@
         "dto.UserLoginLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
+                    "type": "string"
                 },
                 "login_ip": {
                     "type": "string"
@@ -17759,10 +18182,31 @@
         "dto.UserSubscribeLog": {
             "type": "object",
             "properties": {
+                "actor_id": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "ip": {
+                    "type": "string"
+                },
+                "ip_as_organization": {
+                    "type": "string"
+                },
+                "ip_asn": {
+                    "type": "integer"
+                },
+                "ip_city": {
+                    "type": "string"
+                },
+                "ip_country": {
+                    "type": "string"
+                },
+                "ip_country_code": {
+                    "type": "string"
+                },
+                "ip_region": {
                     "type": "string"
                 },
                 "timestamp": {

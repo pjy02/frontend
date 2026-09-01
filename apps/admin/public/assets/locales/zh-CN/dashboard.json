@@ -1,8 +1,4 @@
 {
-  "billing": {
-    "description": "赞助帮助 PPanel 继续发布更新！",
-    "title": "项目支持"
-  },
   "overview": {
     "absoluteChange": "绝对变化",
     "allClear": "运行正常",

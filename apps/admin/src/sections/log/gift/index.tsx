@@ -6,6 +6,7 @@ import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";
 import { LogTypeChip } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
 
 export default function GiftLogPage() {
@@ -63,6 +64,11 @@ export default function GiftLogPage() {
           ),
         },
         { accessorKey: "remark", header: t("column.remark", "Remark") },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => <RequestSource metadata={row.original} />,
+        },
         {
           accessorKey: "timestamp",
           header: t("column.time", "Time"),

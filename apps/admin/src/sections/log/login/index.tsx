@@ -10,6 +10,7 @@ import {
   UserAgentValue,
 } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail } from "@/sections/user/user-detail";
 
 export default function LoginLogPage() {
@@ -58,6 +59,13 @@ export default function LoginLogPage() {
                 {t("failed", "Failed")}
               </LogStatusChip>
             ),
+        },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => (
+            <RequestSource ip={row.original.login_ip} metadata={row.original} />
+          ),
         },
         {
           accessorKey: "timestamp",

@@ -12,6 +12,7 @@ test("Swagger assets satisfy the frontend documentation contract", async () => {
     await readFile(path.join(swaggerDir, ".backend-generated"), "utf8")
   )
     .split("\n")
+    .map((entry) => entry.trim())
     .filter(Boolean);
   const entries = await readdir(swaggerDir);
   const jsonFiles = entries.filter((entry) => entry.endsWith(".json")).sort();

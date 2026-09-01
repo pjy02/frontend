@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 
 export interface IParams {
   key: string;
+  label?: string;
   placeholder?: string;
   options?: { label: string; value: string }[];
   type?: "text" | "select" | "date";
