@@ -39,6 +39,19 @@ html.admin-console .dashboard-range-tabs__trigger {
   will-change: opacity, transform;
 }
 
+.dashboard-fade-through-stage {
+  display: grid;
+  min-width: 0;
+  overflow: clip;
+}
+
+.dashboard-fade-through-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
+  transform-origin: center top;
+  will-change: opacity, transform;
+}
+
 .dashboard-system-health {
   transition:
     border-color var(--admin-motion-normal) var(--admin-motion-easing),
@@ -105,8 +118,11 @@ html.admin-console .dashboard-range-tabs__trigger {
 .dashboard-traffic-tooltip-bar {
   width: var(--traffic-share);
   transform-origin: left center;
-  animation: dashboard-traffic-grow 520ms var(--admin-motion-enter) both;
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
+}
+
+.dashboard-traffic-tooltip-bar {
+  animation: dashboard-traffic-grow 360ms var(--admin-motion-enter) both;
 }
 
 .dashboard-traffic-bar > span,
@@ -258,6 +274,18 @@ html.admin-console.dark .dashboard-traffic-tooltip {
     min-width: 0;
   }
 
+  html.admin-console .dashboard-range-tabs__list::before,
+  html.admin-console .dashboard-traffic-controls__tabs-list::before {
+    display: block;
+  }
+
+  html.admin-console
+    :is(.dashboard-range-tabs__list, .dashboard-traffic-controls__tabs-list)
+    > [data-slot="tabs-trigger"][data-state="active"] {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
   .dashboard-trend-header {
     gap: 0.75rem;
     padding-inline: 1rem;
@@ -299,6 +327,7 @@ html.admin-console.dark .dashboard-traffic-tooltip {
   }
 
   .dashboard-data-transition,
+  .dashboard-fade-through-panel,
   .dashboard-chart-tooltip-transition,
   .dashboard-traffic-tooltip__data,
   .dashboard-traffic-row {

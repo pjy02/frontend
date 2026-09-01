@@ -85,7 +85,11 @@ import {
   WorkspaceDialogTrigger,
 } from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
-import { AnimatedNumber, DashboardDataTransition } from "./dashboard-motion";
+import {
+  AnimatedNumber,
+  DashboardDataTransition,
+  DashboardFadeThrough,
+} from "./dashboard-motion";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
@@ -1532,129 +1536,133 @@ function TrafficRanking({
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="space-y-3 p-5">
-              <Skeleton className="h-20 w-full rounded-lg" />
-              {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton
-                  className="h-20 w-full rounded-lg"
-                  key={`traffic-skeleton-${index}`}
-                />
-              ))}
-            </div>
-          ) : serverError || data.items.length === 0 ? (
-            <div className="p-5">
-              <DataUnavailable
-                text={t("overview.unavailable", "Data unavailable")}
-              />
-            </div>
-          ) : (
-            <>
-              <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
-                <TrafficSummaryValue
-                  format={formatBytes}
-                  hint={
-                    systemTotal === undefined
-                      ? t(
-                          "overview.systemTotalHistoricalHint",
-                          "Historical system total is not provided by the current API"
-                        )
-                      : t("overview.systemTotalHint", "All traffic today")
-                  }
-                  label={t("overview.systemTotal", "System total")}
-                  value={systemTotal}
-                />
-                <TrafficSummaryValue
-                  className="border-l"
-                  format={formatBytes}
-                  hint={t(
-                    "overview.rankingDatasetHint",
-                    "{{count}} records returned by the ranking source",
-                    { count: data.items.length }
-                  )}
-                  label={t("overview.rankingDatasetTotal", "Ranking total")}
-                  value={data.currentTotal}
-                />
-                <TrafficSummaryValue
-                  className="border-t xl:border-t-0 xl:border-l"
-                  format={formatBytes}
-                  hint={t("overview.topShare", "{{share}}% of {{scope}}", {
-                    share: visibleShare.toFixed(1),
-                    scope:
-                      systemTotal === undefined
-                        ? t("overview.rankingDataset", "ranking data")
-                        : t("overview.systemTraffic", "system traffic"),
-                  })}
-                  label={t("overview.topLabel", "Top {{count}}", {
-                    count: limit,
-                  })}
-                  value={visibleTotal}
-                />
-                <div className="border-t border-l px-5 py-4 xl:border-t-0">
-                  <div className="text-muted-foreground text-xs">
-                    {t("overview.transferSplit", "Upload / Download")}
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-medium text-sm tabular-nums">
-                    <span className="inline-flex items-center gap-1 text-chart-1">
-                      <ArrowUp className="size-3.5" /> {formatBytes(upload)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-chart-4">
-                      <ArrowDown className="size-3.5" /> {formatBytes(download)}
-                    </span>
-                  </div>
-                </div>
-                <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
-                  <div className="text-muted-foreground text-xs">
-                    {t("overview.periodComparison", "{{date}} / change", {
-                      date: previousLabel,
-                    })}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <AnimatedNumber
-                      className="font-semibold text-base tabular-nums"
-                      format={formatBytes}
-                      value={data.previousTotal}
-                    />
-                    <GrowthChip value={growth} />
-                  </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {t("overview.currentPeriod", "Current period: {{date}}", {
-                      date: currentLabel,
-                    })}
-                  </div>
-                </div>
+          <DashboardFadeThrough transitionKey={trafficType}>
+            {loading ? (
+              <div className="space-y-3 p-5">
+                <Skeleton className="h-20 w-full rounded-lg" />
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton
+                    className="h-20 w-full rounded-lg"
+                    key={`traffic-skeleton-${index}`}
+                  />
+                ))}
               </div>
-              <LayoutGroup id={`traffic-ranking-${trafficType}`}>
-                <ol className="dashboard-traffic-list divide-y">
-                  <AnimatePresence initial={!reducedMotion} mode="popLayout">
-                    {visibleData.map((item, index) => (
-                      <TrafficRankingRow
-                        currentLabel={currentLabel}
-                        index={index}
-                        item={item}
-                        key={`${trafficType}-${item.id}`}
-                        leaderTotal={leaderTotal}
-                        previousLabel={previousLabel}
-                        reducedMotion={reducedMotion}
-                        selectedDate={activeDate}
-                        trafficType={trafficType}
-                        userEmail={
-                          item.uid === undefined
-                            ? undefined
-                            : userEmailById.get(item.uid)
-                        }
-                        userEmailLoading={
-                          item.uid === undefined
-                            ? false
-                            : pendingUserIds.has(item.uid)
-                        }
+            ) : serverError || data.items.length === 0 ? (
+              <div className="p-5">
+                <DataUnavailable
+                  text={t("overview.unavailable", "Data unavailable")}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
+                  <TrafficSummaryValue
+                    format={formatBytes}
+                    hint={
+                      systemTotal === undefined
+                        ? t(
+                            "overview.systemTotalHistoricalHint",
+                            "Historical system total is not provided by the current API"
+                          )
+                        : t("overview.systemTotalHint", "All traffic today")
+                    }
+                    label={t("overview.systemTotal", "System total")}
+                    value={systemTotal}
+                  />
+                  <TrafficSummaryValue
+                    className="border-l"
+                    format={formatBytes}
+                    hint={t(
+                      "overview.rankingDatasetHint",
+                      "{{count}} records returned by the ranking source",
+                      { count: data.items.length }
+                    )}
+                    label={t("overview.rankingDatasetTotal", "Ranking total")}
+                    value={data.currentTotal}
+                  />
+                  <TrafficSummaryValue
+                    className="border-t xl:border-t-0 xl:border-l"
+                    format={formatBytes}
+                    hint={t("overview.topShare", "{{share}}% of {{scope}}", {
+                      share: visibleShare.toFixed(1),
+                      scope:
+                        systemTotal === undefined
+                          ? t("overview.rankingDataset", "ranking data")
+                          : t("overview.systemTraffic", "system traffic"),
+                    })}
+                    label={t("overview.topLabel", "Top {{count}}", {
+                      count: limit,
+                    })}
+                    value={visibleTotal}
+                  />
+                  <div className="border-t border-l px-5 py-4 xl:border-t-0">
+                    <div className="text-muted-foreground text-xs">
+                      {t("overview.transferSplit", "Upload / Download")}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-medium text-sm tabular-nums">
+                      <span className="inline-flex items-center gap-1 text-chart-1">
+                        <ArrowUp className="size-3.5" /> {formatBytes(upload)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-chart-4">
+                        <ArrowDown className="size-3.5" />{" "}
+                        {formatBytes(download)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
+                    <div className="text-muted-foreground text-xs">
+                      {t("overview.periodComparison", "{{date}} / change", {
+                        date: previousLabel,
+                      })}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <AnimatedNumber
+                        animateOnMount={false}
+                        className="font-semibold text-base tabular-nums"
+                        format={formatBytes}
+                        value={data.previousTotal}
                       />
-                    ))}
-                  </AnimatePresence>
-                </ol>
-              </LayoutGroup>
-            </>
-          )}
+                      <GrowthChip value={growth} />
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      {t("overview.currentPeriod", "Current period: {{date}}", {
+                        date: currentLabel,
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <LayoutGroup id={`traffic-ranking-${trafficType}`}>
+                  <ol className="dashboard-traffic-list divide-y">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {visibleData.map((item, index) => (
+                        <TrafficRankingRow
+                          currentLabel={currentLabel}
+                          index={index}
+                          item={item}
+                          key={`${trafficType}-${item.id}`}
+                          leaderTotal={leaderTotal}
+                          previousLabel={previousLabel}
+                          reducedMotion={reducedMotion}
+                          selectedDate={activeDate}
+                          trafficType={trafficType}
+                          userEmail={
+                            item.uid === undefined
+                              ? undefined
+                              : userEmailById.get(item.uid)
+                          }
+                          userEmailLoading={
+                            item.uid === undefined
+                              ? false
+                              : pendingUserIds.has(item.uid)
+                          }
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </ol>
+                </LayoutGroup>
+              </>
+            )}
+          </DashboardFadeThrough>
         </CardContent>
       </Card>
     </section>
@@ -1681,6 +1689,7 @@ function TrafficSummaryValue({
         <div className="mt-1 font-semibold text-base">—</div>
       ) : (
         <AnimatedNumber
+          animateOnMount={false}
           className="mt-1 block font-semibold text-base tabular-nums"
           format={format}
           value={value}
@@ -1803,11 +1812,11 @@ function TrafficRankingRow({
           ease: [0.2, 0, 0, 1],
         },
         opacity: {
-          delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
+          delay: reducedMotion ? 0 : Math.min(index * 0.018, 0.09),
           duration: reducedMotion ? 0 : 0.2,
         },
         y: {
-          delay: reducedMotion ? 0 : Math.min(index * 0.035, 0.25),
+          delay: reducedMotion ? 0 : Math.min(index * 0.018, 0.09),
           duration: reducedMotion ? 0 : 0.24,
           ease: [0.2, 0, 0, 1],
         },
@@ -1853,6 +1862,7 @@ function TrafficRankingRow({
                   </div>
                   <div className="text-right">
                     <AnimatedNumber
+                      animateOnMount={false}
                       className="font-semibold text-sm tabular-nums"
                       format={formatBytes}
                       value={item.total}
