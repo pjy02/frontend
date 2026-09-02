@@ -65,6 +65,18 @@ describe("request source", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("keeps anonymous and system operations inspectable without IP metadata", () => {
+    render(<RequestSource metadata={{ actor_id: 0 }} />);
+
+    expect(screen.getByText("Anonymous or system")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "View request source details" })
+    );
+    expect(screen.getAllByText("Anonymous or system").length).toBeGreaterThan(
+      0
+    );
+  });
+
   it("deduplicates repeated location names", () => {
     expect(
       formatRequestLocation({

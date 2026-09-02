@@ -98,6 +98,7 @@ export function RequestSource({
   const userAgent = clean(metadata.user_agent);
   const organization = clean(metadata.ip_as_organization);
   const actorId = Number(metadata.actor_id) || 0;
+  const hasActorMetadata = metadata.actor_id !== undefined;
   const asn = Number(metadata.ip_asn) || 0;
   const hasMetadata = Boolean(
     clientIp ||
@@ -105,7 +106,7 @@ export function RequestSource({
       location ||
       userAgent ||
       organization ||
-      actorId ||
+      hasActorMetadata ||
       asn
   );
 
@@ -145,6 +146,16 @@ export function RequestSource({
               <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
                 <MonitorSmartphone className="size-3" />
                 <span className="truncate">{userAgent}</span>
+              </span>
+            ) : null}
+            {!(clientIp || location || userAgent) && hasActorMetadata ? (
+              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
+                <UserRound className="size-3" />
+                <span className="truncate">
+                  {actorId > 0
+                    ? t("requestSource.actor", "Actor")
+                    : t("requestSource.anonymous", "Anonymous or system")}
+                </span>
               </span>
             ) : null}
           </span>

@@ -11,10 +11,12 @@ import { Separator } from "@workspace/ui/components/separator";
 import { getLogOrderList as filterOrderLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { Display } from "@/components/display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { OrderLink } from "@/components/order-link";
 import { LogPage } from "@/sections/log/components/log-page";
 import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail } from "@/sections/user/user-detail";
+import { useSubscribe } from "@/stores/subscribe";
 import { formatDate } from "@/utils/common";
 
 function PriceRow({ label, value }: { label: string; value: number }) {
@@ -30,10 +32,14 @@ function PriceRow({ label, value }: { label: string; value: number }) {
 
 export default function OrderLogPage() {
   const { t } = useTranslation("log");
+  const { subscribes } = useSubscribe();
   const getOrderTypeText = (type: number) => {
     const typeText = t(`orderType.${type}`, { defaultValue: "" });
     return typeText || `${t("unknown", "Unknown")} (${type})`;
   };
+  const getProductName = (subscribeId: number) =>
+    subscribes.find((subscribe) => subscribe.id === subscribeId)?.name ||
+    `#${subscribeId}`;
 
   return (
     <LogPage<API.OrderLog, { date?: string; search?: string; user_id?: number }>
@@ -63,7 +69,7 @@ export default function OrderLogPage() {
               <Badge variant="secondary">{getOrderTypeText(4)}</Badge>
             ) : (
               <div className="grid gap-1 text-sm">
-                <span className="font-mono">#{row.original.subscribe_id}</span>
+                <span>{getProductName(row.original.subscribe_id)}</span>
                 <span className="text-muted-foreground text-xs">
                   {t("column.quantity", "Quantity")} × {row.original.quantity}
                 </span>
@@ -158,6 +164,88 @@ export default function OrderLogPage() {
           user_id: filter?.user_id,
         })
       }
+      mobile={{
+        getAriaLabel: (order) =>
+          `${t("column.orderNo", "Order No.")} ${order.order_no}`,
+        render: (order) => {
+          const type = getOrderTypeText(order.order_type);
+          const product =
+            order.order_type === 4
+              ? type
+              : `${getProductName(order.subscribe_id)} × ${order.quantity}`;
+
+          return (
+            <MobileListSummary
+              details={[
+                {
+                  label: t("column.price", "Unit price"),
+                  value: <Display type="currency" value={order.price} />,
+                },
+                {
+                  label: t("column.discount", "Discount"),
+                  value: <Display type="currency" value={order.discount} />,
+                },
+                {
+                  label: t("column.couponDiscount", "Coupon discount"),
+                  value: (
+                    <Display type="currency" value={order.coupon_discount} />
+                  ),
+                },
+                {
+                  label: t("column.giftAmount", "Gift amount"),
+                  value: <Display type="currency" value={order.gift_amount} />,
+                },
+                {
+                  label: t("column.feeAmount", "Fee amount"),
+                  value: <Display type="currency" value={order.fee_amount} />,
+                },
+                {
+                  label: t("column.payment", "Payment"),
+                  value: `${order.method || "--"}${
+                    order.payment_id ? ` · #${order.payment_id}` : ""
+                  }`,
+                  wide: true,
+                },
+                {
+                  label: t("column.requestSource", "Request source"),
+                  value: <RequestSource metadata={order} />,
+                  wide: true,
+                },
+              ]}
+              fields={[
+                {
+                  label: t("column.user", "User"),
+                  value: <UserDetail id={order.user_id} />,
+                  wide: true,
+                },
+                {
+                  label: t("column.product", "Product"),
+                  value: product,
+                  wide: true,
+                },
+                {
+                  label: t("column.total", "Total"),
+                  value: (
+                    <span className="font-semibold">
+                      <Display type="currency" value={order.amount} />
+                    </span>
+                  ),
+                },
+                {
+                  label: t("column.time", "Time"),
+                  value: formatDate(order.timestamp),
+                },
+              ]}
+              subtitle={`${type} · ${order.source || "--"}`}
+              title={
+                <span className="block truncate">
+                  <OrderLink orderId={order.order_no} />
+                </span>
+              }
+            />
+          );
+        },
+      }}
       params={[
         { key: "date", type: "date" },
         {

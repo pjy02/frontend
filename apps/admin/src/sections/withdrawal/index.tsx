@@ -25,7 +25,9 @@ import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Display } from "@/components/display";
+import { MobileListSummary } from "@/components/mobile-list-summary";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/states";
 import { StatusChip } from "@/components/status-chip";
 import { UserDetail } from "@/sections/user/user-detail";
 import { formatDate } from "@/utils/common";
@@ -293,9 +295,76 @@ export default function WithdrawalPage() {
                 : formatDate(row.original.updated_at),
           },
         ]}
+        empty={
+          <EmptyState
+            description={t(
+              "emptyDescription",
+              "New commission withdrawal requests will appear here."
+            )}
+            title={t("emptyTitle", "No commission requests")}
+          />
+        }
         header={{ title: t("records", "Withdrawal requests") }}
         initialFilters={initialFilters}
         initialPagination={initialPagination}
+        mobile={{
+          getAriaLabel: (withdrawal) =>
+            `${t("record", "Commission request")} #${withdrawal.id}`,
+          render: (withdrawal) => (
+            <MobileListSummary
+              details={[
+                {
+                  label: t("withdrawalInfo", "Withdrawal Info"),
+                  value: (
+                    <span className="whitespace-pre-wrap break-all">
+                      {withdrawal.content || "--"}
+                    </span>
+                  ),
+                  wide: true,
+                },
+                ...(withdrawal.reason
+                  ? [
+                      {
+                        label: t("rejectionReason", "Rejection Reason"),
+                        value: (
+                          <span className="whitespace-pre-wrap break-words">
+                            {withdrawal.reason}
+                          </span>
+                        ),
+                        wide: true,
+                      },
+                    ]
+                  : []),
+                {
+                  label: t("reviewedAt", "Reviewed At"),
+                  value:
+                    withdrawal.status === 0
+                      ? "--"
+                      : formatDate(withdrawal.updated_at),
+                  wide: true,
+                },
+              ]}
+              fields={[
+                {
+                  label: t("amount", "Amount"),
+                  value: (
+                    <span className="font-semibold">
+                      <Display type="currency" value={withdrawal.amount} />
+                    </span>
+                  ),
+                },
+                {
+                  label: t("submittedAt", "Submitted At"),
+                  value: formatDate(withdrawal.created_at),
+                },
+              ]}
+              subtitle={`#${withdrawal.id}`}
+              title={<UserDetail id={withdrawal.user_id} />}
+              trailing={renderStatus(withdrawal.status)}
+            />
+          ),
+        }}
+        mobileFilterMode="drawer"
         onFiltersChange={syncFilters}
         onPaginationChange={syncPagination}
         params={[

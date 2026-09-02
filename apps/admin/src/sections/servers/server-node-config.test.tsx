@@ -8,7 +8,9 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import ServerNodeConfig from "./server-node-config";
+import ServerNodeConfig, {
+  normalizeServerNodeConfigValues,
+} from "./server-node-config";
 
 const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
@@ -164,5 +166,61 @@ describe("server node configuration", () => {
       (screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
         .disabled
     ).toBe(true);
+  });
+
+  it("protects unsaved changes when the workspace is closed", () => {
+    render(<ServerNodeConfig server={server} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Node Config" }));
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Use global IP strategy" })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Discard changes?" })
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(
+      screen.getByRole("heading", { name: "Node configuration overrides" })
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Node configuration overrides" })
+    ).toBeNull();
+  });
+
+  it("normalizes custom DNS and block rules before saving", () => {
+    const normalized = normalizeServerNodeConfigValues({
+      block: [" ads.example.com ", "", "ads.example.com", "tracker.test"],
+      dns: [
+        {
+          address: " 8.8.8.8:53 ",
+          domains: [" example.com ", "", "example.com"],
+          proto: " udp ",
+          server_name: " dns.google ",
+        },
+      ],
+      inherit_block: false,
+      inherit_dns: false,
+      inherit_ip_strategy: true,
+      inherit_outbound: true,
+      ip_strategy: "prefer_ipv4",
+      outbound: [],
+    });
+
+    expect(normalized.block).toEqual(["ads.example.com", "tracker.test"]);
+    expect(normalized.dns).toEqual([
+      {
+        address: "8.8.8.8:53",
+        domains: ["example.com"],
+        proto: "udp",
+        server_name: "dns.google",
+      },
+    ]);
   });
 });
