@@ -24,6 +24,7 @@ import {
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
 import Empty from "@workspace/ui/composed/empty";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { getConsoleRevenue as queryRevenueStatistics } from "@workspace/ui/services/admin/admin";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import { useTranslation } from "react-i18next";
@@ -60,6 +61,7 @@ export function RevenueStatisticsCard() {
   };
 
   const { data: RevenueStatistics, isLoading } = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryRevenueStatistics"],
     queryFn: async () => {
       const { data } = await queryRevenueStatistics();

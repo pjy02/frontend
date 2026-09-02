@@ -23,6 +23,7 @@ import Megaphone from "@iconify-icons/uil/megaphone";
 import Message from "@iconify-icons/uil/message";
 import Navigator from "@iconify-icons/uil/navigator";
 import Notes from "@iconify-icons/uil/notes";
+import Power from "@iconify-icons/uil/power";
 import Refresh from "@iconify-icons/uil/refresh";
 import Server from "@iconify-icons/uil/server";
 import ServerNetwork from "@iconify-icons/uil/server-network";
@@ -64,6 +65,7 @@ export const icons: Readonly<Record<string, IconifyIcon>> = {
   message: Message,
   navigator: Navigator,
   notes: Notes,
+  power: Power,
   refresh: Refresh,
   server: Server,
   "server-network": ServerNetwork,

@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { cn } from "../lib/utils";
 
 // dotlottie-react ships a ~550KB inlined WASM player; load it on demand so
 // decorative animations never block first paint.
@@ -23,9 +24,21 @@ const LazyDotLottie = lazy(() =>
 );
 
 export function DotLottieReact(props: ComponentProps<typeof LazyDotLottie>) {
+  const { className, ...playerProps } = props;
   return (
-    <Suspense fallback={null}>
-      <LazyDotLottie {...props} />
+    <Suspense
+      fallback={
+        <div
+          aria-hidden="true"
+          className={cn(
+            "rounded-md bg-muted/30 motion-safe:animate-pulse",
+            className
+          )}
+          data-slot="lottie-placeholder"
+        />
+      }
+    >
+      <LazyDotLottie {...playerProps} className={className} />
     </Suspense>
   );
 }
@@ -119,7 +132,15 @@ export function DeferredDotLottie({
 
   return (
     <div className={className} ref={containerRef}>
-      <Suspense fallback={null}>
+      <Suspense
+        fallback={
+          <div
+            aria-hidden="true"
+            className="size-full rounded-[inherit] bg-muted/30 motion-safe:animate-pulse"
+            data-slot="lottie-placeholder"
+          />
+        }
+      >
         {shouldRender && !prefersReducedMotion ? (
           <LazyDotLottie
             {...props}

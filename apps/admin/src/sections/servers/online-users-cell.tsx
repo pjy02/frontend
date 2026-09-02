@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@workspace/ui/components/badge";
 import { ProTable } from "@workspace/ui/composed/pro-table/pro-table";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { getUserSubscribeDetail as getUserSubscribeById } from "@workspace/ui/services/admin/admin";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { Users } from "lucide-react";
@@ -39,6 +40,7 @@ function UserSubscribeInfo({
   unlimitedText: string;
 }) {
   const { data } = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     enabled: subscribeId !== 0 && open,
     queryKey: ["getUserSubscribeById", subscribeId],
     queryFn: async () => {

@@ -32,6 +32,7 @@ import MessageTextClockOutline from "@iconify-icons/mdi/message-text-clock-outli
 import MicrosoftWindows from "@iconify-icons/mdi/microsoft-windows";
 import OpenInNew from "@iconify-icons/mdi/open-in-new";
 import PhoneSettings from "@iconify-icons/mdi/phone-settings";
+import Refresh from "@iconify-icons/mdi/refresh";
 import ResistorNodes from "@iconify-icons/mdi/resistor-nodes";
 import Server from "@iconify-icons/mdi/server";
 import ShieldAccountOutline from "@iconify-icons/mdi/shield-account-outline";
@@ -76,6 +77,7 @@ export const icons: Readonly<Record<string, IconifyIcon>> = {
   "microsoft-windows": MicrosoftWindows,
   "open-in-new": OpenInNew,
   "phone-settings": PhoneSettings,
+  refresh: Refresh,
   "resistor-nodes": ResistorNodes,
   server: Server,
   "shield-account-outline": ShieldAccountOutline,

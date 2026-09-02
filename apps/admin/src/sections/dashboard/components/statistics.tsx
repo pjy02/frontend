@@ -33,6 +33,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   getUserDetail,
@@ -374,6 +375,7 @@ export default function Statistics() {
   const [trafficLimit, setTrafficLimit] = useState<TrafficLimit>(8);
 
   const serverQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryServerTotalData"],
     queryFn: async () => {
       const { data } = await queryServerTotalData();
@@ -381,6 +383,7 @@ export default function Statistics() {
     },
   });
   const ticketQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryTicketWaitReply"],
     queryFn: async () => {
       const { data } = await queryTicketWaitReply();
@@ -388,6 +391,7 @@ export default function Statistics() {
     },
   });
   const revenueQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryRevenueStatistics"],
     queryFn: async () => {
       const { data } = await queryRevenueStatistics();
@@ -395,6 +399,7 @@ export default function Statistics() {
     },
   });
   const userQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryUserStatistics"],
     queryFn: async () => {
       const { data } = await queryUserStatistics();

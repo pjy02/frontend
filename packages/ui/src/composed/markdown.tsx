@@ -14,6 +14,37 @@ export interface MarkdownProps {
 const MarkdownImpl = lazy(() => import("./markdown-impl"));
 const RichMarkdownImpl = lazy(() => import("./rich-markdown-impl"));
 
+function MarkdownPlaceholder({ content }: { content: string }) {
+  const lineCount = Math.min(
+    6,
+    Math.max(
+      1,
+      content
+        .split("\n")
+        .reduce(
+          (total, line) => total + Math.max(1, Math.ceil(line.length / 80)),
+          0
+        )
+    )
+  );
+
+  return (
+    <div
+      aria-hidden="true"
+      className="space-y-2 py-1"
+      data-slot="markdown-placeholder"
+    >
+      {Array.from({ length: lineCount }, (_, index) => (
+        <span
+          className="block h-4 rounded bg-muted/60 motion-safe:animate-pulse"
+          key={index}
+          style={{ width: index === lineCount - 1 ? "72%" : "100%" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function requiresRichRendering(content: string) {
   const hasFencedCode = /(^|\n)\s*(```|~~~)/.test(content);
   const hasBlockMath = /\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]/.test(content);
@@ -28,7 +59,7 @@ export function Markdown({ rich, ...props }: MarkdownProps) {
       : MarkdownImpl;
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<MarkdownPlaceholder content={props.children} />}>
       <Impl {...props} />
     </Suspense>
   );

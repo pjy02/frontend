@@ -4,7 +4,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { i18nNamespaces, supportedLngs } from "../src/config/i18n";
+import {
+  getInitialI18nNamespaces,
+  i18nNamespaces,
+  supportedLngs,
+} from "../src/config/i18n";
 
 const localeRoot = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -67,5 +71,24 @@ describe("admin locale keys", () => {
         );
       }
     }
+  });
+
+  it("loads the dashboard shell before route-specific namespaces", () => {
+    expect(getInitialI18nNamespaces("/dashboard/withdrawal")).toEqual([
+      "components",
+      "menu",
+      "auth",
+      "withdrawal",
+    ]);
+    expect(getInitialI18nNamespaces("/dashboard/log/order")).toEqual([
+      "components",
+      "menu",
+      "auth",
+      "log",
+    ]);
+  });
+
+  it("does not retain the removed plugin namespace", () => {
+    expect(i18nNamespaces).not.toContain("plugin");
   });
 });
