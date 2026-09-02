@@ -118,6 +118,13 @@ export interface ProTableProps<TData, TValue> {
   ) => Promise<TData[]>;
   onFiltersChange?: (filters: Record<string, unknown>) => void;
   initialFilters?: Record<string, unknown>;
+  onPaginationChange?: (pagination: ProTablePagination) => void;
+  initialPagination?: Partial<ProTablePagination>;
+}
+
+export interface ProTablePagination {
+  page: number;
+  size: number;
 }
 
 export interface ProTableActions {
@@ -140,35 +147,43 @@ export function ProTable<
   onSort,
   onFiltersChange,
   initialFilters,
+  onPaginationChange,
+  initialPagination,
   mobile,
   mobileFilterMode,
   pagination: paginationEnabled = true,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
-    if (initialFilters) {
-      return Object.entries(initialFilters).map(([id, value]) => ({
-        id,
-        value,
-      })) as ColumnFiltersState;
-    }
-    return [];
-  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
+    toColumnFilters(initialFilters || {})
+  );
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [data, setData] = useState<TData[]>([]);
   const [rowCount, setRowCount] = useState<number>(0);
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const normalizedInitialPagination = normalizePagination(initialPagination);
+  const initialPageIndex = normalizedInitialPagination.pageIndex;
+  const initialPageSize = normalizedInitialPagination.pageSize;
+  const [pagination, setPagination] = useState(normalizedInitialPagination);
   const requestIdRef = useRef(0);
   const onFiltersChangeRef = useRef(onFiltersChange);
+  const onPaginationChangeRef = useRef(onPaginationChange);
+  const initialFiltersRef = useRef(initialFilters);
+  const initialFiltersSnapshot = serializeColumnFilters(
+    toColumnFilters(initialFilters || {})
+  );
+  const previousInitialFiltersRef = useRef(initialFiltersSnapshot);
+  const initialPaginationSnapshot = serializePagination(
+    normalizedInitialPagination
+  );
+  const previousInitialPaginationRef = useRef(initialPaginationSnapshot);
   onFiltersChangeRef.current = onFiltersChange;
+  onPaginationChangeRef.current = onPaginationChange;
+  initialFiltersRef.current = initialFilters;
   const [isLoading, setIsLoading] = useState(false);
   const dataRef = useRef<TData[]>([]);
-  const lastLoadedPageRef = useRef(0);
+  const lastLoadedPageRef = useRef(normalizedInitialPagination.pageIndex);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pageDirection, setPageDirection] = useState<PageDirection>("none");
@@ -248,7 +263,14 @@ export function ProTable<
     ] as ColumnDef<TData, TValue>[],
     onPaginationChange: setPagination,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters((current) =>
+        typeof updater === "function" ? updater(current) : updater
+      );
+      setPagination((current) =>
+        current.pageIndex === 0 ? current : { ...current, pageIndex: 0 }
+      );
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -346,12 +368,12 @@ export function ProTable<
     }
   };
   const reset = async () => {
-    table.resetSorting();
-    table.resetColumnFilters();
+    setSorting([]);
+    setColumnFilters([]);
+    setColumnVisibility({});
+    setRowSelection({});
+    setPagination((current) => ({ ...current, pageIndex: 0, pageSize: 10 }));
     table.resetGlobalFilter(true);
-    table.resetColumnVisibility();
-    table.resetRowSelection();
-    table.resetPagination();
   };
   useImperativeHandle(action, () => ({
     refresh: () => fetchData(),
@@ -366,7 +388,43 @@ export function ProTable<
     []
   );
 
-  const filtersSnapshot = JSON.stringify(columnFilters);
+  const filtersSnapshot = serializeColumnFilters(columnFilters);
+  const paginationSnapshot = serializePagination(pagination);
+
+  useEffect(() => {
+    if (previousInitialFiltersRef.current === initialFiltersSnapshot) {
+      return;
+    }
+    previousInitialFiltersRef.current = initialFiltersSnapshot;
+    const nextFilters = toColumnFilters(initialFiltersRef.current || {});
+    setColumnFilters((current) =>
+      serializeColumnFilters(current) === initialFiltersSnapshot
+        ? current
+        : nextFilters
+    );
+    setPagination((current) =>
+      serializePagination(current) === initialPaginationSnapshot
+        ? current
+        : { pageIndex: initialPageIndex, pageSize: initialPageSize }
+    );
+  }, [
+    initialFiltersSnapshot,
+    initialPaginationSnapshot,
+    initialPageIndex,
+    initialPageSize,
+  ]);
+
+  useEffect(() => {
+    if (previousInitialPaginationRef.current === initialPaginationSnapshot) {
+      return;
+    }
+    previousInitialPaginationRef.current = initialPaginationSnapshot;
+    setPagination((current) =>
+      serializePagination(current) === initialPaginationSnapshot
+        ? current
+        : { pageIndex: initialPageIndex, pageSize: initialPageSize }
+    );
+  }, [initialPaginationSnapshot, initialPageIndex, initialPageSize]);
 
   useEffect(() => {
     fetchData();
@@ -382,6 +440,13 @@ export function ProTable<
     // The serialized value changes only when the committed filters change;
     // callback identity changes must not cause router update loops.
   }, [filtersSnapshot]);
+
+  useEffect(() => {
+    onPaginationChangeRef.current?.({
+      page: pagination.pageIndex + 1,
+      size: pagination.pageSize,
+    });
+  }, [paginationSnapshot, pagination.pageIndex, pagination.pageSize]);
 
   const selectedRows = table
     .getSelectedRowModel()
@@ -827,6 +892,40 @@ export function ProTable<
       )}
     </div>
   );
+}
+
+function toColumnFilters(filters: Record<string, unknown>) {
+  return Object.entries(filters)
+    .filter(([, value]) => {
+      if (value === null || value === undefined) return false;
+      return typeof value !== "string" || value.trim().length > 0;
+    })
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([id, value]) => ({ id, value })) as ColumnFiltersState;
+}
+
+function serializeColumnFilters(filters: ColumnFiltersState) {
+  return JSON.stringify(
+    filters
+      .map((filter) => ({ id: filter.id, value: String(filter.value) }))
+      .sort((left, right) => left.id.localeCompare(right.id))
+  );
+}
+
+function normalizePagination(initial?: Partial<ProTablePagination>) {
+  const page = Number(initial?.page);
+  const size = Number(initial?.size);
+  return {
+    pageIndex: Number.isSafeInteger(page) && page > 0 ? page - 1 : 0,
+    pageSize: Number.isSafeInteger(size) && size > 0 ? size : 10,
+  };
+}
+
+function serializePagination(pagination: {
+  pageIndex: number;
+  pageSize: number;
+}) {
+  return `${pagination.pageIndex}:${pagination.pageSize}`;
 }
 
 function AnimatedTableRow({

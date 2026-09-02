@@ -26,6 +26,8 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/utils/use-table-search-params", () => ({
+  getTablePagination: () => ({ page: 1, size: 10 }),
+  useTablePaginationSearchParams: () => vi.fn(),
   useTableSearchParams: () => vi.fn(),
 }));
 

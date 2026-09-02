@@ -29,6 +29,11 @@ import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { UserDetail } from "@/sections/user/user-detail";
 import { formatDate } from "@/utils/common";
+import {
+  getTablePagination,
+  useTablePaginationSearchParams,
+  useTableSearchParams,
+} from "@/utils/use-table-search-params";
 
 type WithdrawalFilters = {
   status?: number | string;
@@ -172,6 +177,9 @@ export default function WithdrawalPage() {
     string | undefined
   >;
   const tableRef = useRef<ProTableActions>(null);
+  const syncFilters = useTableSearchParams(["status", "user_id"]);
+  const syncPagination = useTablePaginationSearchParams();
+  const initialPagination = getTablePagination(search);
 
   const statusOptions = [
     { label: t("status.pending", "Pending"), value: "0" },
@@ -287,7 +295,9 @@ export default function WithdrawalPage() {
         ]}
         header={{ title: t("records", "Withdrawal requests") }}
         initialFilters={initialFilters}
-        key={JSON.stringify(initialFilters)}
+        initialPagination={initialPagination}
+        onFiltersChange={syncFilters}
+        onPaginationChange={syncPagination}
         params={[
           {
             key: "status",

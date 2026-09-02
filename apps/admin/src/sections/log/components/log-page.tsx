@@ -8,7 +8,11 @@ import {
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
-import { useTableSearchParams } from "@/utils/use-table-search-params";
+import {
+  getTablePagination,
+  useTablePaginationSearchParams,
+  useTableSearchParams,
+} from "@/utils/use-table-search-params";
 
 type FilterValueType = "number" | "string";
 
@@ -86,6 +90,8 @@ export function LogPage<
   >;
   const initialFilters = getInitialFilters(search, filterTypes);
   const syncFilters = useTableSearchParams(Object.keys(filterTypes));
+  const initialPagination = getTablePagination(search);
+  const syncPagination = useTablePaginationSearchParams();
 
   return (
     <div className="space-y-6">
@@ -98,8 +104,10 @@ export function LogPage<
         {...tableProps}
         header={{ title: t("records", "Records") }}
         initialFilters={initialFilters}
+        initialPagination={initialPagination}
         mobile={mobile === undefined ? { detailsLimit: 2 } : mobile}
         onFiltersChange={syncFilters}
+        onPaginationChange={syncPagination}
         request={async (pagination, filters) =>
           normalizeLogResponse<TData>(await load(pagination, filters))
         }

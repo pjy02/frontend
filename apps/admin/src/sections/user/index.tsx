@@ -52,6 +52,11 @@ import {
 import { StatusChip } from "@/components/status-chip";
 import { useSubscribe } from "@/stores/subscribe";
 import { formatDate } from "@/utils/common";
+import {
+  getTablePagination,
+  useTablePaginationSearchParams,
+  useTableSearchParams,
+} from "@/utils/use-table-search-params";
 import { UserDetail } from "./user-detail";
 import UserForm from "./user-form";
 import { AuthMethodsForm } from "./user-profile/auth-methods-form";
@@ -66,6 +71,15 @@ export default function User() {
   const sp = useSearch({ strict: false }) as Record<string, string | undefined>;
 
   const { subscribes } = useSubscribe();
+  const syncFilters = useTableSearchParams([
+    "search",
+    "user_id",
+    "subscribe_id",
+    "user_subscribe_id",
+    "user_subscribe_token",
+  ]);
+  const syncPagination = useTablePaginationSearchParams();
+  const initialPagination = getTablePagination(sp);
 
   const initialFilters = {
     search: sp.search || undefined,
@@ -237,7 +251,7 @@ export default function User() {
         ]}
         header={{}}
         initialFilters={initialFilters}
-        key={JSON.stringify(initialFilters)}
+        initialPagination={initialPagination}
         mobile={{
           getAriaLabel: (row) =>
             row.auth_methods?.[0]?.auth_identifier || `User ${row.id}`,
@@ -249,6 +263,8 @@ export default function User() {
           ),
         }}
         mobileFilterMode="drawer"
+        onFiltersChange={syncFilters}
+        onPaginationChange={syncPagination}
         params={[
           {
             key: "search",
