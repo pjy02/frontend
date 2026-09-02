@@ -1,4 +1,10 @@
 {
+  "components": {
+    "button": "仪表盘组件",
+    "description": "选择在当前设备上显示的可选内容。",
+    "projectSupport": "项目支持",
+    "projectSupportDescription": "显示当前支持 PPanel 项目的组织和服务。"
+  },
   "overview": {
     "absoluteChange": "绝对变化",
     "allClear": "运行正常",
@@ -86,6 +92,10 @@
     "viewServers": "查看服务器",
     "viewTickets": "查看工单",
     "yesterdayComparison": "昨日 / 变化"
+  },
+  "projectSupport": {
+    "description": "当前为 PPanel 提供支持的组织和服务。",
+    "title": "项目支持"
   },
   "currentlyOnline": "当前在线",
   "month": "月",

@@ -86,11 +86,14 @@ import {
   WorkspaceDialogTrigger,
 } from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
+import { DashboardComponentsMenu } from "./dashboard-components-menu";
 import {
   AnimatedNumber,
   DashboardDataTransition,
   DashboardFadeThrough,
 } from "./dashboard-motion";
+import { useDashboardPreferences } from "./dashboard-preferences";
+import { ProjectSupport } from "./project-support";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
@@ -369,6 +372,7 @@ function DataUnavailable({ text }: { text: string }) {
 export default function Statistics() {
   const { t, i18n } = useTranslation("dashboard");
   const queryClient = useQueryClient();
+  const { preferences, setProjectSupportVisible } = useDashboardPreferences();
   const [range, setRange] = useState<DashboardRange>("month");
   const [trafficType, setTrafficType] = useState<TrafficType>("nodes");
   const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("today");
@@ -490,6 +494,10 @@ export default function Statistics() {
               </TabsList>
             </Tabs>
             <SystemLogsDialog />
+            <DashboardComponentsMenu
+              onProjectSupportVisibleChange={setProjectSupportVisible}
+              projectSupportVisible={preferences.projectSupport}
+            />
             <Button
               disabled={isRefreshing}
               onClick={() => queryClient.invalidateQueries()}
@@ -668,6 +676,8 @@ export default function Statistics() {
         <SystemVersionCard />
         <SystemOperations />
       </section>
+
+      {preferences.projectSupport ? <ProjectSupport /> : null}
     </div>
   );
 }

@@ -120,7 +120,8 @@ describe("protected Admin UI contract", () => {
     );
 
     expect(withdrawal).toContain('from "@/components/page-header"');
-    expect(withdrawal).toContain('from "@/components/status-chip"');
+    expect(withdrawal).toContain('from "@/components/commerce-display"');
+    expect(withdrawal).toContain("CommissionStatusChip");
     expect(logPage).toContain('from "@/components/page-header"');
     expect(requestSource).toContain('from "@/components/workspace-dialog"');
     expect(requestSource).not.toContain("@workspace/ui/components/sheet");

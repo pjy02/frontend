@@ -10,21 +10,20 @@ import {
 import { Separator } from "@workspace/ui/components/separator";
 import { getLogOrderList as filterOrderLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
-import { Display } from "@/components/display";
+import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import { OrderLink } from "@/components/order-link";
 import { LogPage } from "@/sections/log/components/log-page";
 import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail } from "@/sections/user/user-detail";
 import { useSubscribe } from "@/stores/subscribe";
-import { formatDate } from "@/utils/common";
 
 function PriceRow({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between gap-8">
       <dt className="text-muted-foreground">{label}</dt>
       <dd>
-        <Display type="currency" value={value} />
+        <MoneyValue value={value} />
       </dd>
     </div>
   );
@@ -100,7 +99,7 @@ export default function OrderLogPage() {
               <HoverCard>
                 <HoverCardTrigger asChild>
                   <Button className="h-auto p-0" variant="link">
-                    <Display type="currency" value={order.amount} />
+                    <MoneyValue value={order.amount} />
                   </Button>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-80">
@@ -147,7 +146,7 @@ export default function OrderLogPage() {
         {
           accessorKey: "timestamp",
           header: t("column.time", "Time"),
-          cell: ({ row }) => formatDate(row.original.timestamp),
+          cell: ({ row }) => <DateTimeValue value={row.original.timestamp} />,
         },
       ]}
       description={t(
@@ -179,25 +178,23 @@ export default function OrderLogPage() {
               details={[
                 {
                   label: t("column.price", "Unit price"),
-                  value: <Display type="currency" value={order.price} />,
+                  value: <MoneyValue value={order.price} />,
                 },
                 {
                   label: t("column.discount", "Discount"),
-                  value: <Display type="currency" value={order.discount} />,
+                  value: <MoneyValue value={order.discount} />,
                 },
                 {
                   label: t("column.couponDiscount", "Coupon discount"),
-                  value: (
-                    <Display type="currency" value={order.coupon_discount} />
-                  ),
+                  value: <MoneyValue value={order.coupon_discount} />,
                 },
                 {
                   label: t("column.giftAmount", "Gift amount"),
-                  value: <Display type="currency" value={order.gift_amount} />,
+                  value: <MoneyValue value={order.gift_amount} />,
                 },
                 {
                   label: t("column.feeAmount", "Fee amount"),
-                  value: <Display type="currency" value={order.fee_amount} />,
+                  value: <MoneyValue value={order.fee_amount} />,
                 },
                 {
                   label: t("column.payment", "Payment"),
@@ -225,15 +222,11 @@ export default function OrderLogPage() {
                 },
                 {
                   label: t("column.total", "Total"),
-                  value: (
-                    <span className="font-semibold">
-                      <Display type="currency" value={order.amount} />
-                    </span>
-                  ),
+                  value: <MoneyValue emphasis="strong" value={order.amount} />,
                 },
                 {
                   label: t("column.time", "Time"),
-                  value: formatDate(order.timestamp),
+                  value: <DateTimeValue value={order.timestamp} />,
                 },
               ]}
               subtitle={`${type} · ${order.source || "--"}`}

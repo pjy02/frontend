@@ -20,6 +20,7 @@
       "title": "管理端搜索"
     },
     "timezone": "时区",
+    "timezoneAll": "全部时区",
     "timezoneCurrent": "当前时区",
     "timezoneRecommended": "推荐时区",
     "timezoneSearch": "搜索时区...",

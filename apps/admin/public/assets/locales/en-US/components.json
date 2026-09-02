@@ -20,6 +20,7 @@
       "title": "Admin search"
     },
     "timezone": "Timezone",
+    "timezoneAll": "All timezones",
     "timezoneCurrent": "Current",
     "timezoneRecommended": "Recommended",
     "timezoneSearch": "Search timezones...",

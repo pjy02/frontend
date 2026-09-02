@@ -24,13 +24,15 @@ import {
 import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Display } from "@/components/display";
+import {
+  CommissionStatusChip,
+  DateTimeValue,
+  MoneyValue,
+} from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
-import { StatusChip } from "@/components/status-chip";
 import { UserDetail } from "@/sections/user/user-detail";
-import { formatDate } from "@/utils/common";
 import {
   getTablePagination,
   useTablePaginationSearchParams,
@@ -198,23 +200,13 @@ export default function WithdrawalPage() {
   };
 
   const renderStatus = (status: number) => {
-    if (status === 1) {
-      return (
-        <StatusChip tone="success">
-          {t("status.approved", "Approved")}
-        </StatusChip>
-      );
-    }
-    if (status === 2) {
-      return (
-        <StatusChip tone="danger">
-          {t("status.rejected", "Rejected")}
-        </StatusChip>
-      );
-    }
-    return (
-      <StatusChip tone="warning">{t("status.pending", "Pending")}</StatusChip>
-    );
+    const label =
+      status === 1
+        ? t("status.approved", "Approved")
+        : status === 2
+          ? t("status.rejected", "Rejected")
+          : t("status.pending", "Pending");
+    return <CommissionStatusChip label={label} status={status} />;
   };
 
   return (
@@ -253,9 +245,7 @@ export default function WithdrawalPage() {
             accessorKey: "amount",
             header: t("amount", "Amount"),
             cell: ({ row }) => (
-              <span className="font-semibold">
-                <Display type="currency" value={row.original.amount} />
-              </span>
+              <MoneyValue emphasis="strong" value={row.original.amount} />
             ),
           },
           {
@@ -284,15 +274,19 @@ export default function WithdrawalPage() {
           {
             accessorKey: "created_at",
             header: t("submittedAt", "Submitted At"),
-            cell: ({ row }) => formatDate(row.original.created_at),
+            cell: ({ row }) => (
+              <DateTimeValue value={row.original.created_at} />
+            ),
           },
           {
             accessorKey: "updated_at",
             header: t("reviewedAt", "Reviewed At"),
             cell: ({ row }) =>
-              row.original.status === 0
-                ? "-"
-                : formatDate(row.original.updated_at),
+              row.original.status === 0 ? (
+                "-"
+              ) : (
+                <DateTimeValue value={row.original.updated_at} />
+              ),
           },
         ]}
         empty={
@@ -338,9 +332,11 @@ export default function WithdrawalPage() {
                 {
                   label: t("reviewedAt", "Reviewed At"),
                   value:
-                    withdrawal.status === 0
-                      ? "--"
-                      : formatDate(withdrawal.updated_at),
+                    withdrawal.status === 0 ? (
+                      "--"
+                    ) : (
+                      <DateTimeValue value={withdrawal.updated_at} />
+                    ),
                   wide: true,
                 },
               ]}
@@ -348,14 +344,12 @@ export default function WithdrawalPage() {
                 {
                   label: t("amount", "Amount"),
                   value: (
-                    <span className="font-semibold">
-                      <Display type="currency" value={withdrawal.amount} />
-                    </span>
+                    <MoneyValue emphasis="strong" value={withdrawal.amount} />
                   ),
                 },
                 {
                   label: t("submittedAt", "Submitted At"),
-                  value: formatDate(withdrawal.created_at),
+                  value: <DateTimeValue value={withdrawal.created_at} />,
                 },
               ]}
               subtitle={`#${withdrawal.id}`}

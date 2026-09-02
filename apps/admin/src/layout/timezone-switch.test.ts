@@ -12,11 +12,14 @@ describe("timezone offset display", () => {
 
   it("preserves fractional-hour timezone offsets", () => {
     expect(getTimezoneOffset("Asia/Kolkata", winter)).toBe("UTC+05:30");
+    expect(getTimezoneOffset("Asia/Kathmandu", winter)).toBe("UTC+05:45");
   });
 
   it("uses the offset active on the selected date", () => {
     expect(getTimezoneOffset("America/New_York", winter)).toBe("UTC-05:00");
     expect(getTimezoneOffset("America/New_York", summer)).toBe("UTC-04:00");
+    expect(getTimezoneOffset("Pacific/Chatham", winter)).toBe("UTC+13:45");
+    expect(getTimezoneOffset("Pacific/Chatham", summer)).toBe("UTC+12:45");
   });
 
   it("falls back safely for invalid timezone identifiers", () => {

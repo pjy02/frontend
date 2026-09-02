@@ -91,4 +91,13 @@ describe("admin locale keys", () => {
   it("does not retain the removed plugin namespace", () => {
     expect(i18nNamespaces).not.toContain("plugin");
   });
+
+  it("keeps quota reset log type 234 translated", () => {
+    expect(readNamespace("en-US", "log")).toMatchObject({
+      type: { "234": "Quota Reset" },
+    });
+    expect(readNamespace("zh-CN", "log")).toMatchObject({
+      type: { "234": "配额重置" },
+    });
+  });
 });

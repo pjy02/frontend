@@ -296,7 +296,7 @@ export default function TimezoneSwitch() {
                 ))}
             </CommandGroup>
 
-            <CommandGroup heading="All">
+            <CommandGroup heading={t("admin.timezoneAll", "All timezones")}>
               {timezoneOptions
                 .filter(
                   (option) =>

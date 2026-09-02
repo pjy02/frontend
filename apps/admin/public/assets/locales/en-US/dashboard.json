@@ -1,4 +1,10 @@
 {
+  "components": {
+    "button": "Dashboard components",
+    "description": "Choose the optional sections shown on this device.",
+    "projectSupport": "Project support",
+    "projectSupportDescription": "Show the current PPanel project supporters."
+  },
   "overview": {
     "absoluteChange": "Absolute change",
     "allClear": "All clear",
@@ -88,6 +94,10 @@
     "viewServers": "View servers",
     "viewTickets": "View tickets",
     "yesterdayComparison": "Yesterday / change"
+  },
+  "projectSupport": {
+    "description": "Organizations and services currently supporting PPanel.",
+    "title": "Project support"
   },
   "currentlyOnline": "Currently Online",
   "month": "Month",
