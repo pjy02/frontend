@@ -4,13 +4,17 @@ import { isBrowser } from "@workspace/ui/utils/index";
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 
+export function isAuthenticationError(code?: number) {
+  return code !== undefined && [40_002, 40_003, 40_004].includes(code);
+}
+
 function handleError(response: {
   data?: { code?: number; msg?: string; message?: string };
   config?: { skipErrorHandler?: boolean };
   message?: string;
 }): string | undefined {
   const code = response.data?.code;
-  if (code && [40_002, 40_003, 40_004, 40_005].includes(code)) {
+  if (isAuthenticationError(code)) {
     window.logout();
     return;
   }

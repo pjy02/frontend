@@ -136,6 +136,7 @@
     "gift": "Review gift balance changes and related records.",
     "login": "Review user login attempts, devices, and results.",
     "mobile": "Review SMS delivery status and message details.",
+    "order": "Trace order creation, payment sources, pricing and request metadata.",
     "register": "Review user registration events and source information.",
     "resetSubscribe": "Review subscription reset operations and results.",
     "serverTraffic": "Review daily upload and download traffic by server.",
