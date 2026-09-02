@@ -60,7 +60,7 @@ Status values: `pending`, `in-progress`, `verified`, `not-applicable`.
 | `317c460` reset-subscription warning | User Dashboard | Port behavior and copy without restyling User Web | verified |
 | `2df835d`, `db7b9dd`, `b3facb3` Swagger sync | API docs | Already patch-equivalent locally; verify in final Swagger | verified |
 | `61a1b1d` API architecture | Shared services | Adopt templates and aggregated generated clients | verified |
-| `61a1b1d` commission withdrawals | Admin | Rebuild in the current Admin table/dialog/mobile system | in-progress |
+| `61a1b1d` commission withdrawals | Admin | Rebuild in the current Admin table/dialog/mobile system | verified |
 | `61a1b1d` plugin removal | Admin/shared services | Delete all plugin code and references | verified |
 | `3ff807f` trusted client IP | Pages function | Adopt upstream proxy behavior and tests | verified |
 | `f5f362e` OAuth callbacks | User/Pages function | Adopt upstream logic and tests | verified |
@@ -91,6 +91,12 @@ integration group:
 - User table, detail/editor dialogs, subscriptions, and URL restoration
 - ProTable filters, pagination, bulk action bar, loading continuity, and motion
 - Dialogs, menus, tooltips, focus restoration, and reduced motion
+
+The source-level contract for these protected surfaces is enforced by
+`apps/admin/tests/admin-ui-contract.test.ts`. It intentionally checks component
+boundaries and behavior markers instead of snapshotting generated markup, so
+upstream business changes remain mergeable while shell, Dashboard, responsive
+table, motion, and workspace-dialog regressions fail fast.
 
 ## Required verification gates
 
