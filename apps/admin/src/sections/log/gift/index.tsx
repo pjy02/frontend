@@ -1,6 +1,6 @@
 "use client";
 
-import { filterGiftLog } from "@workspace/ui/services/admin/log";
+import { getLogGiftList as filterGiftLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";

@@ -1,6 +1,6 @@
 "use client";
 
-import { filterLoginLog } from "@workspace/ui/services/admin/log";
+import { getLogLoginList as filterLoginLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { IpLink } from "@/components/ip-link";

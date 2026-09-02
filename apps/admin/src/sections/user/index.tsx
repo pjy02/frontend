@@ -22,12 +22,12 @@ import {
   type ProTableActions,
 } from "@workspace/ui/composed/pro-table/pro-table";
 import {
-  createUser,
+  postUser as createUser,
   deleteUser,
   getUserDetail,
   getUserList,
-  updateUserBasicInfo,
-} from "@workspace/ui/services/admin/user";
+  putUserBasic as updateUserBasicInfo,
+} from "@workspace/ui/services/admin/admin";
 import {
   Layers3,
   MoreVertical,

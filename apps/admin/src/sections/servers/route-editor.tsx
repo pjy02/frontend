@@ -1,9 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import {
-  createServer,
-  updateServer,
-} from "@workspace/ui/services/admin/server";
+  postServerCreate as createServer,
+  postServerUpdate as updateServer,
+} from "@workspace/ui/services/admin/admin";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";

@@ -1,6 +1,6 @@
 "use client";
 
-import { filterResetSubscribeLog } from "@workspace/ui/services/admin/log";
+import { getLogSubscribeResetList as filterResetSubscribeLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";

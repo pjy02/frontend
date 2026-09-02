@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import { updateSubscribe } from "@workspace/ui/services/admin/subscribe";
+import { putSubscribe as updateSubscribe } from "@workspace/ui/services/admin/admin";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";

@@ -1,6 +1,6 @@
 "use client";
 
-import { filterTrafficLogDetails } from "@workspace/ui/services/admin/log";
+import { getLogTrafficDetails as filterTrafficLogDetails } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { TrafficValue } from "@/sections/log/components/log-display";

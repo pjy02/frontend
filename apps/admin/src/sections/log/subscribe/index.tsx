@@ -1,6 +1,6 @@
 "use client";
 
-import { filterSubscribeLog } from "@workspace/ui/services/admin/log";
+import { getLogSubscribeList as filterSubscribeLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { IpLink } from "@/components/ip-link";

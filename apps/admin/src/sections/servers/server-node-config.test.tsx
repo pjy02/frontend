@@ -50,6 +50,10 @@ vi.mock("@workspace/ui/services/admin/admin", () => ({
   postServerNodeConfigUpdate: mocks.updateConfig,
 }));
 
+vi.mock("@workspace/ui/composed/icon", () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-icon={icon} />,
+}));
+
 vi.mock("@workspace/ui/components/scroll-area", () => ({
   ScrollArea: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>

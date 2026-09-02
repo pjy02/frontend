@@ -16,15 +16,12 @@ customized PPanel frontend without regressing the current Admin experience.
 
 ## Current merge state
 
-- A non-fast-forward merge of `upstream/main@d32c456` is prepared in the
-  working tree and intentionally remains uncommitted.
-- All merge conflicts are resolved and staged; `HEAD` remains at the
-  integration baseline `595b1a4639cd` until the final review approves the
-  merge commit.
-- Legacy split service modules are temporarily retained (except plugin
-  management) while callers move to the aggregated generated clients. This
-  keeps the intermediate merge buildable without weakening the final removal
-  target.
+- The non-fast-forward merge of `upstream/main@d32c456` was completed in
+  `d3fa3ac` with the local Admin implementation preserved.
+- Admin, Common, and User callers now use their generated aggregate clients.
+  The temporary split-service compatibility modules have been removed.
+- Regenerating from the final upstream Swagger produces the reviewed aggregate
+  clients and removes no current application dependency.
 
 ## Confirmed product decisions
 
@@ -62,14 +59,14 @@ Status values: `pending`, `in-progress`, `verified`, `not-applicable`.
 | `cdde298` quota reset log label | Admin log locales | Add type `234` in both locales | verified |
 | `317c460` reset-subscription warning | User Dashboard | Port behavior and copy without restyling User Web | verified |
 | `2df835d`, `db7b9dd`, `b3facb3` Swagger sync | API docs | Already patch-equivalent locally; verify in final Swagger | verified |
-| `61a1b1d` API architecture | Shared services | Adopt templates and aggregated generated clients | pending |
+| `61a1b1d` API architecture | Shared services | Adopt templates and aggregated generated clients | verified |
 | `61a1b1d` commission withdrawals | Admin | Rebuild in the current Admin table/dialog/mobile system | in-progress |
 | `61a1b1d` plugin removal | Admin/shared services | Delete all plugin code and references | verified |
 | `3ff807f` trusted client IP | Pages function | Adopt upstream proxy behavior and tests | verified |
 | `f5f362e` OAuth callbacks | User/Pages function | Adopt upstream logic and tests | verified |
 | `6c202953` loading performance | Both apps/shared UI | Port route locales, icons, Markdown, Lottie, and safe query caching | verified |
 | `117ad816`, `411e72b`, `db65b6f` Swagger sync | API docs | Adopt final upstream documents | verified |
-| `6a0bb81`, `9565d73` API regeneration | Shared services | Regenerate once from the final contract | pending |
+| `6a0bb81`, `9565d73` API regeneration | Shared services | Regenerate once from the final contract | verified |
 | `e444a13` Admin user/log workflows | Admin/ProTable | Port URL filters and workflow behavior into local UI | verified |
 | `9f6a3ca` OAuth invite codes | User/shared types | Adopt session handoff and request field | verified |
 | `e79fa78` server node configuration | Admin servers | Port inherit/override logic into local workspace UI | verified |

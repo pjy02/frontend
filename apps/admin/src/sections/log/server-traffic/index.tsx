@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import { filterServerTrafficLog } from "@workspace/ui/services/admin/log";
+import { getLogServerTrafficList as filterServerTrafficLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import {
   LogTypeChip,

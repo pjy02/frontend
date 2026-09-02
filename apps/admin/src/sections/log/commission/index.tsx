@@ -1,6 +1,6 @@
 "use client";
 
-import { filterCommissionLog } from "@workspace/ui/services/admin/log";
+import { getLogCommissionList as filterCommissionLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";

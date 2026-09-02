@@ -12,13 +12,13 @@ import {
   type ProTableActions,
 } from "@workspace/ui/composed/pro-table/pro-table";
 import {
-  createUserSubscribe,
+  postUserSubscribe as createUserSubscribe,
   deleteUserSubscribe,
   getUserSubscribe,
-  resetUserSubscribeToken,
-  toggleUserSubscribeStatus,
-  updateUserSubscribe,
-} from "@workspace/ui/services/admin/user";
+  postUserSubscribeResetToken as resetUserSubscribeToken,
+  postUserSubscribeToggle as toggleUserSubscribeStatus,
+  putUserSubscribe as updateUserSubscribe,
+} from "@workspace/ui/services/admin/admin";
 import { MoreVertical, Pencil, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

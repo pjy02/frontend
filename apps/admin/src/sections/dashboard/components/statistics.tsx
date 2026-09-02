@@ -35,12 +35,12 @@ import {
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  queryRevenueStatistics,
-  queryServerTotalData,
-  queryTicketWaitReply,
-  queryUserStatistics,
-} from "@workspace/ui/services/admin/console";
-import { getUserDetail } from "@workspace/ui/services/admin/user";
+  getUserDetail,
+  getConsoleRevenue as queryRevenueStatistics,
+  getConsoleServer as queryServerTotalData,
+  getConsoleTicket as queryTicketWaitReply,
+  getConsoleUser as queryUserStatistics,
+} from "@workspace/ui/services/admin/admin";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import {
