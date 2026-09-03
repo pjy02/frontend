@@ -6,8 +6,11 @@ import http from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const scriptPath = new URL("./triage-webhook.mjs", import.meta.url).pathname;
+const scriptPath = fileURLToPath(
+  new URL("./triage-webhook.mjs", import.meta.url)
+);
 
 function makeWorkspace(context = { ok: true }) {
   const workspace = join(

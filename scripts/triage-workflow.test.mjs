@@ -5,7 +5,7 @@ import test from "node:test";
 const workflow = readFileSync(
   ".github/workflows/triage-automation.yml",
   "utf8"
-);
+).replaceAll("\r\n", "\n");
 
 test("triage workflow keeps existing issue, open comment, and manual triggers", () => {
   assert.match(workflow, /workflow_dispatch:/);

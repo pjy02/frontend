@@ -5,8 +5,11 @@ import http from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const scriptPath = new URL("./triage-context.mjs", import.meta.url).pathname;
+const scriptPath = fileURLToPath(
+  new URL("./triage-context.mjs", import.meta.url)
+);
 
 function makeWorkspace(event) {
   const workspace = mkdtempSync(join(tmpdir(), "triage-context-"));

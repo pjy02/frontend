@@ -49,7 +49,7 @@ type ReviewActionsProps = {
   withdrawal: API.WithdrawalLog;
 };
 
-function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
+export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
   const { t } = useTranslation("withdrawal");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
