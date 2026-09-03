@@ -99,4 +99,29 @@ describe("dashboard metric motion", () => {
       { timeout: 1200 }
     );
   });
+
+  it("switches category panels immediately when reduced motion is enabled", async () => {
+    motionPreference.reducedMotion = true;
+    const view = render(
+      <DashboardFadeThrough transitionKey="nodes">
+        <span>Nodes ranking</span>
+      </DashboardFadeThrough>
+    );
+
+    view.rerender(
+      <DashboardFadeThrough transitionKey="users">
+        <span>Users ranking</span>
+      </DashboardFadeThrough>
+    );
+
+    await waitFor(() => {
+      const panels = view.container.querySelectorAll(
+        "[data-dashboard-transition-key]"
+      );
+      expect(panels).toHaveLength(1);
+      expect(panels[0]?.getAttribute("data-dashboard-transition-key")).toBe(
+        "users"
+      );
+    });
+  });
 });

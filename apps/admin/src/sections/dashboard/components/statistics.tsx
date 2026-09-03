@@ -1491,10 +1491,48 @@ function TrafficRanking({
               onValueChange={(value) => onTypeChange(value as TrafficType)}
               value={trafficType}
             >
-              <TabsList className="dashboard-traffic-controls__tabs-list">
-                <TabsTrigger value="nodes">{t("nodes", "Nodes")}</TabsTrigger>
-                <TabsTrigger value="users">{t("users", "Users")}</TabsTrigger>
-              </TabsList>
+              <LayoutGroup id="dashboard-traffic-type-switcher">
+                <TabsList className="dashboard-traffic-controls__tabs-list dashboard-traffic-type-tabs-list">
+                  <TabsTrigger
+                    className="dashboard-traffic-type-trigger"
+                    value="nodes"
+                  >
+                    {trafficType === "nodes" ? (
+                      <motion.span
+                        aria-hidden="true"
+                        className="dashboard-traffic-type-indicator"
+                        layoutId="dashboard-traffic-type-indicator"
+                        transition={{
+                          duration: reducedMotion ? 0 : 0.22,
+                          ease: [0.2, 0, 0, 1],
+                        }}
+                      />
+                    ) : null}
+                    <span className="dashboard-traffic-type-label">
+                      {t("nodes", "Nodes")}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    className="dashboard-traffic-type-trigger"
+                    value="users"
+                  >
+                    {trafficType === "users" ? (
+                      <motion.span
+                        aria-hidden="true"
+                        className="dashboard-traffic-type-indicator"
+                        layoutId="dashboard-traffic-type-indicator"
+                        transition={{
+                          duration: reducedMotion ? 0 : 0.22,
+                          ease: [0.2, 0, 0, 1],
+                        }}
+                      />
+                    ) : null}
+                    <span className="dashboard-traffic-type-label">
+                      {t("users", "Users")}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+              </LayoutGroup>
             </Tabs>
             <Tabs
               className="dashboard-traffic-controls__tabs"
@@ -1551,66 +1589,68 @@ function TrafficRanking({
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <DashboardFadeThrough transitionKey={trafficType}>
-            {loading ? (
-              <div className="space-y-3 p-5">
-                <Skeleton className="h-20 w-full rounded-lg" />
-                {Array.from({ length: 4 }, (_, index) => (
-                  <Skeleton
-                    className="h-20 w-full rounded-lg"
-                    key={`traffic-skeleton-${index}`}
-                  />
-                ))}
-              </div>
-            ) : serverError || data.items.length === 0 ? (
-              <div className="p-5">
-                <DataUnavailable
-                  text={t("overview.unavailable", "Data unavailable")}
+          {loading ? (
+            <div className="space-y-3 p-5">
+              <Skeleton className="h-20 w-full rounded-lg" />
+              {Array.from({ length: 4 }, (_, index) => (
+                <Skeleton
+                  className="h-20 w-full rounded-lg"
+                  key={`traffic-skeleton-${index}`}
                 />
-              </div>
-            ) : (
-              <>
-                <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
-                  <TrafficSummaryValue
-                    format={formatBytes}
-                    hint={
+              ))}
+            </div>
+          ) : serverError || data.items.length === 0 ? (
+            <div className="p-5">
+              <DataUnavailable
+                text={t("overview.unavailable", "Data unavailable")}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
+                <TrafficSummaryValue
+                  format={formatBytes}
+                  hint={
+                    systemTotal === undefined
+                      ? t(
+                          "overview.systemTotalHistoricalHint",
+                          "Historical system total is not provided by the current API"
+                        )
+                      : t("overview.systemTotalHint", "All traffic today")
+                  }
+                  label={t("overview.systemTotal", "System total")}
+                  value={systemTotal}
+                />
+                <TrafficSummaryValue
+                  className="border-l"
+                  format={formatBytes}
+                  hint={t(
+                    "overview.rankingDatasetHint",
+                    "{{count}} records returned by the ranking source",
+                    { count: data.items.length }
+                  )}
+                  label={t("overview.rankingDatasetTotal", "Ranking total")}
+                  transitionKey={trafficType}
+                  value={data.currentTotal}
+                />
+                <TrafficSummaryValue
+                  className="border-t xl:border-t-0 xl:border-l"
+                  format={formatBytes}
+                  hint={t("overview.topShare", "{{share}}% of {{scope}}", {
+                    share: visibleShare.toFixed(1),
+                    scope:
                       systemTotal === undefined
-                        ? t(
-                            "overview.systemTotalHistoricalHint",
-                            "Historical system total is not provided by the current API"
-                          )
-                        : t("overview.systemTotalHint", "All traffic today")
-                    }
-                    label={t("overview.systemTotal", "System total")}
-                    value={systemTotal}
-                  />
-                  <TrafficSummaryValue
-                    className="border-l"
-                    format={formatBytes}
-                    hint={t(
-                      "overview.rankingDatasetHint",
-                      "{{count}} records returned by the ranking source",
-                      { count: data.items.length }
-                    )}
-                    label={t("overview.rankingDatasetTotal", "Ranking total")}
-                    value={data.currentTotal}
-                  />
-                  <TrafficSummaryValue
-                    className="border-t xl:border-t-0 xl:border-l"
-                    format={formatBytes}
-                    hint={t("overview.topShare", "{{share}}% of {{scope}}", {
-                      share: visibleShare.toFixed(1),
-                      scope:
-                        systemTotal === undefined
-                          ? t("overview.rankingDataset", "ranking data")
-                          : t("overview.systemTraffic", "system traffic"),
-                    })}
-                    label={t("overview.topLabel", "Top {{count}}", {
-                      count: limit,
-                    })}
-                    value={visibleTotal}
-                  />
-                  <div className="border-t border-l px-5 py-4 xl:border-t-0">
+                        ? t("overview.rankingDataset", "ranking data")
+                        : t("overview.systemTraffic", "system traffic"),
+                  })}
+                  label={t("overview.topLabel", "Top {{count}}", {
+                    count: limit,
+                  })}
+                  transitionKey={trafficType}
+                  value={visibleTotal}
+                />
+                <div className="border-t border-l px-5 py-4 xl:border-t-0">
+                  <DashboardFadeThrough transitionKey={trafficType}>
                     <div className="text-muted-foreground text-xs">
                       {t("overview.transferSplit", "Upload / Download")}
                     </div>
@@ -1623,8 +1663,10 @@ function TrafficRanking({
                         {formatBytes(download)}
                       </span>
                     </div>
-                  </div>
-                  <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
+                  </DashboardFadeThrough>
+                </div>
+                <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
+                  <DashboardFadeThrough transitionKey={trafficType}>
                     <div className="text-muted-foreground text-xs">
                       {t("overview.periodComparison", "{{date}} / change", {
                         date: previousLabel,
@@ -1644,40 +1686,40 @@ function TrafficRanking({
                         date: currentLabel,
                       })}
                     </div>
-                  </div>
+                  </DashboardFadeThrough>
                 </div>
+              </div>
+              <DashboardFadeThrough transitionKey={trafficType}>
                 <LayoutGroup id={`traffic-ranking-${trafficType}`}>
                   <ol className="dashboard-traffic-list divide-y">
-                    <AnimatePresence initial={false} mode="popLayout">
-                      {visibleData.map((item, index) => (
-                        <TrafficRankingRow
-                          currentLabel={currentLabel}
-                          index={index}
-                          item={item}
-                          key={`${trafficType}-${item.id}`}
-                          leaderTotal={leaderTotal}
-                          previousLabel={previousLabel}
-                          reducedMotion={reducedMotion}
-                          selectedDate={activeDate}
-                          trafficType={trafficType}
-                          userEmail={
-                            item.uid === undefined
-                              ? undefined
-                              : userEmailById.get(item.uid)
-                          }
-                          userEmailLoading={
-                            item.uid === undefined
-                              ? false
-                              : pendingUserIds.has(item.uid)
-                          }
-                        />
-                      ))}
-                    </AnimatePresence>
+                    {visibleData.map((item, index) => (
+                      <TrafficRankingRow
+                        currentLabel={currentLabel}
+                        index={index}
+                        item={item}
+                        key={`${trafficType}-${item.id}`}
+                        leaderTotal={leaderTotal}
+                        previousLabel={previousLabel}
+                        reducedMotion={reducedMotion}
+                        selectedDate={activeDate}
+                        trafficType={trafficType}
+                        userEmail={
+                          item.uid === undefined
+                            ? undefined
+                            : userEmailById.get(item.uid)
+                        }
+                        userEmailLoading={
+                          item.uid === undefined
+                            ? false
+                            : pendingUserIds.has(item.uid)
+                        }
+                      />
+                    ))}
                   </ol>
                 </LayoutGroup>
-              </>
-            )}
-          </DashboardFadeThrough>
+              </DashboardFadeThrough>
+            </>
+          )}
         </CardContent>
       </Card>
     </section>
@@ -1689,17 +1731,18 @@ function TrafficSummaryValue({
   format,
   hint,
   label,
+  transitionKey,
   value,
 }: {
   className?: string;
   format: (value: number) => string;
   hint?: React.ReactNode;
   label: string;
+  transitionKey?: string;
   value?: number;
 }) {
-  return (
-    <div className={cn("px-5 py-4", className)}>
-      <div className="text-muted-foreground text-xs">{label}</div>
+  const content = (
+    <>
       {value === undefined ? (
         <div className="mt-1 font-semibold text-base">—</div>
       ) : (
@@ -1715,6 +1758,19 @@ function TrafficSummaryValue({
           {hint}
         </div>
       ) : null}
+    </>
+  );
+
+  return (
+    <div className={cn("px-5 py-4", className)}>
+      <div className="text-muted-foreground text-xs">{label}</div>
+      {transitionKey ? (
+        <DashboardFadeThrough transitionKey={transitionKey}>
+          {content}
+        </DashboardFadeThrough>
+      ) : (
+        content
+      )}
     </div>
   );
 }
@@ -1815,23 +1871,11 @@ function TrafficRankingRow({
 
   return (
     <motion.li
-      animate={{ opacity: 1, y: 0 }}
       className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
       data-rank={index + 1}
-      exit={reducedMotion ? undefined : { opacity: 0, scale: 0.99, y: -4 }}
-      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       layout={reducedMotion ? false : "position"}
       transition={{
         layout: {
-          duration: reducedMotion ? 0 : 0.24,
-          ease: [0.2, 0, 0, 1],
-        },
-        opacity: {
-          delay: reducedMotion ? 0 : Math.min(index * 0.018, 0.09),
-          duration: reducedMotion ? 0 : 0.2,
-        },
-        y: {
-          delay: reducedMotion ? 0 : Math.min(index * 0.018, 0.09),
           duration: reducedMotion ? 0 : 0.24,
           ease: [0.2, 0, 0, 1],
         },
@@ -1914,6 +1958,7 @@ function TrafficRankingRow({
                       className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
                       style={
                         {
+                          "--traffic-row-delay": `${Math.min(index, 5) * 12}ms`,
                           "--traffic-share": `${rankingWidth}%`,
                         } as React.CSSProperties
                       }

@@ -91,6 +91,32 @@ html.admin-console .dashboard-range-tabs__trigger {
   justify-self: stretch;
 }
 
+html.admin-console
+  .dashboard-traffic-controls__tabs-list.dashboard-traffic-type-tabs-list::before {
+  display: none;
+}
+
+.dashboard-traffic-type-trigger {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.dashboard-traffic-type-indicator {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 0.375rem;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(60 64 67 / 12%);
+}
+
+.dashboard-traffic-type-label {
+  position: relative;
+  z-index: 1;
+}
+
 .dashboard-chart-dialog__canvas {
   min-height: 0;
 }
@@ -119,6 +145,11 @@ html.admin-console .dashboard-range-tabs__trigger {
   width: var(--traffic-share);
   transform-origin: left center;
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
+}
+
+.dashboard-traffic-bar {
+  animation: dashboard-traffic-bar-reveal 280ms var(--admin-motion-enter) both;
+  animation-delay: var(--traffic-row-delay, 0ms);
 }
 
 .dashboard-traffic-tooltip-bar {
@@ -189,6 +220,18 @@ html.admin-console.dark .dashboard-traffic-tooltip {
   }
 
   to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes dashboard-traffic-bar-reveal {
+  from {
+    opacity: 0.72;
+    transform: scaleX(0.78);
+  }
+
+  to {
+    opacity: 1;
     transform: scaleX(1);
   }
 }

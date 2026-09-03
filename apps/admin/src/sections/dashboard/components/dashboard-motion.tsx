@@ -74,8 +74,8 @@ export function DashboardFadeThrough({
                   opacity: 1,
                   scale: 1,
                   transition: {
-                    delay: 0.055,
-                    duration: 0.165,
+                    delay: 0.06,
+                    duration: 0.18,
                     ease: [0.2, 0, 0, 1],
                   },
                 }
@@ -87,14 +87,14 @@ export function DashboardFadeThrough({
               ? { opacity: 0, transition: { duration: 0 } }
               : {
                   opacity: 0,
-                  scale: 0.995,
+                  scale: 0.985,
                   transition: {
                     duration: 0.09,
                     ease: [0.4, 0, 1, 1],
                   },
                 }
           }
-          initial={reducedMotion ? false : { opacity: 0, scale: 0.995 }}
+          initial={reducedMotion ? false : { opacity: 0, scale: 0.985 }}
           key={transitionKey}
         >
           {children}
