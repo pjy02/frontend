@@ -13,8 +13,8 @@ import {
 } from "@workspace/ui/composed/pro-table/pro-table";
 import {
   getOrderList,
-  updateOrderStatus,
-} from "@workspace/ui/services/admin/order";
+  putOrderStatus as updateOrderStatus,
+} from "@workspace/ui/services/admin/admin";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,6 +24,11 @@ import {
 } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import { useSubscribe } from "@/stores/subscribe";
+import {
+  getTablePagination,
+  useTablePaginationSearchParams,
+  useTableSearchParams,
+} from "@/utils/use-table-search-params";
 import { UserDetail } from "../user/user-detail";
 
 export default function Order() {
@@ -48,8 +53,19 @@ export default function Order() {
   const ref = useRef<ProTableActions>(null);
 
   const { subscribes, getSubscribeName } = useSubscribe();
+  const syncFilters = useTableSearchParams([
+    "status",
+    "subscribe_id",
+    "search",
+    "user_id",
+  ]);
+  const syncPagination = useTablePaginationSearchParams();
+  const initialPagination = getTablePagination(sp);
 
   const initialFilters = {
+    status: sp.status || undefined,
+    subscribe_id: sp.subscribe_id || undefined,
+    search: sp.search || undefined,
     user_id: sp.user_id ? Number(sp.user_id) : undefined,
   };
 
@@ -231,7 +247,7 @@ export default function Order() {
         title: t("orderManagement", "Order management"),
       }}
       initialFilters={initialFilters}
-      key={JSON.stringify(initialFilters)}
+      initialPagination={initialPagination}
       mobile={{
         getAriaLabel: (row) => String(row.order_no || row.id),
         render: (row) => {
@@ -294,6 +310,8 @@ export default function Order() {
           );
         },
       }}
+      onFiltersChange={syncFilters}
+      onPaginationChange={syncPagination}
       params={[
         {
           key: "status",

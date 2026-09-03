@@ -5,7 +5,7 @@ import test from "node:test";
 const workflow = readFileSync(
   ".github/workflows/openapi-adaptation.yml",
   "utf8"
-);
+).replaceAll("\r\n", "\n");
 
 test("openapi adaptation workflow triggers only for main pushes that touch swagger JSON and manual reruns", () => {
   assert.match(workflow, /workflow_dispatch:/);

@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import { filterUserSubscribeTrafficLog } from "@workspace/ui/services/admin/log";
+import { getLogSubscribeTrafficList as filterUserSubscribeTrafficLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { TrafficValue } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";

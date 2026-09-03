@@ -20,6 +20,7 @@
       "title": "管理端搜索"
     },
     "timezone": "时区",
+    "timezoneAll": "全部时区",
     "timezoneCurrent": "当前时区",
     "timezoneRecommended": "推荐时区",
     "timezoneSearch": "搜索时区...",
@@ -136,6 +137,7 @@
     "retry": "重试"
   },
   "table": {
+    "applyFilters": "应用筛选",
     "batchActions": "批量操作",
     "clearSelection": "清除选择",
     "choose": "请选择...",
@@ -145,7 +147,13 @@
     "filter": "筛选",
     "filterDescription": "使用更多条件缩小当前列表范围。",
     "filterPlaceholder": "输入筛选条件...",
+    "fields": {
+      "date": "日期",
+      "search": "搜索"
+    },
+    "filters": "筛选条件",
     "loadError": "暂时无法加载数据",
+    "loading": "正在加载",
     "moreActions": "更多操作",
     "moreDetails": "更多详情",
     "moreFilters": "更多筛选",
@@ -164,7 +172,8 @@
     "selectedRows_other": "已选择 {{count}} 行",
     "selectRow": "选择行",
     "staleData": "刷新失败，当前显示上一次成功加载的数据。",
-    "clearFilters": "清除筛选"
+    "clearFilters": "清除筛选",
+    "unappliedChanges": "筛选条件尚未应用"
   },
   "theme": {
     "dark": "深色",

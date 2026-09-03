@@ -1,11 +1,12 @@
 "use client";
 
-import { filterSubscribeLog } from "@workspace/ui/services/admin/log";
+import { getLogSubscribeList as filterSubscribeLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { IpLink } from "@/components/ip-link";
 import { UserAgentValue } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
 
 export default function SubscribeLogPage() {
@@ -48,6 +49,11 @@ export default function SubscribeLogPage() {
           accessorKey: "user_agent",
           header: t("column.userAgent", "User Agent"),
           cell: ({ row }) => <UserAgentValue value={row.original.user_agent} />,
+        },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => <RequestSource metadata={row.original} />,
         },
         {
           accessorKey: "timestamp",

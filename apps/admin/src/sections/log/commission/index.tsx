@@ -1,11 +1,12 @@
 "use client";
 
-import { filterCommissionLog } from "@workspace/ui/services/admin/log";
+import { getLogCommissionList as filterCommissionLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue, MoneyValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";
 import { LogTypeChip } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail } from "@/sections/user/user-detail";
 
 export default function CommissionLogPage() {
@@ -47,6 +48,11 @@ export default function CommissionLogPage() {
               {getCommissionTypeText(row.original.type)}
             </LogTypeChip>
           ),
+        },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => <RequestSource metadata={row.original} />,
         },
         {
           accessorKey: "timestamp",

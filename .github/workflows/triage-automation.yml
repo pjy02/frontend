@@ -30,7 +30,10 @@ permissions:
 
 jobs:
   triage:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request_target' || github.event.issue.state == 'open'
+    # This workflow delivers repository data to the upstream project's private
+    # automation bridge. Forks do not own those secrets and must not fail their
+    # pull requests merely because the upstream-only integration is unavailable.
+    if: github.repository == 'perfect-panel/frontend' && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request_target' || github.event.issue.state == 'open')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo

@@ -19,26 +19,3 @@ export function TaskStatusChip({
     <StatusChip tone={taskStatusTones[status] ?? "warning"}>{label}</StatusChip>
   );
 }
-
-const pluginStatusTones: Record<string, StatusChipTone> = {
-  unloaded: "neutral",
-  loaded: "info",
-  initialized: "info",
-  running: "success",
-  stopped: "warning",
-  error: "danger",
-};
-
-export function PluginStatusChip({
-  status,
-  label,
-}: {
-  status: string;
-  label: React.ReactNode;
-}) {
-  return (
-    <StatusChip tone={pluginStatusTones[status] ?? "neutral"}>
-      {label}
-    </StatusChip>
-  );
-}

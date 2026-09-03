@@ -49,6 +49,7 @@ const headers = {
 };
 const retryDelayMs = Number(process.env.WEBHOOK_RETRY_DELAY_MS || 1000);
 let lastFailure = "unknown error";
+let delivered = false;
 
 for (let attempt = 1; attempt <= 3; attempt += 1) {
   try {
@@ -61,7 +62,8 @@ for (let attempt = 1; attempt <= 3; attempt += 1) {
 
     if (response.ok) {
       console.log(text);
-      process.exit(0);
+      delivered = true;
+      break;
     }
 
     lastFailure = `${response.status} ${text}`;
@@ -77,5 +79,7 @@ for (let attempt = 1; attempt <= 3; attempt += 1) {
   }
 }
 
-console.error(`Webhook request failed after retries: ${lastFailure}`);
-process.exit(1);
+if (!delivered) {
+  console.error(`Webhook request failed after retries: ${lastFailure}`);
+  process.exitCode = 1;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { filterMobileLog } from "@workspace/ui/services/admin/log";
+import { getLogMobileList as filterMobileLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { MessageLogPage } from "@/sections/log/components/message-log-page";
 

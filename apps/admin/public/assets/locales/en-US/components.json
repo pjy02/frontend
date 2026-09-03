@@ -20,6 +20,7 @@
       "title": "Admin search"
     },
     "timezone": "Timezone",
+    "timezoneAll": "All timezones",
     "timezoneCurrent": "Current",
     "timezoneRecommended": "Recommended",
     "timezoneSearch": "Search timezones...",
@@ -136,6 +137,7 @@
     "retry": "Try again"
   },
   "table": {
+    "applyFilters": "Apply filters",
     "batchActions": "Batch actions",
     "clearSelection": "Clear selection",
     "choose": "Choose...",
@@ -145,7 +147,13 @@
     "filter": "Filter",
     "filterDescription": "Narrow the current list with additional conditions.",
     "filterPlaceholder": "Filter...",
+    "fields": {
+      "date": "Date",
+      "search": "Search"
+    },
+    "filters": "Filters",
     "loadError": "Unable to load data",
+    "loading": "Loading",
     "moreActions": "More actions",
     "moreDetails": "More details",
     "moreFilters": "More filters",
@@ -165,7 +173,8 @@
     "selectedRows_other": "Selected {{count}} rows",
     "selectRow": "Select row",
     "staleData": "Refresh failed. Showing the previously loaded data.",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "unappliedChanges": "Unapplied changes"
   },
   "theme": {
     "dark": "Dark",

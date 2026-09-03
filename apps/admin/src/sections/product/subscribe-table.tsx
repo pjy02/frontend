@@ -10,13 +10,13 @@ import {
   type ProTableActions,
 } from "@workspace/ui/composed/pro-table/pro-table";
 import {
-  batchDeleteSubscribe,
-  createSubscribe,
+  deleteSubscribeBatch as batchDeleteSubscribe,
+  postSubscribe as createSubscribe,
   deleteSubscribe,
   getSubscribeList,
-  subscribeSort,
-  updateSubscribe,
-} from "@workspace/ui/services/admin/subscribe";
+  postSubscribeSort as subscribeSort,
+  putSubscribe as updateSubscribe,
+} from "@workspace/ui/services/admin/admin";
 import { type RefObject, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";

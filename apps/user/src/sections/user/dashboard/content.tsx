@@ -28,10 +28,13 @@ import { Separator } from "@workspace/ui/components/separator";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { Icon } from "@workspace/ui/composed/icon";
 import { cn } from "@workspace/ui/lib/utils";
-import { getClient, getStat } from "@workspace/ui/services/common/common";
 import {
-  queryUserSubscribe,
-  resetUserSubscribeToken,
+  getCommonClient as getClient,
+  getCommonSiteStat as getStat,
+} from "@workspace/ui/services/common/common";
+import {
+  getV1PublicUserSubscribe as queryUserSubscribe,
+  putV1PublicUserSubscribeToken as resetUserSubscribeToken,
 } from "@workspace/ui/services/user/user";
 import { differenceInDays, formatDate } from "@workspace/ui/utils/formatting";
 import { isBrowser } from "@workspace/ui/utils/index";
@@ -312,13 +315,32 @@ export default function Content() {
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  {t("prompt", "Prompt")}
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
                                   {t(
-                                    "confirmResetSubscription",
-                                    "Are you sure you want to reset your subscription?"
+                                    "resetSubscriptionTitle",
+                                    "After resetting, re-add your subscription in every app"
                                   )}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription asChild>
+                                  <div className="space-y-2 text-left">
+                                    <p>
+                                      {t(
+                                        "resetSubscriptionDescription",
+                                        "The link for this subscription stops working immediately, and the nodes already imported into your apps will all fail to connect within a few minutes."
+                                      )}
+                                    </p>
+                                    <p className="font-medium text-foreground">
+                                      {t(
+                                        "resetSubscriptionSteps",
+                                        "In every app, delete the old subscription, then add the new link shown on this page. Refreshing the old subscription will not help."
+                                      )}
+                                    </p>
+                                    <p>
+                                      {t(
+                                        "resetSubscriptionUnaffected",
+                                        "Your plan, expiry date and used traffic are not affected."
+                                      )}
+                                    </p>
+                                  </div>
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -336,7 +358,10 @@ export default function Content() {
                                     );
                                   }}
                                 >
-                                  {t("confirm", "Confirm")}
+                                  {t(
+                                    "confirmResetSubscription",
+                                    "Confirm Reset Subscription"
+                                  )}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

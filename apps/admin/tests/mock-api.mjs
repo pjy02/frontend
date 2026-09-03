@@ -138,6 +138,36 @@ const orderFixture = {
   payment: { name: "Stripe", platform: "stripe" },
 };
 
+const orderLogFixture = {
+  ...orderFixture,
+  actor_id: 1,
+  client_ip: "203.0.113.42",
+  gift_amount: 500,
+  ip_as_organization: "Example Edge Network",
+  ip_asn: 64_500,
+  ip_city: "Tokyo",
+  ip_country: "Japan",
+  ip_country_code: "JP",
+  ip_region: "Tokyo",
+  method: "Stripe",
+  order_type: orderFixture.type,
+  payment_id: 16,
+  source: "admin",
+  timestamp: now,
+  user_agent: "Mozilla/5.0 (Linux; Android 15; Mobile) Chrome/140",
+};
+
+const withdrawalFixture = {
+  amount: 8800,
+  content: "Bank transfer · Example Bank · **** 2048",
+  created_at: now - 3_600_000,
+  id: 71,
+  reason: "",
+  status: 0,
+  updated_at: now - 3_600_000,
+  user_id: 7,
+};
+
 const couponFixture = {
   id: 21,
   enable: true,
@@ -360,19 +390,38 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/server/node_config") {
-    const config = {
-      inherit_ip_strategy: true,
+    const values = {
       ip_strategy: "prefer_ipv4",
-      inherit_dns: true,
       dns: [],
-      inherit_block: true,
       block: [],
-      inherit_outbound: true,
       outbound: [],
+    };
+    const override = {
+      ...values,
+      inherit_ip_strategy: true,
+      inherit_dns: true,
+      inherit_block: true,
+      inherit_outbound: true,
     };
     send(response, 200, {
       code: 200,
-      data: { override: config, effective: config },
+      data: { global: values, override, effective: values },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/withdrawal/list") {
+    send(response, 200, {
+      code: 200,
+      data: { list: [withdrawalFixture], total: 1 },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/log/order/list") {
+    send(response, 200, {
+      code: 200,
+      data: { list: [orderLogFixture], total: 1 },
     });
     return;
   }

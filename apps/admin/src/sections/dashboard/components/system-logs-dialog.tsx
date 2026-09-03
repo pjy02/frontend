@@ -8,7 +8,8 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Icon } from "@workspace/ui/composed/icon";
-import { getSystemLog } from "@workspace/ui/services/admin/tool";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
+import { getToolLog as getSystemLog } from "@workspace/ui/services/admin/admin";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -40,6 +41,7 @@ export default function SystemLogsDialog({
     refetch,
     isLoading,
   } = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["getSystemLog"],
     queryFn: async () => {
       const { data } = await getSystemLog();

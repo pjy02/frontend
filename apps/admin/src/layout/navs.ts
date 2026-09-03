@@ -18,7 +18,6 @@ import {
   Network,
   PackageOpen,
   PanelsTopLeft,
-  PlugZap,
   Radio,
   ReceiptText,
   RotateCcw,
@@ -91,6 +90,11 @@ export function useNavs() {
             icon: ReceiptText,
           },
           {
+            title: t("Commission Management", "Commission Management"),
+            url: "/dashboard/withdrawal",
+            icon: BadgeDollarSign,
+          },
+          {
             title: t("Coupon Management", "Coupon Management"),
             url: "/dashboard/coupon",
             icon: TicketPercent,
@@ -159,11 +163,6 @@ export function useNavs() {
             url: "/dashboard/auth-control",
             icon: ShieldCheck,
           },
-          {
-            title: t("Plugin Management", "Plugin Management"),
-            url: "/dashboard/plugin",
-            icon: PlugZap,
-          },
         ],
       },
       {
@@ -215,6 +214,11 @@ export function useNavs() {
             title: t("Traffic Details", "Traffic Details"),
             url: "/dashboard/log/traffic-details",
             icon: ChartColumnBig,
+          },
+          {
+            title: t("Order Creation", "Order Creation"),
+            url: "/dashboard/log/order",
+            icon: ReceiptText,
           },
           {
             title: t("Balance", "Balance"),

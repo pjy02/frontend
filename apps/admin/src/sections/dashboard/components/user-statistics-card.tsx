@@ -24,7 +24,8 @@ import {
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
 import Empty from "@workspace/ui/composed/empty";
-import { queryUserStatistics } from "@workspace/ui/services/admin/console";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
+import { getConsoleUser as queryUserStatistics } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import {
   Area,
@@ -58,6 +59,7 @@ export function UserStatisticsCard() {
   };
 
   const { data: UserStatistics, isLoading } = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryUserStatistics"],
     queryFn: async () => {
       const { data } = await queryUserStatistics();

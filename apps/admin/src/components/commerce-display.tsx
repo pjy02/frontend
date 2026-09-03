@@ -88,6 +88,26 @@ export function OrderStatusChip({
   );
 }
 
+const commissionStatusTones: Record<number, StatusChipTone> = {
+  0: "warning",
+  1: "success",
+  2: "danger",
+};
+
+export function CommissionStatusChip({
+  status,
+  label,
+}: {
+  status: number;
+  label: React.ReactNode;
+}) {
+  return (
+    <StatusChip tone={commissionStatusTones[status] ?? "neutral"}>
+      {label}
+    </StatusChip>
+  );
+}
+
 const ticketStatusTones: Record<number, StatusChipTone> = {
   1: "danger",
   2: "warning",

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { getNodeConfig } from "@workspace/ui/services/admin/system";
+import { getSystemNodeConfig as getNodeConfig } from "@workspace/ui/services/admin/admin";
 import {
   type ChangeEvent,
   useCallback,

@@ -33,14 +33,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  queryRevenueStatistics,
-  queryServerTotalData,
-  queryTicketWaitReply,
-  queryUserStatistics,
-} from "@workspace/ui/services/admin/console";
-import { getUserDetail } from "@workspace/ui/services/admin/user";
+  getUserDetail,
+  getConsoleRevenue as queryRevenueStatistics,
+  getConsoleServer as queryServerTotalData,
+  getConsoleTicket as queryTicketWaitReply,
+  getConsoleUser as queryUserStatistics,
+} from "@workspace/ui/services/admin/admin";
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import {
@@ -85,11 +86,14 @@ import {
   WorkspaceDialogTrigger,
 } from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
+import { DashboardComponentsMenu } from "./dashboard-components-menu";
 import {
   AnimatedNumber,
   DashboardDataTransition,
   DashboardFadeThrough,
 } from "./dashboard-motion";
+import { useDashboardPreferences } from "./dashboard-preferences";
+import { ProjectSupport } from "./project-support";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
@@ -368,12 +372,14 @@ function DataUnavailable({ text }: { text: string }) {
 export default function Statistics() {
   const { t, i18n } = useTranslation("dashboard");
   const queryClient = useQueryClient();
+  const { preferences, setProjectSupportVisible } = useDashboardPreferences();
   const [range, setRange] = useState<DashboardRange>("month");
   const [trafficType, setTrafficType] = useState<TrafficType>("nodes");
   const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("today");
   const [trafficLimit, setTrafficLimit] = useState<TrafficLimit>(8);
 
   const serverQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryServerTotalData"],
     queryFn: async () => {
       const { data } = await queryServerTotalData();
@@ -381,6 +387,7 @@ export default function Statistics() {
     },
   });
   const ticketQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryTicketWaitReply"],
     queryFn: async () => {
       const { data } = await queryTicketWaitReply();
@@ -388,6 +395,7 @@ export default function Statistics() {
     },
   });
   const revenueQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryRevenueStatistics"],
     queryFn: async () => {
       const { data } = await queryRevenueStatistics();
@@ -395,6 +403,7 @@ export default function Statistics() {
     },
   });
   const userQuery = useQuery({
+    ...LIVE_QUERY_OPTIONS,
     queryKey: ["queryUserStatistics"],
     queryFn: async () => {
       const { data } = await queryUserStatistics();
@@ -485,6 +494,10 @@ export default function Statistics() {
               </TabsList>
             </Tabs>
             <SystemLogsDialog />
+            <DashboardComponentsMenu
+              onProjectSupportVisibleChange={setProjectSupportVisible}
+              projectSupportVisible={preferences.projectSupport}
+            />
             <Button
               disabled={isRefreshing}
               onClick={() => queryClient.invalidateQueries()}
@@ -663,6 +676,8 @@ export default function Statistics() {
         <SystemVersionCard />
         <SystemOperations />
       </section>
+
+      {preferences.projectSupport ? <ProjectSupport /> : null}
     </div>
   );
 }

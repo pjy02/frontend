@@ -2,16 +2,14 @@
 
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
-import { DotLottieReact } from "@workspace/ui/composed/lottie";
+import { DeferredDotLottie } from "@workspace/ui/composed/lottie";
 import { ThemeSwitch } from "@workspace/ui/composed/theme-switch";
-import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
 import { useEffect } from "react";
 import { useGlobalStore } from "@/stores/global";
 import EmailAuthForm from "./email/auth-form";
 
 export default function Auth() {
   const { common, user } = useGlobalStore();
-  const reducedMotion = useReducedMotion();
   const { site } = common;
 
   const navigate = useNavigate();
@@ -35,10 +33,10 @@ export default function Auth() {
               />
               <span className="font-semibold text-2xl">{site.site_name}</span>
             </Link>
-            <DotLottieReact
-              autoplay={!reducedMotion}
-              className="mx-auto hidden w-full lg:block"
-              loop={!reducedMotion}
+            <DeferredDotLottie
+              autoplay
+              className="mx-auto hidden aspect-square w-full lg:block"
+              loop
               src="./assets/lotties/login.json"
             />
             <p className="hidden w-[275px] text-center md:w-1/2 lg:block xl:w-[500px]">

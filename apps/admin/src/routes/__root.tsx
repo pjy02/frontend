@@ -3,7 +3,6 @@ import {
   createRootRouteWithContext,
   type ErrorComponentProps,
   Link,
-  type NotFoundRouteProps,
   Outlet,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -17,10 +16,10 @@ import type React from "react";
 import { useEffect } from "react";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import { NotFoundPage } from "@/components/not-found-page";
 import {
   ErrorState,
   LoadingState,
-  NotFoundState,
   PermissionDeniedState,
 } from "@/components/states";
 import { useGlobalStore } from "@/stores/global";
@@ -94,28 +93,6 @@ function RootPending() {
   );
 }
 
-function RootNotFound(_props: NotFoundRouteProps) {
-  const { t } = useTranslation("components");
-  return (
-    <StatePage>
-      <NotFoundState
-        action={
-          <Button asChild size="sm">
-            <Link to="/dashboard">
-              {t("state.backToDashboard", "Back to dashboard")}
-            </Link>
-          </Button>
-        }
-        description={t(
-          "state.notFoundDescription",
-          "The requested page may have moved or no longer exists."
-        )}
-        title={t("state.notFoundTitle", "Page not found")}
-      />
-    </StatePage>
-  );
-}
-
 export const Route = createRootRouteWithContext()({
   component: () => {
     const { common, setCommon, getUserInfo } = useGlobalStore();
@@ -178,6 +155,6 @@ export const Route = createRootRouteWithContext()({
     );
   },
   errorComponent: RootError,
-  notFoundComponent: RootNotFound,
+  notFoundComponent: () => <NotFoundPage />,
   pendingComponent: RootPending,
 });

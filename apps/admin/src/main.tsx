@@ -19,7 +19,11 @@ import { LanguageProvider } from "@workspace/ui/integrations/language";
 import { ThemeProvider } from "@workspace/ui/integrations/theme";
 import { initializeI18n } from "@workspace/ui/lib/i18n";
 import { MotionProvider } from "./components/motion-provider.tsx";
-import { fallbackLng, i18nNamespaces, supportedLngs } from "./config/index.ts";
+import {
+  fallbackLng,
+  getInitialI18nNamespaces,
+  supportedLngs,
+} from "./config/index.ts";
 // Report web vitals
 import reportWebVitals from "./reportWebVitals.ts";
 import { fetchInitialConfig } from "./utils/bootstrap.ts";
@@ -29,7 +33,9 @@ import { Logout } from "./utils/common.ts";
 initializeI18n({
   supportedLngs,
   fallbackLng,
-  ns: i18nNamespaces,
+  ns: getInitialI18nNamespaces(
+    window.location.hash.slice(1).split("?")[0] || "/"
+  ),
 });
 
 // Start the global-config request now so it runs in parallel with translation

@@ -19,6 +19,155 @@ This document records all notable changes to ShadCN Admin.
 ---
 
 
+## [1.21.0-dev.1](https://github.com/perfect-panel/frontend/compare/v1.20.0...v1.21.0-dev.1) (2026-08-29)
+
+### ✨ Features / 新功能
+
+* **admin:** add order creation log page ([9e71a98](https://github.com/perfect-panel/frontend/commit/9e71a9852ef2f5bf1b9599f2fdbd11b434429cd2))
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** correct timezone offset display ([94d477e](https://github.com/perfect-panel/frontend/commit/94d477e97f6740367d127875ae40542a608cf746))
+
+### 🔧 Chores / 其他变更
+
+* **api:** regenerate OpenAPI client ([6a0bb81](https://github.com/perfect-panel/frontend/commit/6a0bb81c74f5803bec0e7b17a34217d6ab0cfe55))
+* **release:** Release 1.19.0-dev.2 / 发布版本 1.19.0-dev.2 [skip ci] ([63e4eac](https://github.com/perfect-panel/frontend/commit/63e4eac4e4cb11594618fab411f89a9c8bf488ed))
+* **release:** Release 1.19.1-dev.1 / 发布版本 1.19.1-dev.1 [skip ci] ([9bfc10e](https://github.com/perfect-panel/frontend/commit/9bfc10ed41442bd6e2c3ba0d1a53bf281eae4af5))
+* **release:** Release 1.19.2-dev.1 / 发布版本 1.19.2-dev.1 [skip ci] ([fbd99dd](https://github.com/perfect-panel/frontend/commit/fbd99dd34957a004dc65658c861bca06e79ff445))
+* **release:** Release 1.20.0-dev.1 / 发布版本 1.20.0-dev.1 [skip ci] ([fafaa02](https://github.com/perfect-panel/frontend/commit/fafaa024b5e68f49d22788addba73dda6da698b0))
+
+## [1.20.0](https://github.com/perfect-panel/frontend/compare/v1.19.1...v1.20.0) (2026-08-29)
+
+### ✨ Features / 新功能
+
+* **admin:** add order creation log page ([9e51a57](https://github.com/perfect-panel/frontend/commit/9e51a5749f8802e2924caa16d36c9f3f5d7cb284))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([db65b6f](https://github.com/perfect-panel/frontend/commit/db65b6f37d81891940874a1f8168341f2d8b1bc9))
+
+### 🔧 Chores / 其他变更
+
+* **api:** regenerate OpenAPI client ([9565d73](https://github.com/perfect-panel/frontend/commit/9565d730e88773cdeeb63631ffd398887fe9e84a))
+
+## [1.19.1](https://github.com/perfect-panel/frontend/compare/v1.19.0...v1.19.1) (2026-08-29)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** correct timezone offset display ([4e6d5ff](https://github.com/perfect-panel/frontend/commit/4e6d5ff99783749fec3d670bf048088c6d31b54e))
+
+## [1.19.0](https://github.com/perfect-panel/frontend/compare/v1.18.1...v1.19.0) (2026-08-29)
+
+### ✨ Features / 新功能
+
+* **admin:** display log request risk metadata ([6ce8a8a](https://github.com/perfect-panel/frontend/commit/6ce8a8ae5f596d8d9b0971f83cd945f9229aed2d))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([411e72b](https://github.com/perfect-panel/frontend/commit/411e72becbb38bcd80c5bb97443a863b803527a8))
+
+### 🔧 Chores / 其他变更
+
+* **release:** Release 1.16.0-dev.3 / 发布版本 1.16.0-dev.3 [skip ci] ([3af3fc5](https://github.com/perfect-panel/frontend/commit/3af3fc5337d4c4f32d11c887b211ec4e44d60cc9))
+* **release:** Release 1.17.0-dev.1 / 发布版本 1.17.0-dev.1 [skip ci] ([77e56ad](https://github.com/perfect-panel/frontend/commit/77e56ad6e9a784829e28c0b338cf29b3b7ba8420))
+* **release:** Release 1.19.0-dev.1 / 发布版本 1.19.0-dev.1 [skip ci] ([8443561](https://github.com/perfect-panel/frontend/commit/84435613790fcab21999b7a62c6483ac9fd09661))
+
+## [1.19.0-dev.1](https://github.com/perfect-panel/frontend/compare/v1.18.1...v1.19.0-dev.1) (2026-08-29)
+
+### ✨ Features / 新功能
+
+* **admin:** display log request risk metadata ([6ce8a8a](https://github.com/perfect-panel/frontend/commit/6ce8a8ae5f596d8d9b0971f83cd945f9229aed2d))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([411e72b](https://github.com/perfect-panel/frontend/commit/411e72becbb38bcd80c5bb97443a863b803527a8))
+
+### 🔧 Chores / 其他变更
+
+* **release:** Release 1.16.0-dev.3 / 发布版本 1.16.0-dev.3 [skip ci] ([3af3fc5](https://github.com/perfect-panel/frontend/commit/3af3fc5337d4c4f32d11c887b211ec4e44d60cc9))
+* **release:** Release 1.17.0-dev.1 / 发布版本 1.17.0-dev.1 [skip ci] ([77e56ad](https://github.com/perfect-panel/frontend/commit/77e56ad6e9a784829e28c0b338cf29b3b7ba8420))
+
+## [1.18.1](https://github.com/perfect-panel/frontend/compare/v1.18.0...v1.18.1) (2026-08-29)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** restore dashboard sponsors ([41dd6c7](https://github.com/perfect-panel/frontend/commit/41dd6c76a03b0f741444e6f9b5db43e3d67c928a))
+
+## [1.18.0](https://github.com/perfect-panel/frontend/compare/v1.17.0...v1.18.0) (2026-08-28)
+
+### ✨ Features / 新功能
+
+* **admin:** improve server node configuration workflow ([e79fa78](https://github.com/perfect-panel/frontend/commit/e79fa78da19b28af928c25a50cd215cd9b65fbd1))
+
+## [1.17.0](https://github.com/perfect-panel/frontend/compare/v1.16.1...v1.17.0) (2026-08-28)
+
+### ✨ Features / 新功能
+
+* improve admin user and log workflows ([e444a13](https://github.com/perfect-panel/frontend/commit/e444a1338d4451b8b7c81973f4ec8d83c0c624e2))
+* support invite codes in OAuth login ([9f6a3ca](https://github.com/perfect-panel/frontend/commit/9f6a3cab190a976f0c777c5894a6ce0183b91182))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([117ad81](https://github.com/perfect-panel/frontend/commit/117ad816f93d02a3d003502eb95c08442289dc86))
+
+## [1.16.1](https://github.com/perfect-panel/frontend/compare/v1.16.0...v1.16.1) (2026-08-28)
+
+### ⚡️ Performance Improvements / 性能优化
+
+* optimize frontend loading performance ([6c20295](https://github.com/perfect-panel/frontend/commit/6c202953d036877965a24e823f9c1f247fdb6a1c))
+
+## [1.16.0](https://github.com/perfect-panel/frontend/compare/v1.15.0...v1.16.0) (2026-08-28)
+
+### ✨ Features / 新功能
+
+* **admin:** sync APIs and add withdrawal management ([61a1b1d](https://github.com/perfect-panel/frontend/commit/61a1b1d74536a568ccfd5a2ae9184990e0a08e65))
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** add missing quota reset label to log types ([cdde298](https://github.com/perfect-panel/frontend/commit/cdde2989cd0203fa2faa578d73f294effb8f5f4f))
+* **admin:** prevent transaction number overflow ([0e91712](https://github.com/perfect-panel/frontend/commit/0e91712a32217455e5ec15c80e464ce6025fdb5a))
+* **admin:** prevent transaction number overflow ([#167](https://github.com/perfect-panel/frontend/issues/167)) ([737b038](https://github.com/perfect-panel/frontend/commit/737b038e86f4d355fd2ea8e4daf23dd44c93a9e7))
+* **admin:** wrap long order transaction numbers ([53cb860](https://github.com/perfect-panel/frontend/commit/53cb8605577df0947d3b4b09f5c412481a649140))
+* **admin:** wrap long order transaction numbers ([#168](https://github.com/perfect-panel/frontend/issues/168)) ([db504ca](https://github.com/perfect-panel/frontend/commit/db504ca524513a92297a9c6cae79119c380f81f4))
+* **auth:** repair OAuth callback flows ([f5f362e](https://github.com/perfect-panel/frontend/commit/f5f362ef16703c996ac79ff958c38246c687e960))
+* **automation:** make webhook dry runs side-effect free ([6aa091c](https://github.com/perfect-panel/frontend/commit/6aa091ca92747e089626bf54ca7699ef8bfa9667))
+* **dashboard:** say whether the day count is remaining or overdue ([52bd6f8](https://github.com/perfect-panel/frontend/commit/52bd6f8e28c4b276ff1997626d13bcd4ddd09186))
+* **dashboard:** spell out what resetting a subscription breaks ([317c460](https://github.com/perfect-panel/frontend/commit/317c460f6c1e877ddb0b8e99c2c26da577c7162e))
+* **pages:** preserve trusted client IP ([3ff807f](https://github.com/perfect-panel/frontend/commit/3ff807fdbde16e8802338c968afed50593433909))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([b3facb3](https://github.com/perfect-panel/frontend/commit/b3facb31cb014e2d40643f6a105fe2025b8d1705))
+* **api:** sync Swagger from backend ([db7b9dd](https://github.com/perfect-panel/frontend/commit/db7b9dd219c4db5ce1d6deb78ad56d686beffde5))
+* **api:** sync Swagger from backend ([2df835d](https://github.com/perfect-panel/frontend/commit/2df835d7f85605f9a97e725eb126cd887088a44b))
+
+### 🔧 Chores / 其他变更
+
+* **automation:** add webhook delivery dry runs ([2d9e644](https://github.com/perfect-panel/frontend/commit/2d9e644e0d8c5c47b9b0f30f88b66dd4ddfb05f5))
+* **release:** Release 1.15.1-dev.1 / 发布版本 1.15.1-dev.1 [skip ci] ([87f8530](https://github.com/perfect-panel/frontend/commit/87f85306461ed46d5d24ecaed0505838f7069aea))
+* **release:** Release 1.16.0-dev.1 / 发布版本 1.16.0-dev.1 [skip ci] ([7d2bb1f](https://github.com/perfect-panel/frontend/commit/7d2bb1f852c6c2dc88b3f193832515350fffafe0))
+* **release:** Release 1.16.0-dev.2 / 发布版本 1.16.0-dev.2 [skip ci] ([cf678e2](https://github.com/perfect-panel/frontend/commit/cf678e2943f2a4036894648ec3d5f3ea51f4343e))
+
+## [1.16.0-dev.2](https://github.com/perfect-panel/frontend/compare/v1.16.0-dev.1...v1.16.0-dev.2) (2026-08-28)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** add missing quota reset label to log types ([cdde298](https://github.com/perfect-panel/frontend/commit/cdde2989cd0203fa2faa578d73f294effb8f5f4f))
+* **dashboard:** spell out what resetting a subscription breaks ([317c460](https://github.com/perfect-panel/frontend/commit/317c460f6c1e877ddb0b8e99c2c26da577c7162e))
+
+## [1.16.0-dev.1](https://github.com/perfect-panel/frontend/compare/v1.15.1-dev.1...v1.16.0-dev.1) (2026-08-28)
+
+### ✨ Features / 新功能
+
+* **admin:** sync APIs and add withdrawal management ([61a1b1d](https://github.com/perfect-panel/frontend/commit/61a1b1d74536a568ccfd5a2ae9184990e0a08e65))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([b3facb3](https://github.com/perfect-panel/frontend/commit/b3facb31cb014e2d40643f6a105fe2025b8d1705))
+* **api:** sync Swagger from backend ([db7b9dd](https://github.com/perfect-panel/frontend/commit/db7b9dd219c4db5ce1d6deb78ad56d686beffde5))
+* **api:** sync Swagger from backend ([2df835d](https://github.com/perfect-panel/frontend/commit/2df835d7f85605f9a97e725eb126cd887088a44b))
+
 ## [1.15.1-dev.1](https://github.com/perfect-panel/frontend/compare/v1.15.0...v1.15.1-dev.1) (2026-08-14)
 
 ### 🐛 Bug Fixes / 问题修复

@@ -1,7 +1,23 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+const DEFAULT_STALE_TIME = 30_000;
+
+export const LIVE_QUERY_OPTIONS = {
+  refetchOnMount: "always",
+  refetchOnWindowFocus: true,
+  staleTime: 0,
+} as const;
+
 export function TanStackQueryContext() {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        // Avoid refetching the same data during quick route transitions or
+        // focus changes. Live views can still opt into a shorter interval.
+        staleTime: DEFAULT_STALE_TIME,
+      },
+    },
+  });
   return {
     queryClient,
   };

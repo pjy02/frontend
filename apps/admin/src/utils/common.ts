@@ -51,16 +51,29 @@ export function setAuthorization(token: string): void {
   setCookie("Authorization", token);
 }
 
+export function normalizeAdminRedirectUrl(value?: string | null) {
+  if (!value) return;
+  if (value === "/dashboard" || value.startsWith("/dashboard/")) {
+    return value;
+  }
+}
+
 export function getRedirectUrl(): string {
   if (typeof window === "undefined") return "/dashboard";
   const params = new URLSearchParams(window.location.search);
-  const redirect = params.get("redirect");
-  return redirect?.startsWith("/") ? redirect : "/dashboard";
+  const queryRedirect = normalizeAdminRedirectUrl(params.get("redirect"));
+  const storedRedirect = normalizeAdminRedirectUrl(
+    sessionStorage.getItem("redirect-url")
+  );
+  sessionStorage.removeItem("redirect-url");
+  return queryRedirect || storedRedirect || "/dashboard";
 }
 
 export function setRedirectUrl(value?: string) {
-  if (value) {
-    sessionStorage.setItem("redirect-url", value);
+  if (typeof window === "undefined") return;
+  const redirect = normalizeAdminRedirectUrl(value);
+  if (redirect) {
+    sessionStorage.setItem("redirect-url", redirect);
   }
 }
 

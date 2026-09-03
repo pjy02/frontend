@@ -1,11 +1,12 @@
 "use client";
 
-import { filterResetSubscribeLog } from "@workspace/ui/services/admin/log";
+import { getLogSubscribeResetList as filterResetSubscribeLog } from "@workspace/ui/services/admin/admin";
 import { useTranslation } from "react-i18next";
 import { DateTimeValue } from "@/components/commerce-display";
 import { OrderLink } from "@/components/order-link";
 import { LogTypeChip } from "@/sections/log/components/log-display";
 import { LogPage } from "@/sections/log/components/log-page";
+import { RequestSource } from "@/sections/log/request-source";
 import { UserDetail, UserSubscribeDetail } from "@/sections/user/user-detail";
 
 export default function ResetSubscribeLogPage() {
@@ -54,6 +55,11 @@ export default function ResetSubscribeLogPage() {
           accessorKey: "order_no",
           header: t("column.orderNo", "Order No."),
           cell: ({ row }) => <OrderLink orderId={row.original.order_no} />,
+        },
+        {
+          id: "request_source",
+          header: t("column.requestSource", "Request source"),
+          cell: ({ row }) => <RequestSource metadata={row.original} />,
         },
         {
           accessorKey: "timestamp",

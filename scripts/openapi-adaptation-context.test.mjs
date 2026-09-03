@@ -4,9 +4,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const scriptPath = new URL("./openapi-adaptation-context.mjs", import.meta.url)
-  .pathname;
+const scriptPath = fileURLToPath(
+  new URL("./openapi-adaptation-context.mjs", import.meta.url)
+);
 
 function makeWorkspace(event) {
   const workspace = mkdtempSync(join(tmpdir(), "openapi-adaptation-context-"));
