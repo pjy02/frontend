@@ -18,8 +18,12 @@ test("triage workflow keeps existing issue, open comment, and manual triggers", 
   assert.match(workflow, /issue_comment:\n\s+types: \[created\]/);
   assert.match(
     workflow,
-    /if: github\.event_name == 'workflow_dispatch' \|\| github\.event_name == 'pull_request_target' \|\| github\.event\.issue\.state == 'open'/
+    /if: github\.repository == 'perfect-panel\/frontend' && \(github\.event_name == 'workflow_dispatch' \|\| github\.event_name == 'pull_request_target' \|\| github\.event\.issue\.state == 'open'\)/
   );
+});
+
+test("triage workflow is skipped in forks without upstream automation secrets", () => {
+  assert.match(workflow, /github\.repository == 'perfect-panel\/frontend'/);
 });
 
 test("triage workflow adds pull_request_target with only safe lifecycle types", () => {
