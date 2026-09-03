@@ -1,12 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Switch } from "@workspace/ui/components/switch";
@@ -29,16 +23,28 @@ import {
   putUserBasic as updateUserBasicInfo,
 } from "@workspace/ui/services/admin/admin";
 import {
+  CircleDollarSign,
+  Gift,
   Layers3,
+  LogIn,
   MoreVertical,
   Pencil,
   Plus,
+  ReceiptText,
+  ScrollText,
   Trash2,
   UserRound,
+  WalletCards,
 } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+  AdminActionMenuSub,
+} from "@/components/admin-action-menu";
 import { Display } from "@/components/display";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -127,6 +133,7 @@ export default function User() {
       <ProTable<API.User, API.getUserListParams>
         action={ref}
         actions={{
+          visibleCount: 3,
           render: (row) => [
             <ProfileSheet
               key="profile"
@@ -467,50 +474,77 @@ function UserMoreActions({
 }) {
   const { t } = useTranslation("user");
   const deleteRef = useRef<HTMLButtonElement>(null);
-  const links = [
-    { to: "/dashboard/order", label: t("orderList", "Order List") },
-    { to: "/dashboard/log/login", label: t("loginLogs", "Login Logs") },
-    { to: "/dashboard/log/balance", label: t("balanceLogs", "Balance Logs") },
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const logLinks = [
     {
+      icon: <LogIn />,
+      to: "/dashboard/log/login",
+      label: t("loginLogs", "Login Logs"),
+    },
+    {
+      icon: <WalletCards />,
+      to: "/dashboard/log/balance",
+      label: t("balanceLogs", "Balance Logs"),
+    },
+    {
+      icon: <CircleDollarSign />,
       to: "/dashboard/log/commission",
       label: t("commissionLogs", "Commission Logs"),
     },
-    { to: "/dashboard/log/gift", label: t("giftLogs", "Gift Logs") },
+    {
+      icon: <Gift />,
+      to: "/dashboard/log/gift",
+      label: t("giftLogs", "Gift Logs"),
+    },
   ] as const;
 
   return (
     <>
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+      <AdminActionMenu
+        backLabel={t("back", "Back")}
+        description={t(
+          "userActionsDescription",
+          "Open orders, activity logs, or account actions for this user."
+        )}
+        title={t("userActions", "User actions")}
+        trigger={
           <Button
-            aria-label={t("more", "More")}
+            aria-label={t("moreActions", "More actions")}
             className="size-8 rounded-full"
+            ref={moreTriggerRef}
             size="icon"
+            title={t("moreActions", "More actions")}
             variant="ghost"
           >
             <MoreVertical />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {links.map((item) => (
-            <DropdownMenuItem asChild key={item.to}>
+        }
+      >
+        <AdminActionMenuItem asChild icon={<ReceiptText />}>
+          <Link search={{ user_id: String(userId) }} to="/dashboard/order">
+            {t("orderList", "Order List")}
+          </Link>
+        </AdminActionMenuItem>
+        <AdminActionMenuSub
+          icon={<ScrollText />}
+          id="user-logs"
+          label={t("logsAndRecords", "Logs and records")}
+        >
+          {logLinks.map((item) => (
+            <AdminActionMenuItem asChild icon={item.icon} key={item.to}>
               <Link search={{ user_id: String(userId) }} to={item.to}>
                 {item.label}
               </Link>
-            </DropdownMenuItem>
+            </AdminActionMenuItem>
           ))}
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onSelect={(event) => {
-              event.preventDefault();
-              deleteRef.current?.click();
-            }}
-          >
-            <Trash2 />
-            {t("delete", "Delete")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </AdminActionMenuSub>
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("deleteUser", "Delete user")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
       <ConfirmButton
         cancelText={t("cancel", "Cancel")}
         confirmText={t("confirm", "Confirm")}
@@ -520,6 +554,7 @@ function UserMoreActions({
           toast.success(t("deleteSuccess", "Deleted successfully"));
           onDeleted();
         }}
+        restoreFocusRef={moreTriggerRef}
         title={t("confirmDelete", "Confirm Delete")}
         trigger={<Button className="hidden" ref={deleteRef} />}
       />

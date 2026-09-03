@@ -13,7 +13,7 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Check, LoaderCircle } from "lucide-react";
 import type React from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +24,7 @@ interface ConfirmationButtonProps {
   onConfirm: () => void | Promise<void>;
   cancelText?: string;
   confirmText?: string;
+  restoreFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
@@ -33,6 +34,7 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
   onConfirm,
   cancelText,
   confirmText,
+  restoreFocusRef,
 }) => {
   const { t } = useTranslation("components");
   const [open, setOpen] = useState(false);
@@ -63,7 +65,13 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
       open={open}
     >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          if (!restoreFocusRef?.current) return;
+          event.preventDefault();
+          restoreFocusRef.current.focus({ preventScroll: true });
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

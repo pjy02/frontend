@@ -83,6 +83,7 @@ export interface ProTableProps<TData, TValue> {
   actions?: {
     render?: (row: TData) => React.ReactNode[];
     batchRender?: (rows: TData[]) => React.ReactNode[];
+    visibleCount?: number;
   };
   mobile?:
     | {
@@ -253,6 +254,7 @@ export function ProTable<
                   moreLabel={
                     texts?.moreActions || t("table.moreActions", "More actions")
                   }
+                  visibleCount={actions.visibleCount}
                 />
               ),
               enableSorting: false,
@@ -600,6 +602,7 @@ export function ProTable<
                         texts?.moreActions ||
                         t("table.moreActions", "More actions")
                       }
+                      visibleCount={actions?.visibleCount}
                     />
                   );
                   const feedback = rowFeedback[row.id];
@@ -1114,18 +1117,27 @@ function createSelectColumn<TData, TValue>(labels: {
 function RowActions({
   items,
   moreLabel,
+  visibleCount = 1,
 }: {
   items: React.ReactNode[];
   moreLabel: string;
+  visibleCount?: number;
 }) {
   const visibleItems = items.filter(Boolean);
   if (visibleItems.length === 0) return null;
 
-  const [primary, ...secondary] = visibleItems;
+  const normalizedVisibleCount = Math.max(1, Math.floor(visibleCount));
+  const primary = visibleItems.slice(0, normalizedVisibleCount);
+  const secondary = visibleItems.slice(normalizedVisibleCount);
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      <div className="[&_[data-slot=button]]:h-8 [&_[data-slot=button]]:px-3">
+    <div
+      className={cn(
+        "flex items-center justify-end",
+        primary.length >= 3 ? "gap-0.5" : "gap-1.5"
+      )}
+    >
+      <div className="flex items-center gap-0.5 [&_[data-slot=button]]:h-8 [&_[data-slot=button]]:px-3">
         {primary}
       </div>
       {secondary.length > 0 ? (

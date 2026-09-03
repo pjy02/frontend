@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -17,6 +18,7 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
+import { createRef } from "react";
 import { useForm } from "react-hook-form";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -140,5 +142,33 @@ describe("admin interaction feedback", () => {
 
     act(() => vi.advanceTimersByTime(420));
     expect(screen.queryByText("Delete record")).toBeNull();
+  });
+
+  it("restores focus to the action-menu trigger after cancelling", async () => {
+    const returnFocusRef = createRef<HTMLButtonElement>();
+
+    render(
+      <>
+        <Button ref={returnFocusRef}>More actions</Button>
+        <ConfirmButton
+          description="This cannot be undone"
+          onConfirm={vi.fn()}
+          restoreFocusRef={returnFocusRef}
+          title="Delete record"
+          trigger={
+            <Button className="hidden" data-testid="confirm-trigger">
+              Open confirm
+            </Button>
+          }
+        />
+      </>
+    );
+
+    fireEvent.click(screen.getByTestId("confirm-trigger"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(returnFocusRef.current)
+    );
   });
 });

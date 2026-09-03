@@ -1,11 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import {
   ProTable,
@@ -19,10 +13,31 @@ import {
   postUserSubscribeToggle as toggleUserSubscribeStatus,
   putUserSubscribe as updateUserSubscribe,
 } from "@workspace/ui/services/admin/admin";
-import { MoreVertical, Pencil, Plus } from "lucide-react";
+import {
+  Activity,
+  ChartBar,
+  CirclePause,
+  CirclePlay,
+  Copy,
+  History,
+  MonitorSmartphone,
+  MoreVertical,
+  Pencil,
+  Plus,
+  RefreshCw,
+  ScrollText,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+  AdminActionMenuSub,
+} from "@/components/admin-action-menu";
 import { Display } from "@/components/display";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
 import { useGlobalStore } from "@/stores/global";
@@ -39,6 +54,7 @@ export default function UserSubscription({ userId }: { userId: number }) {
     <ProTable<API.UserSubscribe, Record<string, unknown>>
       action={ref}
       actions={{
+        visibleCount: 2,
         render: (row) => [
           <SubscriptionForm
             initialData={row}
@@ -249,103 +265,126 @@ function RowMoreActions({
   const resetTokenRef = useRef<HTMLButtonElement>(null);
   const toggleStatusRef = useRef<HTMLButtonElement>(null);
   const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const { t } = useTranslation("user");
   const { getUserSubscribe: getUserSubscribeUrls } = useGlobalStore();
+  const [copying, setCopying] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="inline-flex">
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+      <AdminActionMenu
+        backLabel={t("back", "Back")}
+        description={t(
+          "subscriptionActionsDescription",
+          "Copy access, manage this subscription, or open its activity records."
+        )}
+        onOpenChange={setMenuOpen}
+        open={menuOpen}
+        title={t("subscriptionActions", "Subscription actions")}
+        trigger={
           <Button
-            aria-label={t("more", "More")}
+            aria-label={t("moreActions", "More actions")}
             className="size-8 rounded-full"
+            ref={moreTriggerRef}
             size="icon"
+            title={t("moreActions", "More actions")}
             variant="ghost"
           >
             <MoreVertical />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={async (e) => {
-              e.preventDefault();
+        }
+      >
+        <AdminActionMenuItem
+          closeOnSelect={false}
+          icon={<Copy />}
+          loading={copying}
+          onAction={async () => {
+            setCopying(true);
+            try {
               await navigator.clipboard.writeText(
                 getUserSubscribeUrls(row.short, token)[0] || ""
               );
               toast.success(t("copySuccess", "Copied successfully"));
-            }}
-          >
-            {t("copySubscription", "Copy Subscription")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              resetTokenRef.current?.click();
-            }}
+              setMenuOpen(false);
+            } finally {
+              setCopying(false);
+            }
+          }}
+        >
+          {t("copySubscription", "Copy Subscription")}
+        </AdminActionMenuItem>
+        <AdminActionMenuItem
+          icon={<MonitorSmartphone />}
+          onAction={() => triggerRef.current?.click()}
+        >
+          {t("onlineDevices", "Online Devices")}
+        </AdminActionMenuItem>
+        <AdminActionMenuSub
+          icon={<Settings2 />}
+          id="subscription-management"
+          label={t("subscriptionManagement", "Subscription management")}
+        >
+          <AdminActionMenuItem
+            icon={<RefreshCw />}
+            onAction={() => resetTokenRef.current?.click()}
           >
             {t("resetToken", "Reset Subscription Address")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              toggleStatusRef.current?.click();
-            }}
+          </AdminActionMenuItem>
+          <AdminActionMenuItem
+            icon={row.status === 5 ? <CirclePlay /> : <CirclePause />}
+            onAction={() => toggleStatusRef.current?.click()}
           >
             {row.status === 5
               ? t("resumeSubscribe", "Resume Subscription")
               : t("stopSubscribe", "Stop Subscription")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={(e) => {
-              e.preventDefault();
-              deleteRef.current?.click();
-            }}
-          >
-            {t("delete", "Delete")}
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          </AdminActionMenuItem>
+        </AdminActionMenuSub>
+        <AdminActionMenuSub
+          icon={<Activity />}
+          id="subscription-logs"
+          label={t("logsAndStatistics", "Logs and statistics")}
+        >
+          <AdminActionMenuItem asChild icon={<ScrollText />}>
             <Link
               search={{ user_id: userId, user_subscribe_id: row.id }}
               to="/dashboard/log/subscribe"
             >
               {t("subscriptionLogs", "Subscription Logs")}
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          </AdminActionMenuItem>
+          <AdminActionMenuItem asChild icon={<History />}>
             <Link
               search={{ user_id: userId, user_subscribe_id: row.id }}
               to="/dashboard/log/reset-subscribe"
             >
               {t("resetLogs", "Reset Logs")}
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          </AdminActionMenuItem>
+          <AdminActionMenuItem asChild icon={<Activity />}>
             <Link
               search={{ user_id: userId, user_subscribe_id: row.id }}
               to="/dashboard/log/subscribe-traffic"
             >
               {t("trafficStats", "Traffic Stats")}
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          </AdminActionMenuItem>
+          <AdminActionMenuItem asChild icon={<ChartBar />}>
             <Link
               search={{ user_id: userId, subscribe_id: row.subscribe_id }}
               to="/dashboard/log/traffic-details"
             >
               {t("trafficDetails", "Traffic Details")}
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              triggerRef.current?.click();
-            }}
-          >
-            {t("onlineDevices", "Online Devices")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </AdminActionMenuItem>
+        </AdminActionMenuSub>
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("deleteSubscription", "Delete subscription")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
 
       {/* Hidden triggers for confirm dialogs */}
       <ConfirmButton
@@ -364,6 +403,7 @@ function RowMoreActions({
           );
           refresh();
         }}
+        restoreFocusRef={moreTriggerRef}
         title={t("confirmResetToken", "Confirm Reset Subscription Address")}
         trigger={<Button className="hidden" ref={resetTokenRef} />}
       />
@@ -393,6 +433,7 @@ function RowMoreActions({
           );
           refresh();
         }}
+        restoreFocusRef={moreTriggerRef}
         title={
           row.status === 5
             ? t("confirmResumeSubscribe", "Confirm Resume Subscription")
@@ -413,6 +454,7 @@ function RowMoreActions({
           toast.success(t("deleteSuccess", "Deleted successfully"));
           refresh();
         }}
+        restoreFocusRef={moreTriggerRef}
         title={t("confirmDelete", "Confirm Delete")}
         trigger={<Button className="hidden" ref={deleteRef} />}
       />
