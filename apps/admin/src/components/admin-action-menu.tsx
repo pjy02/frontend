@@ -20,9 +20,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
 import { cn } from "@workspace/ui/lib/utils";
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   cloneElement,
   createContext,
@@ -32,15 +38,30 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 type MenuMode = "desktop" | "mobile";
 
+const mobileMenuLevelVariants = {
+  animate: { opacity: 1, x: 0 },
+  exit: (direction: 1 | -1) => ({
+    opacity: 0,
+    x: direction === 1 ? -12 : 12,
+  }),
+  initial: (direction: 1 | -1) => ({
+    opacity: 0,
+    x: direction === 1 ? 20 : -20,
+  }),
+};
+
 type AdminActionMenuContextValue = {
   backLabel: string;
   mode: MenuMode;
+  mobileDirection: 1 | -1;
   mobilePath: string[];
   setMobilePath: (path: string[]) => void;
 };
@@ -100,9 +121,15 @@ function AdminActionMenu({
 }: AdminActionMenuProps) {
   const isMobile = useIsMobile();
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const [mobileDirection, setMobileDirection] = useState<1 | -1>(1);
   const [mobilePath, setMobilePath] = useState<string[]>([]);
   const open = controlledOpen ?? internalOpen;
   const mode: MenuMode = isMobile ? "mobile" : "desktop";
+
+  const updateMobilePath = (nextPath: string[]) => {
+    setMobileDirection(nextPath.length >= mobilePath.length ? 1 : -1);
+    setMobilePath(nextPath);
+  };
 
   const updateOpen = (nextOpen: boolean) => {
     if (controlledOpen === undefined) {
@@ -111,6 +138,7 @@ function AdminActionMenu({
     onOpenChange?.(nextOpen);
     if (!nextOpen) {
       setMobilePath([]);
+      setMobileDirection(1);
     }
   };
 
@@ -121,8 +149,14 @@ function AdminActionMenu({
   }, [open]);
 
   const context = useMemo(
-    () => ({ backLabel, mode, mobilePath, setMobilePath }),
-    [backLabel, mode, mobilePath]
+    () => ({
+      backLabel,
+      mode,
+      mobileDirection,
+      mobilePath,
+      setMobilePath: updateMobilePath,
+    }),
+    [backLabel, mode, mobileDirection, mobilePath]
   );
 
   if (mode === "mobile") {
@@ -152,10 +186,11 @@ function AdminActionMenu({
           <DropdownMenuContent
             align="end"
             className={cn(
-              "admin-action-menu-content w-max min-w-40 max-w-56 rounded-[10px] p-1.5",
+              "admin-action-menu-content w-max min-w-40 max-w-[220px] rounded-[10px] p-1.5",
               className
             )}
             collisionPadding={8}
+            data-admin-action-menu-level="root"
           >
             {children}
           </DropdownMenuContent>
@@ -187,8 +222,9 @@ function AdminMobileActionPanel({
   description,
   title,
 }: AdminMobileActionPanelProps) {
-  const { mobilePath } = useAdminActionMenuContext();
-  const isRoot = mobilePath.length === 0;
+  const context = useAdminActionMenuContext();
+  const { mobileDirection, mobilePath } = context;
+  const pathKey = mobilePath.join("/") || "root";
 
   return (
     <DrawerContent
@@ -198,25 +234,92 @@ function AdminMobileActionPanel({
       )}
       data-slot="admin-mobile-action-panel"
     >
-      <div className="min-h-0 overflow-y-auto overscroll-contain px-2 pb-2">
-        {isRoot ? (
-          <DrawerHeader className="px-2 pt-3 pb-2 text-left">
-            <DrawerTitle className="font-medium text-base">{title}</DrawerTitle>
-            <DrawerDescription
-              className={cn(!description && "sr-only", "text-xs")}
+      <div className="admin-action-menu-mobile-scroll min-h-0 overflow-y-auto overscroll-contain px-2 pb-2">
+        <motion.div className="relative" layout>
+          <AnimatePresence
+            custom={mobileDirection}
+            initial={false}
+            mode="popLayout"
+          >
+            <motion.div
+              animate="animate"
+              className="admin-action-menu-mobile-level"
+              custom={mobileDirection}
+              exit="exit"
+              initial="initial"
+              key={pathKey}
+              layout
+              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+              variants={mobileMenuLevelVariants}
             >
-              {description ?? title}
-            </DrawerDescription>
-          </DrawerHeader>
-        ) : null}
-        <div
-          className="admin-action-menu-mobile-level"
-          data-depth={mobilePath.length}
-        >
-          {children}
-        </div>
+              <AdminActionMenuContext.Provider value={context}>
+                {mobilePath.length === 0 ? (
+                  <DrawerHeader className="px-2 pt-3 pb-2 text-left">
+                    <DrawerTitle className="font-medium text-base">
+                      {title}
+                    </DrawerTitle>
+                    <DrawerDescription
+                      className={cn(!description && "sr-only", "text-xs")}
+                    >
+                      {description ?? title}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                ) : null}
+                {children}
+              </AdminActionMenuContext.Provider>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       </div>
     </DrawerContent>
+  );
+}
+
+function AdminActionMenuLabel({
+  children,
+  tooltip,
+}: {
+  children: ReactNode;
+  tooltip?: ReactNode | false;
+}) {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const label = labelRef.current;
+    if (!label) {
+      return;
+    }
+    const update = () => setTruncated(label.scrollWidth > label.clientWidth);
+    update();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => window.removeEventListener("resize", update);
+    }
+
+    const observer = new ResizeObserver(update);
+    observer.observe(label);
+    return () => observer.disconnect();
+  }, [children]);
+
+  const label = (
+    <span className="min-w-0 truncate" ref={labelRef}>
+      {children}
+    </span>
+  );
+
+  if (!truncated || tooltip === false) {
+    return label;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{label}</TooltipTrigger>
+      <TooltipContent className="max-w-72" side="top" sideOffset={6}>
+        {tooltip ?? children}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -230,6 +333,7 @@ type AdminActionMenuItemProps = {
   loading?: boolean;
   onAction?: () => void | Promise<void>;
   trailing?: ReactNode;
+  tooltip?: ReactNode | false;
   variant?: "default" | "destructive";
 };
 
@@ -246,6 +350,7 @@ function AdminActionMenuItem({
   loading = false,
   onAction,
   trailing,
+  tooltip,
   variant = "default",
 }: AdminActionMenuItemProps) {
   const { mode, mobilePath } = useAdminActionMenuContext();
@@ -263,7 +368,7 @@ function AdminActionMenuItem({
       >
         {loading ? <LoaderCircle className="animate-spin" /> : icon}
       </span>
-      <span className="min-w-0 truncate">{label}</span>
+      <AdminActionMenuLabel tooltip={tooltip}>{label}</AdminActionMenuLabel>
       <span className="flex min-w-0 items-center justify-end text-muted-foreground text-xs [&_svg]:size-4">
         {trailing}
       </span>
@@ -432,11 +537,12 @@ function AdminActionMenuSub({
             >
               {icon}
             </span>
-            <span className="min-w-0 truncate">{label}</span>
+            <AdminActionMenuLabel>{label}</AdminActionMenuLabel>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent
-            className="admin-action-menu-content w-max min-w-40 max-w-56 rounded-[10px] p-1.5"
+            className="admin-action-menu-content w-max min-w-40 max-w-[220px] rounded-[10px] p-1.5"
             collisionPadding={8}
+            data-admin-action-menu-level="sub"
             sideOffset={4}
           >
             {children}
@@ -464,7 +570,7 @@ function AdminActionMenuSub({
         >
           {icon}
         </span>
-        <span className="min-w-0 truncate">{label}</span>
+        <AdminActionMenuLabel>{label}</AdminActionMenuLabel>
         <ChevronRight
           aria-hidden="true"
           className="size-4 text-muted-foreground"
@@ -507,10 +613,16 @@ function AdminActionMenuSub({
   );
 }
 
-function AdminActionMenuDangerItem(
-  props: Omit<AdminActionMenuItemProps, "variant">
-) {
-  return <AdminActionMenuItem {...props} variant="destructive" />;
+function AdminActionMenuDangerItem({
+  separated = true,
+  ...props
+}: Omit<AdminActionMenuItemProps, "variant"> & { separated?: boolean }) {
+  return (
+    <>
+      {separated ? <AdminActionMenuSeparator /> : null}
+      <AdminActionMenuItem {...props} variant="destructive" />
+    </>
+  );
 }
 
 export {

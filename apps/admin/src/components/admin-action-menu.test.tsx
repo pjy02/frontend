@@ -15,7 +15,6 @@ import {
   AdminActionMenuDangerItem,
   AdminActionMenuGroup,
   AdminActionMenuItem,
-  AdminActionMenuSeparator,
   AdminActionMenuSub,
 } from "./admin-action-menu";
 
@@ -49,7 +48,6 @@ function MenuProbe({ onDelete = vi.fn() }: { onDelete?: () => void }) {
           </AdminActionMenuSub>
         </AdminActionMenuSub>
       </AdminActionMenuGroup>
-      <AdminActionMenuSeparator />
       <AdminActionMenuDangerItem icon={<Trash2 />} onAction={onDelete}>
         Delete user
       </AdminActionMenuDangerItem>
@@ -86,6 +84,8 @@ describe("AdminActionMenu", () => {
     const content = document.querySelector(".admin-action-menu-content");
     expect(content?.className).toContain("w-max");
     expect(content?.className).toContain("min-w-40");
+    expect(content?.className).toContain("max-w-[220px]");
+    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(1);
     expect(screen.getByText("Logs")).toBeTruthy();
   });
 
@@ -99,6 +99,56 @@ describe("AdminActionMenu", () => {
 
     await waitFor(() => expect(screen.getByText("Orders")).toBeTruthy());
     expect(document.querySelector('[role="menu"]')).toBeTruthy();
+  });
+
+  it("adds a tooltip only when an item label is visually truncated", async () => {
+    mockViewport(1280);
+    const scrollWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollWidth"
+    );
+    const clientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth"
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get: () => 240,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => 80,
+    });
+
+    try {
+      render(<MenuProbe />);
+      fireEvent.keyDown(screen.getByRole("button", { name: "Open actions" }), {
+        key: "Enter",
+      });
+
+      await waitFor(() =>
+        expect(screen.getByText("Orders").dataset.slot).toBe("tooltip-trigger")
+      );
+    } finally {
+      if (scrollWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollWidth",
+          scrollWidth
+        );
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollWidth");
+      }
+      if (clientWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientWidth",
+          clientWidth
+        );
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+      }
+    }
   });
 
   it("uses an in-panel hierarchy on mobile and supports a third level", async () => {
@@ -116,7 +166,11 @@ describe("AdminActionMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Audit" }));
     expect(screen.getByText("Risk details")).toBeTruthy();
-    expect(screen.queryByText("Orders")).toBeNull();
+    await waitFor(() => expect(screen.queryByText("Orders")).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await waitFor(() => expect(screen.queryByText("Risk details")).toBeNull());
+    expect(screen.getByText("Login logs")).toBeTruthy();
   });
 
   it("runs destructive actions from the mobile panel", async () => {
