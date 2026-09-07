@@ -68,6 +68,8 @@
   "memory": "内存",
   "mode": "模式",
   "moreActions": "更多操作",
+  "actionsDescription": "连接、配置、复制或删除此服务器。",
+  "copying": "正在复制服务器",
   "multiplex": "多路复用",
   "name": "名称",
   "network": "网络",

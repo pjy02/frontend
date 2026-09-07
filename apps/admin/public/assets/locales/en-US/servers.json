@@ -68,6 +68,8 @@
   "memory": "Memory",
   "mode": "Mode",
   "moreActions": "More actions",
+  "actionsDescription": "Connect, configure, copy, or remove this server.",
+  "copying": "Copying server",
   "multiplex": "Multiplex",
   "name": "Name",
   "network": "Network",

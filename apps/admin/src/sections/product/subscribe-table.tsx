@@ -17,9 +17,15 @@ import {
   postSubscribeSort as subscribeSort,
   putSubscribe as updateSubscribe,
 } from "@workspace/ui/services/admin/admin";
+import { Copy, MoreVertical, Trash2 } from "lucide-react";
 import { type RefObject, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+} from "@/components/admin-action-menu";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { Display } from "@/components/display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
@@ -41,6 +47,7 @@ export default function SubscribeTable({
     <ProTable<API.SubscribeItem, { group_id: number; query: string }>
       action={ref}
       actions={{
+        visibleCount: 2,
         render: (row) => [
           <Button asChild key="edit">
             <Link
@@ -52,54 +59,14 @@ export default function SubscribeTable({
               {t("edit")}
             </Link>
           </Button>,
-          <ConfirmButton
-            cancelText={t("cancel")}
-            confirmText={t("confirm")}
-            description={t("deleteWarning")}
-            key="delete"
-            onConfirm={async () => {
-              await deleteSubscribe({
-                id: row.id!,
-              });
-              toast.success(t("deleteSuccess"));
+          <ProductRowActions
+            key="more"
+            onChanged={() => {
               ref.current?.refresh();
               fetchSubscribes();
             }}
-            title={t("confirmDelete")}
-            trigger={<Button variant="destructive">{t("delete")}</Button>}
+            product={row}
           />,
-          <Button
-            key="copy"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const {
-                  id: _id,
-                  sort: _sort,
-                  sell: _sell,
-                  updated_at: _updated_at,
-                  created_at: _created_at,
-                  ...params
-                } = row;
-                await createSubscribe({
-                  ...params,
-                  show: false,
-                  sell: false,
-                } as API.CreateSubscribeRequest);
-                toast.success(t("copySuccess"));
-                ref.current?.refresh();
-                fetchSubscribes();
-                setLoading(false);
-                return true;
-              } catch {
-                setLoading(false);
-                return false;
-              }
-            }}
-            variant="secondary"
-          >
-            {t("copy")}
-          </Button>,
         ],
         batchRender: (rows) => [
           <ConfirmButton
@@ -427,5 +394,98 @@ export default function SubscribeTable({
         };
       }}
     />
+  );
+}
+
+function ProductRowActions({
+  onChanged,
+  product,
+}: {
+  onChanged: () => void;
+  product: API.SubscribeItem;
+}) {
+  const { t } = useTranslation("product");
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const [copying, setCopying] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Copy this product as a disabled draft or delete it."
+        )}
+        onOpenChange={setOpen}
+        open={open}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuItem
+          closeOnSelect={false}
+          icon={<Copy />}
+          loading={copying}
+          loadingLabel={t("copying", "Copying product")}
+          onAction={async () => {
+            setCopying(true);
+            try {
+              const {
+                id: _id,
+                sort: _sort,
+                sell: _sell,
+                updated_at: _updatedAt,
+                created_at: _createdAt,
+                ...params
+              } = product;
+              await createSubscribe({
+                ...params,
+                show: false,
+                sell: false,
+              } as API.CreateSubscribeRequest);
+              toast.success(t("copySuccess", "Copied successfully"));
+              setOpen(false);
+              onChanged();
+            } catch {
+              toast.error(t("copyFailed", "Unable to copy product"));
+            } finally {
+              setCopying(false);
+            }
+          }}
+        >
+          {t("copy", "Copy")}
+        </AdminActionMenuItem>
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("delete", "Delete")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+      <ConfirmButton
+        cancelText={t("cancel")}
+        confirmText={t("confirm")}
+        description={t("deleteWarning")}
+        onConfirm={async () => {
+          await deleteSubscribe({ id: product.id! });
+          toast.success(t("deleteSuccess"));
+          onChanged();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmDelete")}
+        trigger={<Button className="hidden" ref={deleteRef} />}
+      />
+    </>
   );
 }

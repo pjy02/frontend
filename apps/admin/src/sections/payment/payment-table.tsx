@@ -17,9 +17,15 @@ import {
   getPaymentList as getPaymentMethodList,
   putPayment as updatePaymentMethod,
 } from "@workspace/ui/services/admin/admin";
+import { Copy, MoreVertical, Trash2 } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+} from "@/components/admin-action-menu";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import PaymentForm from "./payment-form";
@@ -33,6 +39,7 @@ export default function PaymentTable() {
     <ProTable<API.PaymentConfig, { search: string }>
       action={ref}
       actions={{
+        visibleCount: 2,
         render: (row) => [
           <PaymentForm<API.UpdatePaymentMethodRequest>
             initialValues={row}
@@ -58,49 +65,11 @@ export default function PaymentTable() {
             title={t("editPayment", "Edit Payment Method")}
             trigger={<Button>{t("edit", "Edit")}</Button>}
           />,
-          <ConfirmButton
-            cancelText={t("cancel", "Cancel")}
-            confirmText={t("confirm", "Confirm")}
-            description={t(
-              "deleteWarning",
-              "Are you sure you want to delete this payment method? This action cannot be undone."
-            )}
-            key="delete"
-            onConfirm={async () => {
-              await deletePaymentMethod({
-                id: row.id,
-              });
-              toast.success(t("deleteSuccess", "Deleted successfully"));
-              ref.current?.refresh();
-            }}
-            title={t("confirmDelete", "Confirm Delete")}
-            trigger={
-              <Button variant="destructive">{t("delete", "Delete")}</Button>
-            }
+          <PaymentRowActions
+            key="more"
+            onChanged={() => ref.current?.refresh()}
+            payment={row}
           />,
-          <Button
-            key="copy"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const { id: _id, ...params } = row;
-                await createPaymentMethod({
-                  ...params,
-                  enable: false,
-                });
-                toast.success(t("copySuccess", "Copied successfully"));
-                ref.current?.refresh();
-                setLoading(false);
-                return true;
-              } catch {
-                setLoading(false);
-                return false;
-              }
-            }}
-            variant="outline"
-          >
-            {t("copy", "Copy")}
-          </Button>,
         ],
         batchRender(rows) {
           return [
@@ -309,5 +278,90 @@ export default function PaymentTable() {
         };
       }}
     />
+  );
+}
+
+function PaymentRowActions({
+  onChanged,
+  payment,
+}: {
+  onChanged: () => void;
+  payment: API.PaymentConfig;
+}) {
+  const { t } = useTranslation("payment");
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const [copying, setCopying] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Copy this payment method as disabled or delete it."
+        )}
+        onOpenChange={setOpen}
+        open={open}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuItem
+          closeOnSelect={false}
+          icon={<Copy />}
+          loading={copying}
+          loadingLabel={t("copying", "Copying payment method")}
+          onAction={async () => {
+            setCopying(true);
+            try {
+              const { id: _id, ...params } = payment;
+              await createPaymentMethod({ ...params, enable: false });
+              toast.success(t("copySuccess", "Copied successfully"));
+              setOpen(false);
+              onChanged();
+            } catch {
+              toast.error(t("copyFailed", "Unable to copy payment method"));
+            } finally {
+              setCopying(false);
+            }
+          }}
+        >
+          {t("copy", "Copy")}
+        </AdminActionMenuItem>
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("delete", "Delete")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+      <ConfirmButton
+        cancelText={t("cancel", "Cancel")}
+        confirmText={t("confirm", "Confirm")}
+        description={t(
+          "deleteWarning",
+          "Are you sure you want to delete this payment method? This action cannot be undone."
+        )}
+        onConfirm={async () => {
+          await deletePaymentMethod({ id: payment.id });
+          toast.success(t("deleteSuccess", "Deleted successfully"));
+          onChanged();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmDelete", "Confirm Delete")}
+        trigger={<Button className="hidden" ref={deleteRef} />}
+      />
+    </>
   );
 }

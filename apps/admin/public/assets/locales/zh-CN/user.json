@@ -22,6 +22,8 @@
   "confirmOffline": "确认下线",
   "copySubscription": "复制订阅",
   "copySuccess": "复制成功",
+  "copyFailed": "订阅地址复制失败，请重试",
+  "copyingSubscription": "正在复制订阅地址",
   "create": "创建",
   "createdAt": "创建时间",
   "createSubscription": "创建订阅",

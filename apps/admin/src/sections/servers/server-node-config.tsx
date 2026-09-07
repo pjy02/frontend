@@ -251,7 +251,13 @@ function InheritedPreview({
   );
 }
 
-export default function ServerNodeConfig({ server }: { server: API.Server }) {
+export default function ServerNodeConfig({
+  server,
+  trigger,
+}: {
+  server: API.Server;
+  trigger?: ReactNode;
+}) {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -394,10 +400,12 @@ export default function ServerNodeConfig({ server }: { server: API.Server }) {
   return (
     <WorkspaceDialog onOpenChange={requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
-        <Button variant="outline">
-          <Icon className="mr-2 h-4 w-4" icon="mdi:tune-variant" />
-          {t("server_node_config.trigger", "Node Config")}
-        </Button>
+        {trigger ?? (
+          <Button variant="outline">
+            <Icon className="mr-2 h-4 w-4" icon="mdi:tune-variant" />
+            {t("server_node_config.trigger", "Node Config")}
+          </Button>
+        )}
       </WorkspaceDialogTrigger>
       <WorkspaceDialogContent size="xl">
         <WorkspaceDialogHeader>

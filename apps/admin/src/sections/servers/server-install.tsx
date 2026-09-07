@@ -7,6 +7,7 @@ import { Label } from "@workspace/ui/components/label";
 import { getSystemNodeConfig as getNodeConfig } from "@workspace/ui/services/admin/admin";
 import {
   type ChangeEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -27,9 +28,10 @@ import {
 
 type Props = {
   server: API.Server;
+  trigger?: ReactNode;
 };
 
-export default function ServerInstall({ server }: Props) {
+export default function ServerInstall({ server, trigger }: Props) {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
   const [domain, setDomain] = useState("");
@@ -82,7 +84,9 @@ export default function ServerInstall({ server }: Props) {
   return (
     <WorkspaceDialog onOpenChange={setOpen} open={open}>
       <WorkspaceDialogTrigger asChild>
-        <Button variant="secondary">{t("connect", "Connect")}</Button>
+        {trigger ?? (
+          <Button variant="secondary">{t("connect", "Connect")}</Button>
+        )}
       </WorkspaceDialogTrigger>
 
       <WorkspaceDialogContent size="md">

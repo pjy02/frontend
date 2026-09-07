@@ -2,6 +2,8 @@
   "cancel": "取消",
   "check": "查看",
   "close": "关闭",
+  "moreActions": "更多操作",
+  "actionsDescription": "此工单的其他操作。",
   "closeSuccess": "关闭成功",
   "closeWarning": "一旦关闭，工单将无法操作，请谨慎操作。",
   "confirm": "确认",

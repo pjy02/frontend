@@ -17,9 +17,21 @@ import {
   postServerServerSort as resetSortWithServer,
   postServerNodeConfigUpdate as updateServerNodeConfig,
 } from "@workspace/ui/services/admin/admin";
-import { type RefObject, useRef } from "react";
+import {
+  Copy,
+  MoreVertical,
+  Network,
+  TerminalSquare,
+  Trash2,
+} from "lucide-react";
+import { type RefObject, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+} from "@/components/admin-action-menu";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
@@ -113,6 +125,7 @@ export default function Servers({ actionRef }: ServersProps) {
       <ProTable<API.Server, { search: string }>
         action={ref}
         actions={{
+          visibleCount: 2,
           render: (row) => [
             <Button asChild key="edit">
               <Link
@@ -124,81 +137,15 @@ export default function Servers({ actionRef }: ServersProps) {
                 {t("edit", "Edit")}
               </Link>
             </Button>,
-            <ServerInstall key="install" server={row} />,
-            <ServerNodeConfig key="node-config" server={row} />,
-            <ConfirmButton
-              cancelText={t("cancel", "Cancel")}
-              confirmText={t("confirm", "Confirm")}
-              description={t(
-                "confirmDeleteDesc",
-                "This action cannot be undone."
-              )}
-              key="delete"
-              onConfirm={async () => {
-                await deleteServer({ id: row.id } as API.DeleteServerRequest);
-                toast.success(t("deleted", "Deleted"));
+            <ServerRowActions
+              deleteDisabled={isServerReferencedByNodes(row.id)}
+              key="more"
+              onChanged={() => {
                 ref.current?.refresh();
                 fetchServers();
               }}
-              title={t("confirmDeleteTitle", "Delete this server?")}
-              trigger={
-                <Button
-                  disabled={isServerReferencedByNodes(row.id)}
-                  variant="destructive"
-                >
-                  {t("delete", "Delete")}
-                </Button>
-              }
+              server={row}
             />,
-            <Button
-              key="copy"
-              onClick={async () => {
-                const {
-                  id: _id,
-                  created_at: _created_at,
-                  updated_at: _updated_at,
-                  last_reported_at: _last_reported_at,
-                  status: _status,
-                  ...others
-                } = row as Record<string, unknown>;
-                const body: API.CreateServerRequest = {
-                  name: others.name as string,
-                  country: others.country as string,
-                  city: others.city as string,
-                  address: others.address as string,
-                  protocols: (others.protocols as API.Protocol[]) || [],
-                };
-                const [createResp, configResp] = await Promise.all([
-                  createServer(body),
-                  getServerNodeConfig({ server_id: row.id }),
-                ]);
-                const newServerId = (
-                  createResp.data as { data?: { id?: number } }
-                ).data?.id;
-                const override = configResp.data?.data?.override;
-
-                if (newServerId && override) {
-                  await updateServerNodeConfig({
-                    server_id: newServerId,
-                    inherit_ip_strategy: override.inherit_ip_strategy,
-                    ip_strategy: override.ip_strategy,
-                    inherit_dns: override.inherit_dns,
-                    dns: override.dns || [],
-                    inherit_block: override.inherit_block,
-                    block: override.block || [],
-                    inherit_outbound: override.inherit_outbound,
-                    outbound: override.outbound || [],
-                  });
-                }
-
-                toast.success(t("copied", "Copied"));
-                ref.current?.refresh();
-                fetchServers();
-              }}
-              variant="outline"
-            >
-              {t("copy", "Copy")}
-            </Button>,
           ],
           batchRender(rows) {
             const hasReferencedServers = rows.some((row) =>
@@ -473,5 +420,150 @@ export default function Servers({ actionRef }: ServersProps) {
         }}
       />
     </div>
+  );
+}
+
+function ServerRowActions({
+  deleteDisabled,
+  onChanged,
+  server,
+}: {
+  deleteDisabled: boolean;
+  onChanged: () => void;
+  server: API.Server;
+}) {
+  const { t } = useTranslation("servers");
+  const installRef = useRef<HTMLButtonElement>(null);
+  const nodeConfigRef = useRef<HTMLButtonElement>(null);
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const [copying, setCopying] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const copyServer = async () => {
+    setCopying(true);
+    try {
+      const {
+        id: _id,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        last_reported_at: _lastReportedAt,
+        status: _status,
+        ...others
+      } = server as Record<string, unknown>;
+      const body: API.CreateServerRequest = {
+        name: others.name as string,
+        country: others.country as string,
+        city: others.city as string,
+        address: others.address as string,
+        protocols: (others.protocols as API.Protocol[]) || [],
+      };
+      const [createResp, configResp] = await Promise.all([
+        createServer(body),
+        getServerNodeConfig({ server_id: server.id }),
+      ]);
+      const newServerId = (createResp.data as { data?: { id?: number } }).data
+        ?.id;
+      const override = configResp.data?.data?.override;
+
+      if (newServerId && override) {
+        await updateServerNodeConfig({
+          server_id: newServerId,
+          inherit_ip_strategy: override.inherit_ip_strategy,
+          ip_strategy: override.ip_strategy,
+          inherit_dns: override.inherit_dns,
+          dns: override.dns || [],
+          inherit_block: override.inherit_block,
+          block: override.block || [],
+          inherit_outbound: override.inherit_outbound,
+          outbound: override.outbound || [],
+        });
+      }
+
+      toast.success(t("copied", "Copied"));
+      setOpen(false);
+      onChanged();
+    } catch {
+      toast.error(t("copyFailed", "Copy failed"));
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Connect, configure, copy, or remove this server."
+        )}
+        onOpenChange={setOpen}
+        open={open}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuItem
+          icon={<TerminalSquare />}
+          onAction={() => installRef.current?.click()}
+        >
+          {t("connect", "Connect")}
+        </AdminActionMenuItem>
+        <AdminActionMenuItem
+          icon={<Network />}
+          onAction={() => nodeConfigRef.current?.click()}
+        >
+          {t("server_node_config.trigger", "Node Config")}
+        </AdminActionMenuItem>
+        <AdminActionMenuItem
+          closeOnSelect={false}
+          icon={<Copy />}
+          loading={copying}
+          loadingLabel={t("copying", "Copying server")}
+          onAction={copyServer}
+        >
+          {t("copy", "Copy")}
+        </AdminActionMenuItem>
+        <AdminActionMenuDangerItem
+          disabled={deleteDisabled}
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("delete", "Delete")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+
+      <ServerInstall
+        server={server}
+        trigger={<Button className="hidden" ref={installRef} />}
+      />
+      <ServerNodeConfig
+        server={server}
+        trigger={<Button className="hidden" ref={nodeConfigRef} />}
+      />
+      <ConfirmButton
+        cancelText={t("cancel", "Cancel")}
+        confirmText={t("confirm", "Confirm")}
+        description={t("confirmDeleteDesc", "This action cannot be undone.")}
+        onConfirm={async () => {
+          await deleteServer({ id: server.id } as API.DeleteServerRequest);
+          toast.success(t("deleted", "Deleted"));
+          onChanged();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmDeleteTitle", "Delete this server?")}
+        trigger={<Button className="hidden" ref={deleteRef} />}
+      />
+    </>
   );
 }

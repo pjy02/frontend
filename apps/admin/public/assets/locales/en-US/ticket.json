@@ -2,6 +2,8 @@
   "cancel": "Cancel",
   "check": "Check",
   "close": "Close",
+  "moreActions": "More actions",
+  "actionsDescription": "Additional actions for this ticket.",
   "closeSuccess": "Closed successfully",
   "closeWarning": "Once closed, the ticket cannot be operated on. Please proceed with caution.",
   "confirm": "Confirm",

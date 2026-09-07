@@ -22,6 +22,8 @@
   "confirmOffline": "Confirm Offline",
   "copySubscription": "Copy Subscription",
   "copySuccess": "Copied successfully",
+  "copyFailed": "Unable to copy the subscription address. Try again.",
+  "copyingSubscription": "Copying subscription address",
   "create": "Create",
   "createdAt": "Created At",
   "createSubscription": "Create Subscription",

@@ -299,6 +299,7 @@ function RowMoreActions({
           closeOnSelect={false}
           icon={<Copy />}
           loading={copying}
+          loadingLabel={t("copyingSubscription", "Copying subscription")}
           onAction={async () => {
             setCopying(true);
             try {
@@ -307,6 +308,8 @@ function RowMoreActions({
               );
               toast.success(t("copySuccess", "Copied successfully"));
               setMenuOpen(false);
+            } catch {
+              toast.error(t("copyFailed", "Unable to copy subscription"));
             } finally {
               setCopying(false);
             }

@@ -9,6 +9,8 @@
   "createCoupon": "Create Coupon",
   "createSuccess": "Create Success",
   "delete": "Delete",
+  "moreActions": "More actions",
+  "actionsDescription": "Additional actions for this coupon.",
   "deleteSuccess": "Delete Success",
   "deleteWarning": "Once deleted, data cannot be recovered. Please proceed with caution.",
   "discount": "Discount",

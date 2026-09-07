@@ -13,9 +13,14 @@ import {
   getCouponList,
   putCoupon as updateCoupon,
 } from "@workspace/ui/services/admin/admin";
+import { MoreVertical, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+} from "@/components/admin-action-menu";
 import {
   DateTimeValue,
   EnabledStatusChip,
@@ -34,6 +39,7 @@ export default function Coupon() {
     <ProTable<API.Coupon, { group_id: number; query: string }>
       action={ref}
       actions={{
+        visibleCount: 2,
         render: (row) => [
           <CouponForm<API.UpdateCouponRequest>
             initialValues={row}
@@ -55,23 +61,10 @@ export default function Coupon() {
             title={t("editCoupon", "Edit Coupon")}
             trigger={t("edit", "Edit")}
           />,
-          <ConfirmButton
-            cancelText={t("cancel", "Cancel")}
-            confirmText={t("confirm", "Confirm")}
-            description={t(
-              "deleteWarning",
-              "Once deleted, data cannot be recovered. Please proceed with caution."
-            )}
-            key="delete"
-            onConfirm={async () => {
-              await deleteCoupon({ id: row.id });
-              toast.success(t("deleteSuccess", "Delete Success"));
-              ref.current?.refresh();
-            }}
-            title={t("confirmDelete", "Are you sure you want to delete?")}
-            trigger={
-              <Button variant="destructive">{t("delete", "Delete")}</Button>
-            }
+          <CouponRowActions
+            coupon={row}
+            key="more"
+            onDeleted={() => ref.current?.refresh()}
           />,
         ],
         batchRender: (rows) => [
@@ -334,5 +327,65 @@ export default function Coupon() {
         };
       }}
     />
+  );
+}
+
+function CouponRowActions({
+  coupon,
+  onDeleted,
+}: {
+  coupon: API.Coupon;
+  onDeleted: () => void;
+}) {
+  const { t } = useTranslation("coupon");
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Additional actions for this coupon."
+        )}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+          separated={false}
+        >
+          {t("delete", "Delete")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+      <ConfirmButton
+        cancelText={t("cancel", "Cancel")}
+        confirmText={t("confirm", "Confirm")}
+        description={t(
+          "deleteWarning",
+          "Once deleted, data cannot be recovered. Please proceed with caution."
+        )}
+        onConfirm={async () => {
+          await deleteCoupon({ id: coupon.id });
+          toast.success(t("deleteSuccess", "Delete Success"));
+          onDeleted();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmDelete", "Are you sure you want to delete?")}
+        trigger={<Button className="hidden" ref={deleteRef} />}
+      />
+    </>
   );
 }

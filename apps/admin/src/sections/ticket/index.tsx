@@ -23,9 +23,14 @@ import {
   getTicketList,
   putTicket as updateTicketStatus,
 } from "@workspace/ui/services/admin/admin";
+import { MoreVertical, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+} from "@/components/admin-action-menu";
 import { DateTimeValue, TicketStatusChip } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import { UserDetail } from "../user/user-detail";
@@ -74,32 +79,17 @@ export default function Page() {
       <ProTable<API.Ticket, { status: number }>
         action={ref}
         actions={{
+          visibleCount: 2,
           render(row) {
             if (row.status !== 4) {
               return [
                 <Button key="reply" onClick={() => setTicketId(row.id)}>
                   {t("reply", "Reply")}
                 </Button>,
-                <ConfirmButton
-                  cancelText={t("cancel", "Cancel")}
-                  confirmText={t("confirm", "Confirm")}
-                  description={t(
-                    "closeWarning",
-                    "Once closed, the ticket cannot be operated on. Please proceed with caution."
-                  )}
-                  key="colse"
-                  onConfirm={async () => {
-                    await updateTicketStatus({
-                      id: row.id,
-                      status: 4,
-                    });
-                    toast.success(t("closeSuccess", "Closed successfully"));
-                    ref.current?.refresh();
-                  }}
-                  title={t("confirmClose", "Are you sure you want to close?")}
-                  trigger={
-                    <Button variant="destructive">{t("close", "Close")}</Button>
-                  }
+                <TicketRowActions
+                  key="more"
+                  onClosed={() => ref.current?.refresh()}
+                  ticketId={row.id}
                 />,
               ];
             }
@@ -396,6 +386,66 @@ export default function Page() {
           )}
         </DrawerContent>
       </Drawer>
+    </>
+  );
+}
+
+function TicketRowActions({
+  onClosed,
+  ticketId,
+}: {
+  onClosed: () => void;
+  ticketId: number;
+}) {
+  const { t } = useTranslation("ticket");
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Additional actions for this ticket."
+        )}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuDangerItem
+          icon={<XCircle />}
+          onAction={() => closeRef.current?.click()}
+          separated={false}
+        >
+          {t("close", "Close")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+      <ConfirmButton
+        cancelText={t("cancel", "Cancel")}
+        confirmText={t("confirm", "Confirm")}
+        description={t(
+          "closeWarning",
+          "Once closed, the ticket cannot be operated on. Please proceed with caution."
+        )}
+        onConfirm={async () => {
+          await updateTicketStatus({ id: ticketId, status: 4 });
+          toast.success(t("closeSuccess", "Closed successfully"));
+          onClosed();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmClose", "Are you sure you want to close?")}
+        trigger={<Button className="hidden" ref={closeRef} />}
+      />
     </>
   );
 }

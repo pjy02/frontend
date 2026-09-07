@@ -16,9 +16,15 @@ import {
   postServerNodeStatusToggle as toggleNodeStatus,
   postServerNodeUpdate as updateNode,
 } from "@workspace/ui/services/admin/admin";
+import { Copy, MoreVertical, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import {
+  AdminActionMenu,
+  AdminActionMenuDangerItem,
+  AdminActionMenuItem,
+} from "@/components/admin-action-menu";
 import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
@@ -89,6 +95,7 @@ export default function Nodes() {
     <ProTable<API.Node, { search: string }>
       action={ref}
       actions={{
+        visibleCount: 2,
         render: (row) => [
           <NodeForm
             initialValues={row}
@@ -116,50 +123,15 @@ export default function Nodes() {
             title={t("drawerEditTitle", "Edit Node")}
             trigger={t("edit", "Edit")}
           />,
-          <ConfirmButton
-            cancelText={t("cancel", "Cancel")}
-            confirmText={t("confirm", "Confirm")}
-            description={t(
-              "confirmDeleteDesc",
-              "This action cannot be undone."
-            )}
-            key="delete"
-            onConfirm={async () => {
-              await deleteNode({ id: row.id } as any);
-              toast.success(t("deleted", "Deleted"));
+          <NodeRowActions
+            key="more"
+            node={row}
+            onChanged={() => {
               ref.current?.refresh();
               fetchNodes();
               fetchTags();
             }}
-            title={t("confirmDeleteTitle", "Delete this node?")}
-            trigger={
-              <Button variant="destructive">{t("delete", "Delete")}</Button>
-            }
           />,
-          <Button
-            key="copy"
-            onClick={async () => {
-              const {
-                id: _id,
-                sort: _sort,
-                enabled: _enabled,
-                updated_at: _updated_at,
-                created_at: _created_at,
-                ...rest
-              } = row as any;
-              await createNode({
-                ...rest,
-                enabled: false,
-              });
-              toast.success(t("copied", "Copied"));
-              ref.current?.refresh();
-              fetchNodes();
-              fetchTags();
-            }}
-            variant="outline"
-          >
-            {t("copy", "Copy")}
-          </Button>,
         ],
         batchRender(rows) {
           return [
@@ -426,5 +398,94 @@ export default function Nodes() {
         return { list, total: list.length };
       }}
     />
+  );
+}
+
+function NodeRowActions({
+  node,
+  onChanged,
+}: {
+  node: API.Node;
+  onChanged: () => void;
+}) {
+  const { t } = useTranslation("nodes");
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const [copying, setCopying] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <AdminActionMenu
+        description={t(
+          "actionsDescription",
+          "Copy or remove this node without changing its current configuration."
+        )}
+        onOpenChange={setOpen}
+        open={open}
+        title={t("moreActions", "More actions")}
+        trigger={
+          <Button
+            aria-label={t("moreActions", "More actions")}
+            className="size-8 rounded-full"
+            ref={moreTriggerRef}
+            size="icon"
+            title={t("moreActions", "More actions")}
+            variant="ghost"
+          >
+            <MoreVertical />
+          </Button>
+        }
+      >
+        <AdminActionMenuItem
+          closeOnSelect={false}
+          icon={<Copy />}
+          loading={copying}
+          loadingLabel={t("copying", "Copying node")}
+          onAction={async () => {
+            setCopying(true);
+            try {
+              const {
+                id: _id,
+                sort: _sort,
+                enabled: _enabled,
+                updated_at: _updatedAt,
+                created_at: _createdAt,
+                ...rest
+              } = node as any;
+              await createNode({ ...rest, enabled: false });
+              toast.success(t("copied", "Copied"));
+              setOpen(false);
+              onChanged();
+            } catch {
+              toast.error(t("copyFailed", "Unable to copy node"));
+            } finally {
+              setCopying(false);
+            }
+          }}
+        >
+          {t("copy", "Copy")}
+        </AdminActionMenuItem>
+        <AdminActionMenuDangerItem
+          icon={<Trash2 />}
+          onAction={() => deleteRef.current?.click()}
+        >
+          {t("delete", "Delete")}
+        </AdminActionMenuDangerItem>
+      </AdminActionMenu>
+      <ConfirmButton
+        cancelText={t("cancel", "Cancel")}
+        confirmText={t("confirm", "Confirm")}
+        description={t("confirmDeleteDesc", "This action cannot be undone.")}
+        onConfirm={async () => {
+          await deleteNode({ id: node.id } as any);
+          toast.success(t("deleted", "Deleted"));
+          onChanged();
+        }}
+        restoreFocusRef={moreTriggerRef}
+        title={t("confirmDeleteTitle", "Delete this node?")}
+        trigger={<Button className="hidden" ref={deleteRef} />}
+      />
+    </>
   );
 }

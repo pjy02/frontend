@@ -9,6 +9,8 @@
   "createCoupon": "创建优惠券",
   "createSuccess": "创建成功",
   "delete": "删除",
+  "moreActions": "更多操作",
+  "actionsDescription": "此优惠券的其他操作。",
   "deleteSuccess": "删除成功",
   "deleteWarning": "删除后数据无法恢复，请谨慎操作。",
   "discount": "折扣",

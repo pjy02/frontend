@@ -32,7 +32,13 @@ function mockViewport(width: number) {
   }));
 }
 
-function MenuProbe({ onDelete = vi.fn() }: { onDelete?: () => void }) {
+function MenuProbe({
+  onDelete = vi.fn(),
+  onOrder = vi.fn(),
+}: {
+  onDelete?: () => void;
+  onOrder?: () => void;
+}) {
   return (
     <AdminActionMenu
       description="Actions for this user"
@@ -40,7 +46,9 @@ function MenuProbe({ onDelete = vi.fn() }: { onDelete?: () => void }) {
       trigger={<Button>Open actions</Button>}
     >
       <AdminActionMenuGroup label="Business">
-        <AdminActionMenuItem icon={<FileText />}>Orders</AdminActionMenuItem>
+        <AdminActionMenuItem icon={<FileText />} onAction={onOrder}>
+          Orders
+        </AdminActionMenuItem>
         <AdminActionMenuSub icon={<FileText />} id="logs" label="Logs">
           <AdminActionMenuItem>Login logs</AdminActionMenuItem>
           <AdminActionMenuSub id="audit" label="Audit">
@@ -99,6 +107,47 @@ describe("AdminActionMenu", () => {
 
     await waitFor(() => expect(screen.getByText("Orders")).toBeTruthy());
     expect(document.querySelector('[role="menu"]')).toBeTruthy();
+  });
+
+  it("supports desktop arrow navigation, nested escape, and focus restore", async () => {
+    mockViewport(1440);
+    render(<MenuProbe />);
+    const trigger = screen.getByRole("button", { name: "Open actions" });
+
+    fireEvent.keyDown(trigger, { key: " " });
+    const orders = await screen.findByRole("menuitem", { name: "Orders" });
+    orders.focus();
+    fireEvent.keyDown(orders, { key: "ArrowDown" });
+    const logs = screen.getByRole("menuitem", { name: "Logs" });
+    await waitFor(() => expect(document.activeElement).toBe(logs));
+
+    fireEvent.keyDown(logs, { key: "ArrowRight" });
+    const loginLogs = await screen.findByRole("menuitem", {
+      name: "Login logs",
+    });
+    fireEvent.keyDown(loginLogs, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByRole("menuitem", { name: "Login logs" })).toBeNull()
+    );
+
+    fireEvent.keyDown(logs, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByText("Orders")).toBeNull());
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("keeps one menu instance during rapid clicks and closes outside", async () => {
+    mockViewport(1280);
+    render(<MenuProbe />);
+    const trigger = screen.getByRole("button", { name: "Open actions" });
+
+    for (let index = 0; index < 3; index += 1) {
+      fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
+    }
+    await screen.findByText("Orders");
+    expect(document.querySelectorAll('[role="menu"]')).toHaveLength(1);
+
+    fireEvent.pointerDown(document.body);
+    await waitFor(() => expect(screen.queryByText("Orders")).toBeNull());
   });
 
   it("adds a tooltip only when an item label is visually truncated", async () => {
@@ -185,5 +234,39 @@ describe("AdminActionMenu", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Delete user" }));
 
     expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("supports mobile arrow hierarchy and ignores a scrolled touch", async () => {
+    mockViewport(390);
+    const onOrder = vi.fn();
+    render(<MenuProbe onOrder={onOrder} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open actions" }));
+    const orders = await screen.findByRole("button", { name: "Orders" });
+    await waitFor(() => expect(document.activeElement).toBe(orders));
+
+    fireEvent.keyDown(orders, { key: "ArrowDown" });
+    const logs = screen.getByRole("button", { name: "Logs" });
+    expect(document.activeElement).toBe(logs);
+    fireEvent.keyDown(logs, { key: "ArrowRight" });
+    const back = await screen.findByRole("button", { name: "Back" });
+    await waitFor(() => expect(document.activeElement).toBe(back));
+
+    fireEvent.keyDown(back, { key: "ArrowLeft" });
+    await waitFor(() => expect(screen.queryByText("Login logs")).toBeNull());
+    const restoredOrders = screen.getByRole("button", { name: "Orders" });
+    await waitFor(() => expect(document.activeElement).toBe(restoredOrders));
+    fireEvent.touchStart(restoredOrders, {
+      changedTouches: [{ clientX: 20, clientY: 20 }],
+      touches: [{ clientX: 20, clientY: 20 }],
+    });
+    fireEvent.touchMove(restoredOrders, {
+      changedTouches: [{ clientX: 20, clientY: 48 }],
+      touches: [{ clientX: 20, clientY: 48 }],
+    });
+    fireEvent.click(restoredOrders);
+
+    expect(onOrder).not.toHaveBeenCalled();
+    expect(screen.getByText("More actions")).toBeTruthy();
   });
 });
