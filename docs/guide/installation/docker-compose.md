@@ -327,11 +327,9 @@ Using `docker compose down -v` will delete all data volumes. Only use this if yo
 
 ## Upgrading
 
-Upgrade PPanel directly from the **Admin Dashboard**. On the dashboard homepage, you can check for new versions and upgrade with one click.
+Update the backend image tag in your Compose configuration, pull that image, and recreate the backend service. Preserve your configuration and database backup, and deploy frontend releases separately.
 
-::: tip
-The system will automatically handle the upgrade process, including pulling the new image and restarting the service.
-:::
+The dashboard displays versions and can restart the backend. Backend 1.20.2 removed gateway-managed upgrades. Existing gateway installations must [migrate their frontend API routing](/guide/separation/frontend#moving-from-the-retired-gateway) before upgrading.
 
 ## Advanced Configuration
 
@@ -464,5 +462,5 @@ If you encounter any issues:
 
 1. Check the [Troubleshooting](#troubleshooting) section above
 2. Review [Docker Compose logs](#view-logs)
-3. Search [GitHub Issues](https://github.com/perfect-panel/ppanel/issues)
+3. Search [GitHub Issues](https://github.com/perfect-panel/backend/issues)
 4. Create a new issue with detailed system information and logs

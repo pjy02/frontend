@@ -123,7 +123,7 @@ docker run -d \
 
 ```bash
 # Pull backend image
-docker pull ppanel/ppanel:latest
+docker pull ppanel/ppanel-server:latest
 
 # Run backend container
 docker run -d \
@@ -132,15 +132,12 @@ docker run -d \
   -v $(pwd)/config.yaml:/app/config.yaml \
   --link ppanel-mysql:mysql \
   --link ppanel-redis:redis \
-  ppanel/ppanel:latest
+  ppanel/ppanel-server:latest
 ```
 
 #### 6. Initialize Database
 
-```bash
-# Execute database migration
-docker exec ppanel-backend ./ppanel migrate
-```
+Tables are initialized automatically when the backend starts.
 
 ### Method 2: Binary Deployment
 
@@ -148,14 +145,13 @@ docker exec ppanel-backend ./ppanel migrate
 
 ```bash
 # Download latest version
-wget https://github.com/perfect-panel/ppanel/releases/latest/download/ppanel-linux-amd64.tar.gz
+wget https://github.com/perfect-panel/backend/releases/latest/download/ppanel-server-linux-amd64.tar.gz
 
 # Extract
-tar -xzf ppanel-linux-amd64.tar.gz
-cd ppanel
+tar -xzf ppanel-server-linux-amd64.tar.gz
 
 # Grant execute permission
-chmod +x ppanel
+chmod +x ppanel-server
 ```
 
 #### 2. Configure Backend Service
@@ -189,10 +185,7 @@ sudo systemctl enable redis-server
 
 #### 5. Initialize Database
 
-```bash
-# Execute database migration
-./ppanel migrate
-```
+Tables are initialized automatically when the backend starts.
 
 #### 6. Create systemd Service
 
@@ -207,7 +200,7 @@ After=network.target mysql.service redis.service
 Type=simple
 User=ppanel
 WorkingDirectory=/opt/ppanel
-ExecStart=/opt/ppanel/ppanel server
+ExecStart=/opt/ppanel/ppanel-server run --config /opt/ppanel/etc/ppanel.yaml
 Restart=on-failure
 RestartSec=5s
 StandardOutput=journal
@@ -225,7 +218,9 @@ sudo useradd -r -s /bin/false ppanel
 
 # Move files to installation directory
 sudo mkdir -p /opt/ppanel
-sudo mv ppanel config.yaml /opt/ppanel/
+sudo mkdir -p /opt/ppanel/etc
+sudo mv ppanel-server /opt/ppanel/
+sudo mv config.yaml /opt/ppanel/etc/ppanel.yaml
 sudo chown -R ppanel:ppanel /opt/ppanel
 
 # Start service
@@ -356,7 +351,7 @@ docker run -d \
   -e REDIS_HOST=redis \
   --link ppanel-mysql:mysql \
   --link ppanel-redis:redis \
-  ppanel/ppanel:latest
+  ppanel/ppanel-server:latest
 ```
 
 ## Security Recommendations
@@ -449,7 +444,7 @@ server:
 
 ```bash
 # Pull latest image
-docker pull ppanel/ppanel:latest
+docker pull ppanel/ppanel-server:latest
 
 # Stop old container
 docker stop ppanel-backend
@@ -467,11 +462,10 @@ docker run -d \
   -v $(pwd)/config.yaml:/app/config.yaml \
   --link ppanel-mysql:mysql \
   --link ppanel-redis:redis \
-  ppanel/ppanel:latest
-
-# Execute database migration
-docker exec ppanel-backend ./ppanel migrate
+  ppanel/ppanel-server:latest
 ```
+
+Tables are initialized automatically when the backend starts.
 
 ### Binary Upgrade
 
@@ -480,19 +474,15 @@ docker exec ppanel-backend ./ppanel migrate
 sudo systemctl stop ppanel
 
 # Backup old version
-sudo cp /opt/ppanel/ppanel /opt/ppanel/ppanel.backup
+sudo cp /opt/ppanel/ppanel-server /opt/ppanel/ppanel-server.backup
 
 # Download new version
-wget https://github.com/perfect-panel/ppanel/releases/latest/download/ppanel-linux-amd64.tar.gz
-tar -xzf ppanel-linux-amd64.tar.gz
+wget https://github.com/perfect-panel/backend/releases/latest/download/ppanel-server-linux-amd64.tar.gz
+tar -xzf ppanel-server-linux-amd64.tar.gz
 
 # Replace file
-sudo mv ppanel /opt/ppanel/
-sudo chown ppanel:ppanel /opt/ppanel/ppanel
-
-# Execute database migration
-cd /opt/ppanel
-sudo -u ppanel ./ppanel migrate
+sudo mv ppanel-server /opt/ppanel/
+sudo chown ppanel:ppanel /opt/ppanel/ppanel-server
 
 # Start service
 sudo systemctl start ppanel

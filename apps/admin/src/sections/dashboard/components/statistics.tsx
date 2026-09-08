@@ -672,7 +672,7 @@ export default function Statistics() {
         />
       </section>
 
-      <section className="dashboard-section grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+      <section className="dashboard-section grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <SystemVersionCard />
         <SystemOperations />
       </section>

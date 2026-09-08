@@ -128,10 +128,7 @@ docker run -d \
 
 #### 6. 初始化数据库
 
-```bash
-# 执行数据库迁移
-docker exec ppanel-backend ./ppanel migrate
-```
+后端首次启动时会自动初始化表结构。
 
 ### 方式二：二进制部署
 
@@ -139,14 +136,13 @@ docker exec ppanel-backend ./ppanel migrate
 
 ```bash
 # 下载最新版本
-wget https://github.com/perfect-panel/ppanel/releases/latest/download/ppanel-linux-amd64.tar.gz
+wget https://github.com/perfect-panel/backend/releases/latest/download/ppanel-server-linux-amd64.tar.gz
 
 # 解压
-tar -xzf ppanel-linux-amd64.tar.gz
-cd ppanel
+tar -xzf ppanel-server-linux-amd64.tar.gz
 
 # 赋予执行权限
-chmod +x ppanel
+chmod +x ppanel-server
 ```
 
 #### 2. 配置后端服务
@@ -219,7 +215,9 @@ sudo useradd -r -s /bin/false ppanel
 
 # 移动文件到安装目录
 sudo mkdir -p /opt/ppanel
-sudo mv ppanel config.yaml /opt/ppanel/
+sudo mkdir -p /opt/ppanel/etc
+sudo mv ppanel-server /opt/ppanel/
+sudo mv config.yaml /opt/ppanel/etc/ppanel.yaml
 sudo chown -R ppanel:ppanel /opt/ppanel
 
 # 启动服务

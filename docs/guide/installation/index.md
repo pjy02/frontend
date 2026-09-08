@@ -52,5 +52,5 @@ For most users, we recommend starting with Docker Compose:
 ## Need Help?
 
 - Check our [Troubleshooting Guide](/guide/troubleshooting)
-- Visit [GitHub Issues](https://github.com/perfect-panel/ppanel/issues)
+- Visit [GitHub Issues](https://github.com/perfect-panel/backend/issues)
 - Join our community discussions

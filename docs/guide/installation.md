@@ -513,6 +513,6 @@ docker run -d \
 If you encounter any issues:
 
 1. Check the [Troubleshooting](#troubleshooting) section above
-2. Search [GitHub Issues](https://github.com/perfect-panel/ppanel/issues)
+2. Search [GitHub Issues](https://github.com/perfect-panel/backend/issues)
 3. Join our community discussions
 4. Create a new issue with detailed logs and system information

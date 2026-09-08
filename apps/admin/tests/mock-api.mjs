@@ -3,6 +3,11 @@ import { createServer } from "node:http";
 const port = Number(process.env.MOCK_API_PORT || 43_123);
 const dashboardMode = process.env.DASHBOARD_ACCEPTANCE_MODE || "normal";
 const dashboardDelay = Number(process.env.DASHBOARD_ACCEPTANCE_DELAY || 1800);
+let systemVersionMode = process.env.SYSTEM_VERSION_ACCEPTANCE_MODE || "success";
+let systemRestartMode = process.env.SYSTEM_RESTART_ACCEPTANCE_MODE || "success";
+let systemVersionDelay = Number(
+  process.env.SYSTEM_VERSION_ACCEPTANCE_DELAY || 1800
+);
 
 const serverFixture = {
   id: 42,
@@ -102,6 +107,70 @@ const userFixture = {
   updated_at: 1_724_544_000_000,
 };
 
+const globalConfigFixture = {
+  auth: {
+    device: {
+      enable: false,
+      enable_security: false,
+      only_real_device: false,
+      show_ads: false,
+    },
+    email: {
+      domain_suffix_list: "",
+      enable: true,
+      enable_domain_suffix: false,
+      enable_verify: false,
+    },
+    mobile: {
+      enable: false,
+      enable_whitelist: false,
+      whitelist: [],
+    },
+    register: {
+      enable_ip_register_limit: false,
+      ip_register_limit: 0,
+      ip_register_limit_duration: 0,
+      stop_register: false,
+    },
+  },
+  currency: { currency_symbol: "$", currency_unit: "USD" },
+  invite: {
+    forced_invite: false,
+    only_first_purchase: false,
+    referral_percentage: 10,
+    withdrawal_method: "",
+  },
+  oauth_methods: [],
+  site: {
+    custom_data: "",
+    custom_html: "",
+    host: "http://127.0.0.1",
+    keywords: "acceptance",
+    site_desc: "PPanel browser acceptance",
+    site_logo: "",
+    site_name: "PPanel Acceptance",
+  },
+  subscribe: {
+    pan_domain: false,
+    profile_update_interval: 0,
+    profile_web_page_url: "",
+    show_tutorial: false,
+    single_model: false,
+    subscribe_domain: "",
+    subscribe_path: "",
+    user_agent_limit: false,
+    user_agent_list: "",
+  },
+  verify: {
+    enable_login_verify: false,
+    enable_register_verify: false,
+    enable_reset_password_verify: false,
+    turnstile_site_key: "",
+  },
+  verify_code: { verify_code_interval: 60 },
+  web_ad: false,
+};
+
 const subscribeFixture = {
   id: 11,
   show: true,
@@ -120,12 +189,48 @@ const subscribeFixture = {
 
 const now = 1_755_734_400_000;
 
+const userSubscribeFixture = {
+  created_at: now,
+  download: 322_122_547_200,
+  expire_time: now + 86_400_000 * 180,
+  finished_at: 0,
+  id: 101,
+  order_id: 31,
+  reset_time: now + 86_400_000 * 30,
+  short: "acceptance",
+  start_time: now - 86_400_000 * 30,
+  status: 1,
+  subscribe: {
+    allow_deduction: true,
+    created_at: now,
+    deduction_ratio: 0,
+    description: "Acceptance subscription",
+    discount: [],
+    node_tags: [],
+    nodes: [],
+    renewal_reset: false,
+    reset_cycle: 1,
+    show_original_price: false,
+    sort: 1,
+    speed_limit: 0,
+    updated_at: now,
+    ...subscribeFixture,
+  },
+  subscribe_id: subscribeFixture.id,
+  token: "acceptance-subscription-token",
+  traffic: subscribeFixture.traffic,
+  updated_at: now,
+  upload: 107_374_182_400,
+  user_id: userFixture.id,
+};
+
 const orderFixture = {
   id: 31,
   order_no: "PPANEL-20260821-VERY-LONG-ORDER-NUMBER-00031",
   trade_no: "TRADE-20260821-ACCEPTANCE-00031",
   type: 1,
   subscribe_id: 11,
+  subscribe: { id: 11, name: "Premium monthly subscription" },
   quantity: 1,
   amount: 12_800,
   price: 15_800,
@@ -133,6 +238,7 @@ const orderFixture = {
   coupon_discount: 1000,
   fee_amount: 0,
   user_id: 7,
+  created_at: now,
   updated_at: now,
   status: 2,
   payment: { name: "Stripe", platform: "stripe" },
@@ -344,6 +450,49 @@ createServer(async (request, response) => {
   }
 
   const url = new URL(request.url || "/", `http://${request.headers.host}`);
+  console.log(`${request.method || "GET"} ${url.pathname}`);
+
+  if (url.pathname === "/__acceptance__/system-version") {
+    systemVersionMode = url.searchParams.get("version") || systemVersionMode;
+    systemRestartMode = url.searchParams.get("restart") || systemRestartMode;
+    const requestedDelay = Number(url.searchParams.get("delay"));
+    if (Number.isFinite(requestedDelay) && requestedDelay >= 0) {
+      systemVersionDelay = requestedDelay;
+    }
+    send(response, 200, {
+      code: 200,
+      data: {
+        delay: systemVersionDelay,
+        restart: systemRestartMode,
+        version: systemVersionMode,
+      },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/tool/version") {
+    if (systemVersionMode === "loading") {
+      await new Promise((resolve) => setTimeout(resolve, systemVersionDelay));
+    }
+    if (systemVersionMode === "error") {
+      send(response, 200, { code: 500, msg: "Version acceptance error" });
+      return;
+    }
+    send(response, 200, {
+      code: 200,
+      data: systemVersionMode === "empty" ? {} : { version: "1.21.0" },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/tool/restart") {
+    if (systemRestartMode === "error") {
+      send(response, 200, { code: 500, msg: "Restart acceptance error" });
+      return;
+    }
+    send(response, 200, { code: 200, data: true });
+    return;
+  }
 
   if (url.pathname === "/v1/admin/server/list") {
     const mode = url.searchParams.get("search");
@@ -528,10 +677,36 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/v1/common/site/config") {
+    send(response, 200, { code: 200, data: globalConfigFixture });
+    return;
+  }
+
   if (url.pathname === "/v1/admin/user/current") {
     send(response, 200, {
       code: 200,
       data: { id: 1, email: "admin@example.com", name: "Admin" },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/public/user/info") {
+    send(response, 200, { code: 200, data: userFixture });
+    return;
+  }
+
+  if (url.pathname === "/v1/public/order/list") {
+    send(response, 200, {
+      code: 200,
+      data: { list: [orderFixture], total: 1 },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/public/user/subscribe") {
+    send(response, 200, {
+      code: 200,
+      data: { list: [userSubscribeFixture], total: 1 },
     });
     return;
   }
