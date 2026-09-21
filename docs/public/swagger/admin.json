@@ -1621,6 +1621,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -1637,6 +1642,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -1690,6 +1700,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -1706,6 +1721,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -1759,6 +1779,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -1775,6 +1800,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1823,6 +1853,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -1839,6 +1874,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -1892,6 +1932,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -1908,6 +1953,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2030,6 +2080,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2046,6 +2101,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2094,6 +2154,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2110,6 +2175,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2163,6 +2233,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2179,6 +2254,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2232,6 +2312,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2253,6 +2338,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2373,6 +2463,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2389,6 +2484,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2447,6 +2547,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2463,6 +2568,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2516,6 +2626,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2532,6 +2647,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -2590,6 +2710,11 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "name": "page",
                         "in": "query",
@@ -2611,6 +2736,11 @@
                         "name": "size",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -11983,6 +12113,9 @@
                 "download": {
                     "type": "integer"
                 },
+                "entitlement_source": {
+                    "type": "string"
+                },
                 "expire_time": {
                     "type": "integer"
                 },
@@ -12038,6 +12171,9 @@
                 },
                 "download": {
                     "type": "integer"
+                },
+                "entitlement_source": {
+                    "type": "string"
                 },
                 "expire_time": {
                     "type": "integer"

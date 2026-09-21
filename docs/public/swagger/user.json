@@ -4116,6 +4116,9 @@
                 "download": {
                     "type": "integer"
                 },
+                "entitlement_source": {
+                    "type": "string"
+                },
                 "expire_time": {
                     "type": "integer"
                 },
@@ -4171,6 +4174,9 @@
                 },
                 "download": {
                     "type": "integer"
+                },
+                "entitlement_source": {
+                    "type": "string"
                 },
                 "expire_time": {
                     "type": "integer"
