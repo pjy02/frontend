@@ -1,4 +1,6 @@
 {
+  "startDate": "Start date",
+  "endDate": "End date",
   "column": {
     "amount": "Amount",
     "balance": "Balance",
@@ -38,7 +40,17 @@
     "user": "User",
     "userAgent": "User Agent",
     "userId": "User ID",
-    "userSubscribeId": "User subscription ID"
+    "userSubscribeId": "User subscription ID",
+    "logSearch": "Search logs",
+    "adminId": "Administrator ID",
+    "actor": "Actor",
+    "action": "Action",
+    "object": "Object",
+    "source": "Source",
+    "telegramSenderId": "Telegram sender ID",
+    "tradeNo": "Trade No.",
+    "currency": "Currency",
+    "reason": "Reason"
   },
   "detail": "Detail",
   "failed": "Failed",
@@ -63,7 +75,9 @@
       "serverTraffic": "Server traffic",
       "subscribe": "Subscription access",
       "subscribeTraffic": "Subscription traffic",
-      "trafficDetails": "Traffic details"
+      "trafficDetails": "Traffic details",
+      "adminAction": "Administrator actions",
+      "unmatchedPayment": "Unmatched payments"
     },
     "title": "Log explorer"
   },
@@ -106,7 +120,9 @@
     "serverTraffic": "Server Traffic Log",
     "subscribe": "Subscribe Log",
     "subscribeTraffic": "Subscribe Traffic Log",
-    "trafficDetails": "Traffic Details"
+    "trafficDetails": "Traffic Details",
+    "adminAction": "Administrator Action Log",
+    "unmatchedPayment": "Unmatched Payment Log"
   },
   "type": {
     "231": "Auto Reset",
@@ -142,10 +158,25 @@
     "serverTraffic": "Review daily upload and download traffic by server.",
     "subscribe": "Review subscription access requests and client information.",
     "subscribeTraffic": "Review daily upload and download traffic by subscription.",
-    "trafficDetails": "Review detailed traffic usage records."
+    "trafficDetails": "Review detailed traffic usage records.",
+    "adminAction": "Audit administrator changes, affected objects and request sources.",
+    "unmatchedPayment": "Review confirmed payments that could not settle an order. Refunds must be handled outside this page."
   },
   "messageContent": "Message content",
   "payloadDescription": "View the complete request and delivery payload.",
   "records": "Records",
-  "viewContent": "View content"
+  "viewContent": "View content",
+  "range": {
+    "invalid": "Enter a valid date in YYYY-MM-DD format.",
+    "reversed": "Start date must not be later than end date."
+  },
+  "adminAction": {
+    "detailTitle": "Administrator action details",
+    "detailDescription": "Recorded details of this administrator operation.",
+    "search": "Search actions, objects or details"
+  },
+  "unmatchedPayment": {
+    "reasonTitle": "Unmatched payment reason",
+    "search": "Search order, trade number or reason"
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getProtocolDefaultConfig } from "./defaults";
-import { formSchema } from "./schemas";
+import { createServerFormSchema, formSchema } from "./schemas";
 
 const validServer = {
   name: "Hysteria2 node",
@@ -115,9 +115,14 @@ describe("TLS protocol form schemas", () => {
   });
 });
 
-describe("Reality protocol form schemas", () => {
-  it("defaults new VLESS Reality client configurations to Chrome", () => {
-    expect(getProtocolDefaultConfig("vless")).toMatchObject({
+describe("client fingerprint protocol fields", () => {
+  it.each([
+    "vmess",
+    "vless",
+    "trojan",
+    "anytls",
+  ] as const)("defaults %s to the Chrome fingerprint", (type) => {
+    expect(getProtocolDefaultConfig(type)).toMatchObject({
       fingerprint: "chrome",
     });
   });
@@ -144,5 +149,43 @@ describe("Reality protocol form schemas", () => {
       type,
       fingerprint: "firefox",
     });
+  });
+
+  it("keeps a saved legacy fingerprint while rejecting a new unsupported value", () => {
+    const editSchema = createServerFormSchema([
+      { type: "vless", fingerprint: "chrome_legacy" },
+    ]);
+    const server = {
+      name: "Renamed Reality node",
+      address: "node.example.com",
+      protocols: [
+        { type: "vless", security: "reality", fingerprint: "chrome_legacy" },
+      ],
+    };
+    expect(editSchema.parse(server).protocols[0]).toMatchObject({
+      fingerprint: "chrome_legacy",
+    });
+    expect(formSchema.safeParse(server).success).toBe(false);
+    expect(
+      editSchema.safeParse({
+        ...server,
+        protocols: [
+          { ...server.protocols[0], fingerprint: "arbitrary-new-value" },
+        ],
+      }).success
+    ).toBe(false);
+  });
+
+  it("does not copy a legacy fingerprint allowance to a different protocol", () => {
+    const editSchema = createServerFormSchema([
+      { type: "vless", fingerprint: "chrome_legacy" },
+    ]);
+    expect(
+      editSchema.safeParse({
+        name: "Node",
+        address: "node.example.com",
+        protocols: [{ type: "vmess", fingerprint: "chrome_legacy" }],
+      }).success
+    ).toBe(false);
   });
 });

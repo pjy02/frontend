@@ -15,20 +15,26 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Icon } from "@workspace/ui/composed/icon";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavs } from "@/layout/navs";
 import { useGlobalStore } from "@/stores/global";
-import { Logout } from "@/utils/common";
+import { logoutFromServer } from "@/utils/logout";
 
 export function UserNav() {
   const { t } = useTranslation("components");
-  const { user, setUser } = useGlobalStore();
+  const { user } = useGlobalStore();
+  const [loggingOut, setLoggingOut] = useState(false);
   const navigate = useNavigate();
   const navs = useNavs();
 
-  const handleLogout = () => {
-    setUser(undefined);
-    Logout();
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logoutFromServer();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (user) {
@@ -107,6 +113,7 @@ export function UserNav() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="flex cursor-pointer items-center gap-2 py-2 text-destructive focus:text-destructive"
+            disabled={loggingOut}
             onClick={handleLogout}
           >
             <Icon className="size-4 flex-none" icon="uil:exit" />

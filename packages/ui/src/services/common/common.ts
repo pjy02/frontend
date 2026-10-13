@@ -2,6 +2,28 @@
 /* eslint-disable */
 import request from "@workspace/ui/lib/request";
 
+/** Liveness probe Reports that the process serves HTTP. It answers 200 whenever the listener is up, regardless of the database and Redis; use /readyz for those. GET /healthz */
+export async function getHealthz(options?: { [key: string]: any }) {
+  return request<Record<string, any>>(
+    `${import.meta.env.VITE_API_PREFIX || ""}/healthz`,
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
+}
+
+/** Readiness probe Reports whether the server can serve requests: the runtime bootstrap has loaded the settings and the database and Redis answer a ping (the ping result is cached for a few seconds). Otherwise it answers 503 with the reason. GET /readyz */
+export async function getReadyz(options?: { [key: string]: any }) {
+  return request<Record<string, any>>(
+    `${import.meta.env.VITE_API_PREFIX || ""}/readyz`,
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
+}
+
 /** Check user is exist GET /v1/auth/check */
 export async function getAuthCheck(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
@@ -55,7 +77,7 @@ export async function postAuthLogin(
   );
 }
 
-/** Device Login When device security is enabled, requests and response data use a signed data/time/sign envelope. Each request needs a fresh nonce; see docs/device-authentication.md. The User-Agent is read from the HTTP header. POST /v1/auth/login/device */
+/** Device Login When device security is enabled, requests and response data use a signed data/time/sign envelope. Each request needs a fresh nonce; see docs/design/device-authentication.md. The User-Agent is read from the HTTP header. POST /v1/auth/login/device */
 export async function postAuthLoginDevice(
   body: API.DeviceLoginRequest,
   options?: { [key: string]: any }
@@ -116,7 +138,7 @@ export async function postAuthOauthCallbackApple(
   );
 }
 
-/** OAuth login POST /v1/auth/oauth/login */
+/** OAuth login Starts a sign-in through the provider and answers with its authorization URL. The optional nonce, a random value the client keeps for this sign-in, must be sent again to /v1/auth/oauth/login/token, which then completes only the sign-in this client started. Methods that redirect the browser to the given redirect (apple, telegram) require it to stay on the configured site host, or on the host this request was made to while no site host is configured. POST /v1/auth/oauth/login */
 export async function postAuthOauthLogin(
   body: API.OAthLoginRequest,
   options?: { [key: string]: any }
@@ -134,7 +156,7 @@ export async function postAuthOauthLogin(
   );
 }
 
-/** OAuth login get token POST /v1/auth/oauth/login/token */
+/** OAuth login get token Completes a sign-in with the provider's callback and answers with the session token. A sign-in started with a nonce (/v1/auth/oauth/login) is completed only with the same nonce; one started without is completed only without. POST /v1/auth/oauth/login/token */
 export async function postAuthOauthLoginToken(
   body: API.OAuthLoginGetTokenRequest,
   options?: { [key: string]: any }

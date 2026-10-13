@@ -54,7 +54,13 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
-import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -121,6 +127,9 @@ export interface ProTableProps<TData, TValue> {
   initialFilters?: Record<string, unknown>;
   onPaginationChange?: (pagination: ProTablePagination) => void;
   initialPagination?: Partial<ProTablePagination>;
+  validateFilters?: (filters: TValue) => string | undefined;
+  resetFilters?: Record<string, unknown>;
+  onDataReady?: () => void;
 }
 
 export interface ProTablePagination {
@@ -150,6 +159,9 @@ export function ProTable<
   initialFilters,
   onPaginationChange,
   initialPagination,
+  validateFilters,
+  resetFilters,
+  onDataReady,
   mobile,
   mobileFilterMode,
   pagination: paginationEnabled = true,
@@ -183,6 +195,9 @@ export function ProTable<
   onPaginationChangeRef.current = onPaginationChange;
   initialFiltersRef.current = initialFilters;
   const [isLoading, setIsLoading] = useState(false);
+  const [filterError, setFilterError] = useState<string>();
+  const onDataReadyRef = useRef(onDataReady);
+  onDataReadyRef.current = onDataReady;
   const dataRef = useRef<TData[]>([]);
   const lastLoadedPageRef = useRef(normalizedInitialPagination.pageIndex);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -295,6 +310,16 @@ export function ProTable<
 
   const fetchData = async (showRefreshFeedback = false) => {
     const requestId = ++requestIdRef.current;
+    const filters = Object.fromEntries(
+      columnFilters.map((item) => [item.id, item.value])
+    ) as TValue;
+    const validationError = validateFilters?.(filters);
+    setFilterError(validationError);
+    if (validationError) {
+      setIsLoading(false);
+      setFetchError(null);
+      return;
+    }
     setIsLoading(true);
     setFetchError(null);
     if (showRefreshFeedback) setRefreshSucceeded(false);
@@ -304,9 +329,7 @@ export function ProTable<
           page: pagination.pageIndex + 1,
           size: pagination.pageSize,
         },
-        Object.fromEntries(
-          columnFilters.map((item) => [item.id, item.value])
-        ) as TValue
+        filters
       );
       if (requestId === requestIdRef.current) {
         const previousData = dataRef.current;
@@ -371,12 +394,15 @@ export function ProTable<
   };
   const reset = async () => {
     setSorting([]);
-    setColumnFilters([]);
+    setColumnFilters(toColumnFilters(resetFilters || {}));
     setColumnVisibility({});
     setRowSelection({});
     setPagination((current) => ({ ...current, pageIndex: 0, pageSize: 10 }));
     table.resetGlobalFilter(true);
   };
+  useLayoutEffect(() => {
+    if (!isLoading && data.length > 0) onDataReadyRef.current?.();
+  }, [data, isLoading]);
   useImperativeHandle(action, () => ({
     refresh: () => fetchData(),
     reset,
@@ -392,8 +418,16 @@ export function ProTable<
 
   const filtersSnapshot = serializeColumnFilters(columnFilters);
   const paginationSnapshot = serializePagination(pagination);
+  // A popstate can deliver URL props before table state is restored. Never
+  // request or write the old filters/pagination back into that history entry.
+  const restoringExternalState =
+    (previousInitialFiltersRef.current !== initialFiltersSnapshot ||
+      previousInitialPaginationRef.current !== initialPaginationSnapshot) &&
+    (filtersSnapshot !== initialFiltersSnapshot ||
+      paginationSnapshot !== initialPaginationSnapshot);
 
   useEffect(() => {
+    if (restoringExternalState) requestIdRef.current += 1;
     if (previousInitialFiltersRef.current === initialFiltersSnapshot) {
       return;
     }
@@ -429,11 +463,13 @@ export function ProTable<
   }, [initialPaginationSnapshot, initialPageIndex, initialPageSize]);
 
   useEffect(() => {
+    if (restoringExternalState) return;
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.pageIndex, pagination.pageSize, filtersSnapshot]);
 
   useEffect(() => {
+    if (restoringExternalState) return;
     onFiltersChangeRef.current?.(
       Object.fromEntries(
         columnFilters.map((filter) => [filter.id, filter.value])
@@ -444,6 +480,7 @@ export function ProTable<
   }, [filtersSnapshot]);
 
   useEffect(() => {
+    if (restoringExternalState) return;
     onPaginationChangeRef.current?.({
       page: pagination.pageIndex + 1,
       size: pagination.pageSize,
@@ -486,6 +523,15 @@ export function ProTable<
           title={header?.title}
           toolbar={header?.toolbar}
         />
+      )}
+
+      {filterError && (
+        <div
+          className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-destructive text-sm"
+          role="alert"
+        >
+          {filterError}
+        </div>
       )}
 
       {fetchError && data.length > 0 ? (

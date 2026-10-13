@@ -26,7 +26,7 @@ export default function LoginForm({
   onSwitchForm,
 }: {
   loading?: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<boolean>;
   initialValues: any;
   setInitialValues: Dispatch<SetStateAction<any>>;
   onSwitchForm: Dispatch<SetStateAction<"register" | "reset" | "login">>;
@@ -49,10 +49,15 @@ export default function LoginForm({
   });
 
   const turnstile = useRef<TurnstileRef>(null);
-  const handleSubmit = form.handleSubmit((data) => {
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      onSubmit(data);
+      const succeeded = await onSubmit(data);
+      if (succeeded === false) {
+        form.setValue("cf_token", "");
+        turnstile.current?.reset();
+      }
     } catch (_error) {
+      form.setValue("cf_token", "");
       turnstile.current?.reset();
     }
   });

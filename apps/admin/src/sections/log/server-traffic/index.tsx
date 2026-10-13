@@ -15,7 +15,15 @@ export default function ServerTrafficLogPage() {
   const { t } = useTranslation("log");
   const { getServerName } = useServer();
   return (
-    <LogPage<API.ServerTrafficLog, { date?: string; server_id?: number }>
+    <LogPage<
+      API.ServerTrafficLog,
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        server_id?: number;
+      }
+    >
       actions={{
         render: (row) => [
           <Button asChild key="detail">
@@ -60,16 +68,22 @@ export default function ServerTrafficLogPage() {
         "description.serverTraffic",
         "Compare daily upload and download totals across servers."
       )}
-      filterTypes={{ date: "string", server_id: "number" }}
+      filterTypes={{
+        search: "string",
+        start_date: "string",
+        end_date: "string",
+        server_id: "number",
+      }}
       load={(pagination, filter) =>
         filterServerTrafficLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           server_id: filter.server_id,
         })
       }
       params={[
-        { key: "date", type: "date" },
         { key: "server_id", placeholder: t("column.serverId", "Server ID") },
       ]}
       title={t("title.serverTraffic", "Server Traffic Log")}

@@ -219,15 +219,6 @@ export function useProtocolFields() {
         condition: (protocol) => protocol.security === "reality",
       },
       {
-        name: "fingerprint",
-        type: "select",
-        label: t("security_fingerprint", "Fingerprint"),
-        options: FINGERPRINTS,
-        defaultValue: "chrome",
-        group: "reality",
-        condition: (protocol) => protocol.security === "reality",
-      },
-      {
         name: "reality_server_addr",
         type: "input",
         label: t("security_server_address", "Reality Server Address"),
@@ -315,6 +306,16 @@ export function useProtocolFields() {
       group: "security",
     });
 
+    const fingerprint = (): FieldConfig => ({
+      name: "fingerprint",
+      type: "select",
+      label: t("security_fingerprint", "Fingerprint"),
+      options: FINGERPRINTS,
+      defaultValue: "chrome",
+      group: "security",
+      condition: (protocol) => ["tls", "reality"].includes(protocol.security),
+    });
+
     return {
       shadowsocks: [
         ratio(),
@@ -385,6 +386,7 @@ export function useProtocolFields() {
         port(),
         ...streamFields(TRANSPORTS.vmess),
         streamSecurity(SECURITY.vmess),
+        fingerprint(),
         ...certificateFields((protocol) => protocol.security === "tls"),
         ...echFields(),
         ...realityFields(),
@@ -405,6 +407,7 @@ export function useProtocolFields() {
             ["tls", "reality"].includes(protocol.security),
         },
         streamSecurity(SECURITY.vless),
+        fingerprint(),
         ...certificateFields((protocol) => protocol.security === "tls"),
         ...echFields(),
         ...realityFields(),
@@ -502,6 +505,7 @@ export function useProtocolFields() {
         port(),
         ...streamFields(TRANSPORTS.trojan),
         streamSecurity(SECURITY.trojan),
+        fingerprint(),
         ...certificateFields((protocol) => protocol.security === "tls"),
         ...echFields(),
         ...realityFields(),
@@ -620,6 +624,7 @@ export function useProtocolFields() {
           group: "basic",
         },
         streamSecurity(SECURITY.anytls),
+        fingerprint(),
         ...certificateFields((protocol) => protocol.security === "tls"),
         ...echFields(),
         ...realityFields(),

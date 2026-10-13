@@ -1,4 +1,6 @@
 {
+  "recipientCount": "收件人总数",
+  "recipientSnapshotDescription": "收件人列表为已记录的预览，可能不完整。总数包含额外收件人。",
   "additional": "附加",
   "additionalRecipientEmails": "附加收件人邮箱",
   "additionalRecipients": "附加收件人",

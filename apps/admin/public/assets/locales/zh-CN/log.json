@@ -1,4 +1,6 @@
 {
+  "startDate": "开始日期",
+  "endDate": "结束日期",
   "column": {
     "amount": "金额",
     "balance": "余额",
@@ -38,7 +40,17 @@
     "user": "用户",
     "userAgent": "用户代理",
     "userId": "用户 ID",
-    "userSubscribeId": "用户订阅 ID"
+    "userSubscribeId": "用户订阅 ID",
+    "logSearch": "搜索日志",
+    "adminId": "管理员 ID",
+    "actor": "操作者",
+    "action": "操作",
+    "object": "对象",
+    "source": "来源",
+    "telegramSenderId": "Telegram 发送者 ID",
+    "tradeNo": "交易号",
+    "currency": "币种",
+    "reason": "原因"
   },
   "detail": "详情",
   "failed": "失败",
@@ -63,7 +75,9 @@
       "serverTraffic": "服务器流量",
       "subscribe": "订阅访问",
       "subscribeTraffic": "订阅流量",
-      "trafficDetails": "流量明细"
+      "trafficDetails": "流量明细",
+      "adminAction": "管理员操作",
+      "unmatchedPayment": "未匹配支付"
     },
     "title": "日志检索"
   },
@@ -106,7 +120,9 @@
     "serverTraffic": "服务器流量日志",
     "subscribe": "订阅日志",
     "subscribeTraffic": "订阅流量日志",
-    "trafficDetails": "流量详情"
+    "trafficDetails": "流量详情",
+    "adminAction": "管理员操作日志",
+    "unmatchedPayment": "未匹配支付日志"
   },
   "type": {
     "231": "自动重置",
@@ -142,10 +158,25 @@
     "serverTraffic": "按服务器查看每日上传和下载流量。",
     "subscribe": "查看订阅访问请求和客户端信息。",
     "subscribeTraffic": "按订阅查看每日上传和下载流量。",
-    "trafficDetails": "查看详细的流量使用记录。"
+    "trafficDetails": "查看详细的流量使用记录。",
+    "adminAction": "审计管理员操作、受影响对象以及请求来源。",
+    "unmatchedPayment": "查看已确认支付但无法结算到订单的记录。如需退款，请在支付平台核查并处理，本页面不执行退款。"
   },
   "messageContent": "消息内容",
   "payloadDescription": "查看完整的请求与发送数据。",
   "records": "记录",
-  "viewContent": "查看内容"
+  "viewContent": "查看内容",
+  "range": {
+    "invalid": "请输入有效日期，格式为 YYYY-MM-DD。",
+    "reversed": "开始日期不能晚于结束日期，请调整日期后再查询。"
+  },
+  "adminAction": {
+    "detailTitle": "管理员操作详情",
+    "detailDescription": "该管理员操作记录的完整详情。",
+    "search": "搜索操作、对象或详情"
+  },
+  "unmatchedPayment": {
+    "reasonTitle": "未匹配支付原因",
+    "search": "搜索订单号、交易号或原因"
+  }
 }

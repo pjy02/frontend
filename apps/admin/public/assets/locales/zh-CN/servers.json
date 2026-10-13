@@ -1,4 +1,5 @@
 {
+  "fingerprintLegacyValue": "{{value}}（已保存的值）",
   "actions": {
     "cancel": "取消",
     "save": "保存"

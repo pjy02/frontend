@@ -42,6 +42,23 @@ function renderCard() {
 }
 
 describe("system version card", () => {
+  it("restores trigger focus when a reboot confirmation is cancelled", async () => {
+    request.mockResolvedValue({
+      data: { code: 200, data: { version: "1.22.0" } },
+    });
+    renderCard();
+    await screen.findByText("Server Version");
+    const trigger = screen.getByRole("button", { name: "System Reboot" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    expect(
+      request.mock.calls.some(([path]) => path === "/v1/admin/tool/restart")
+    ).toBe(false);
+  });
   it("shows a loading state while the backend version is pending", () => {
     request.mockReturnValue(
       new Promise(() => {
@@ -113,7 +130,7 @@ describe("system version card", () => {
     });
     expect(request).toHaveBeenLastCalledWith(
       "/v1/admin/tool/restart",
-      expect.objectContaining({ method: "GET" })
+      expect.objectContaining({ method: "POST" })
     );
   });
 
@@ -136,7 +153,7 @@ describe("system version card", () => {
     expect(screen.queryByRole("button", { name: "Confirm Reboot" })).toBeNull();
     expect(request).toHaveBeenLastCalledWith(
       "/v1/admin/tool/restart",
-      expect.objectContaining({ method: "GET" })
+      expect.objectContaining({ method: "POST" })
     );
   });
 });

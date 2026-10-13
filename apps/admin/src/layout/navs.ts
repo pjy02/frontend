@@ -171,6 +171,16 @@ export function useNavs() {
         icon: Activity,
         items: [
           {
+            title: t("Administrator Action Log", "Administrator Action Log"),
+            url: "/dashboard/log/admin",
+            icon: ShieldCheck,
+          },
+          {
+            title: t("Unmatched Payment Log", "Unmatched Payment Log"),
+            url: "/dashboard/log/payment-unmatched",
+            icon: CreditCard,
+          },
+          {
             title: t("Login", "Login"),
             url: "/dashboard/log/login",
             icon: LogIn,

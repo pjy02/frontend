@@ -1,4 +1,6 @@
 {
+  "recipientCount": "Total recipients",
+  "recipientSnapshotDescription": "The recipient list is a recorded preview and may be incomplete. The total includes additional recipients.",
   "additional": "Additional",
   "additionalRecipientEmails": "Additional recipient emails",
   "additionalRecipients": "Additional Recipients",

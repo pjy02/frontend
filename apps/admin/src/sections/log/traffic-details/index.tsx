@@ -15,7 +15,9 @@ export default function TrafficDetailsPage() {
     <LogPage<
       API.TrafficLogDetails,
       {
-        date?: string;
+        start_date?: string;
+        search?: string;
+        end_date?: string;
         server_id?: number;
         user_id?: number;
         subscribe_id?: number;
@@ -68,7 +70,9 @@ export default function TrafficDetailsPage() {
         "Inspect individual traffic records across servers, users, and subscriptions."
       )}
       filterTypes={{
-        date: "string",
+        search: "string",
+        start_date: "string",
+        end_date: "string",
         server_id: "number",
         user_id: "number",
         subscribe_id: "number",
@@ -76,14 +80,15 @@ export default function TrafficDetailsPage() {
       load={(pagination, filter) =>
         filterTrafficLogDetails({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           server_id: filter.server_id,
           user_id: filter.user_id,
           subscribe_id: filter.subscribe_id,
         })
       }
       params={[
-        { key: "date", type: "date" },
         { key: "server_id", placeholder: t("column.serverId", "Server ID") },
         { key: "user_id", placeholder: t("column.userId", "User ID") },
         {

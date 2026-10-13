@@ -5,6 +5,7 @@ import {
   ENCRYPTION_MODES,
   ENCRYPTION_RTT,
   ENCRYPTION_TYPES,
+  FINGERPRINTS,
   FLOWS,
   MIERU_MULTIPLEX,
   multiplexLevels,
@@ -84,8 +85,11 @@ const ech = {
   ech_server_name: nullableString,
 };
 
+const fingerprint = {
+  fingerprint: z.enum(FINGERPRINTS).nullish(),
+};
+
 const reality = {
-  fingerprint: nullableString,
   reality_server_addr: nullableString,
   reality_server_port: nullablePort,
   reality_private_key: nullableString,
@@ -112,6 +116,7 @@ const vmess = z.object({
   ...certificate,
   ...reality,
   ...ech,
+  ...fingerprint,
   type: z.literal("vmess"),
   security: z.enum(SECURITY.vmess).nullish(),
 });
@@ -122,6 +127,7 @@ const vless = z.object({
   ...certificate,
   ...reality,
   ...ech,
+  ...fingerprint,
   type: z.literal("vless"),
   security: z.enum(SECURITY.vless).nullish(),
   flow: z.enum(FLOWS.vless).nullish(),
@@ -141,6 +147,7 @@ const trojan = z.object({
   ...certificate,
   ...reality,
   ...ech,
+  ...fingerprint,
   type: z.literal("trojan"),
   security: z.enum(SECURITY.trojan).nullish(),
 });
@@ -178,6 +185,7 @@ const anytls = z.object({
   ...certificate,
   ...reality,
   ...ech,
+  ...fingerprint,
   type: z.literal("anytls"),
   security: z.enum(SECURITY.anytls).nullish(),
   padding_scheme: nullableString,
@@ -451,14 +459,56 @@ export const protocolApiScheme = z.discriminatedUnion("type", [
   snell,
 ]);
 
-export const formSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().min(1),
-  country: z.string().optional(),
-  city: z.string().optional(),
-  protocols: z.array(
-    protocolApiScheme.superRefine((protocol, ctx) => {
-      refineProtocol(protocol as Record<string, unknown>, ctx);
-    })
-  ),
-});
+interface SavedFingerprint {
+  type?: string;
+  fingerprint?: string | null;
+}
+
+// Unknown legacy values are accepted only for the protocol they came from.
+// A new form still uses the supported list, so editing a name does not erase
+// a stored fingerprint or make a previously editable server fail validation.
+export function createServerFormSchema(
+  savedProtocols: readonly SavedFingerprint[] = []
+) {
+  const fingerprintFor = (type: string) => {
+    const saved = savedProtocols.find(
+      (protocol) => protocol.type === type
+    )?.fingerprint;
+    return {
+      fingerprint: z
+        .enum([
+          ...FINGERPRINTS,
+          "",
+          ...(typeof saved === "string" ? [saved] : []),
+        ])
+        .nullish(),
+    };
+  };
+  const editableProtocols = z.discriminatedUnion("type", [
+    shadowsocks,
+    vmess.extend(fingerprintFor("vmess")),
+    vless.extend(fingerprintFor("vless")),
+    trojan.extend(fingerprintFor("trojan")),
+    hysteria2,
+    tuic,
+    anytls.extend(fingerprintFor("anytls")),
+    naive,
+    mieru,
+    shadowsocksr,
+    snell,
+  ]);
+
+  return z.object({
+    name: z.string().min(1),
+    address: z.string().min(1),
+    country: z.string().optional(),
+    city: z.string().optional(),
+    protocols: z.array(
+      editableProtocols.superRefine((protocol, ctx) => {
+        refineProtocol(protocol as Record<string, unknown>, ctx);
+      })
+    ),
+  });
+}
+
+export const formSchema = createServerFormSchema();

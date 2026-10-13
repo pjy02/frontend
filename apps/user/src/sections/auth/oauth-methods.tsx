@@ -7,7 +7,12 @@ import { postAuthOauthLogin as oAuthLogin } from "@workspace/ui/services/common/
 import { useRef, useState } from "react";
 import { useGlobalStore } from "@/stores/global";
 import { getRedirectUrl, setRedirectUrl } from "@/utils/common";
-import { storeOAuthCfToken, storeOAuthInvite } from "@/utils/oauth";
+import {
+  clearOAuthAttempt,
+  startOAuthNonce,
+  storeOAuthCfToken,
+  storeOAuthInvite,
+} from "@/utils/oauth";
 import CloudFlareTurnstile, { type TurnstileRef } from "./turnstile";
 
 const icons = {
@@ -34,22 +39,28 @@ export function OAuthMethods() {
   const [cfToken, setCfToken] = useState("");
   const [loadingMethod, setLoadingMethod] = useState<OAuthMethod>();
   const turnstile = useRef<TurnstileRef>(null);
+  const pending = useRef(false);
   const requiresRegistrationVerification = Boolean(
     verify.enable_register_verify && verify.turnstile_site_key
   );
 
   const handleOAuthLogin = async (method: OAuthMethod) => {
+    if (pending.current || (requiresRegistrationVerification && !cfToken))
+      return;
+    pending.current = true;
     setLoadingMethod(method);
     try {
+      const nonce = startOAuthNonce(method);
       const { data } = await oAuthLogin({
         method,
+        nonce,
         // OAuth providers disallow URL fragments (#) in redirect URIs.
         // Use a real path (with trailing slash so static hosting can serve /oauth/<provider>/index.html)
         // which then bridges into our hash-router at /#/oauth/<provider>.
         redirect: `${window.location.origin}/oauth/${method}/`,
       });
       const redirect = data.data?.redirect;
-      if (!redirect) return;
+      if (!redirect) throw new Error("Missing OAuth redirect");
 
       // Both values must survive the full-page round trip through the provider.
       setRedirectUrl(getRedirectUrl({ consumeStored: false }));
@@ -59,11 +70,11 @@ export function OAuthMethods() {
     } catch {
       // The request layer displays the API error. Reset one-time challenges so
       // the next attempt cannot accidentally reuse an expired token.
-      storeOAuthCfToken();
-      storeOAuthInvite();
+      clearOAuthAttempt();
       setCfToken("");
       turnstile.current?.reset();
     } finally {
+      pending.current = false;
       setLoadingMethod(undefined);
     }
   };

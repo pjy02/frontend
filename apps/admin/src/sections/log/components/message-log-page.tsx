@@ -16,7 +16,8 @@ interface MessageLogPageProps {
     page: number;
     size: number;
     search?: string;
-    date?: string;
+    start_date?: string;
+    end_date?: string;
   }) => Promise<unknown>;
 }
 
@@ -28,7 +29,10 @@ export function MessageLogPage({
   const { t } = useTranslation("log");
 
   return (
-    <LogPage<API.MessageLog, { search?: string; date?: string }>
+    <LogPage<
+      API.MessageLog,
+      { search?: string; start_date?: string; end_date?: string }
+    >
       columns={[
         {
           accessorKey: "platform",
@@ -91,11 +95,18 @@ export function MessageLogPage({
         },
       ]}
       description={description}
-      filterTypes={{ search: "string", date: "string" }}
-      load={(pagination, filters) =>
-        load({ ...pagination, search: filters.search, date: filters.date })
-      }
-      params={[{ key: "search" }, { key: "date", type: "date" }]}
+      filterTypes={{
+        search: "string",
+        start_date: "string",
+        end_date: "string",
+      }}
+      load={(pagination, filters) => load({ ...pagination, ...filters })}
+      params={[
+        {
+          key: "search",
+          placeholder: t("column.queryPlaceholder", "Search messages"),
+        },
+      ]}
       title={title}
     />
   );

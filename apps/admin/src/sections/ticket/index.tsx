@@ -33,6 +33,10 @@ import {
 } from "@/components/admin-action-menu";
 import { DateTimeValue, TicketStatusChip } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
+import {
+  MAX_TICKET_CONTENT_LENGTH,
+  ticketReplySchema,
+} from "@/utils/admin-form-contracts";
 import { UserDetail } from "../user/user-detail";
 
 export default function Page() {
@@ -46,8 +50,61 @@ export default function Page() {
   // t("status.4", "Closed")
 
   const [ticketId, setTicketId] = useState<any>(null);
+  const activeTicketId = useRef(ticketId);
+  activeTicketId.current = ticketId;
 
   const [message, setMessage] = useState("");
+  const [replyError, setReplyError] = useState<string>();
+  const [sendingReply, setSendingReply] = useState(false);
+  const replyInFlight = useRef(false);
+
+  useEffect(() => {
+    setMessage("");
+    setReplyError(undefined);
+  }, [ticketId]);
+
+  async function sendReply(content: string, type: 1 | 2, id: number) {
+    if (replyInFlight.current || Number(activeTicketId.current) !== id) return;
+    const result = ticketReplySchema(
+      t(
+        "replyInvalid",
+        "Enter a message or attachment of at most 65535 characters."
+      )
+    ).safeParse({
+      ticket_id: id,
+      from: "System",
+      type,
+      content,
+    });
+    if (!result.success) {
+      setReplyError(
+        t(
+          "replyInvalid",
+          "Enter a message or attachment of at most 65535 characters."
+        )
+      );
+      return;
+    }
+    replyInFlight.current = true;
+    setSendingReply(true);
+    setReplyError(undefined);
+    try {
+      await createTicketFollow(result.data);
+      if (Number(activeTicketId.current) === id) {
+        if (type === 1) setMessage("");
+        await refetchTicket();
+      }
+    } catch {
+      if (Number(activeTicketId.current) === id) {
+        setReplyError(
+          t("replyFailed", "Reply could not be sent. Please try again.")
+        );
+      }
+    } finally {
+      replyInFlight.current = false;
+      setSendingReply(false);
+    }
+  }
 
   const { data: ticket, refetch: refetchTicket } = useQuery({
     queryKey: ["getTicket", ticketId],
@@ -289,32 +346,40 @@ export default function Page() {
           </ScrollArea>
           {ticket?.status !== 4 && (
             <DrawerFooter className="border-t bg-muted/20 px-6 py-4">
+              {replyError && (
+                <p
+                  className="text-destructive text-sm"
+                  id="ticket-reply-error"
+                  role="alert"
+                >
+                  {replyError}
+                </p>
+              )}
               <form
                 className="flex w-full flex-row items-center gap-2"
                 onSubmit={async (event) => {
                   event.preventDefault();
-                  if (message) {
-                    await createTicketFollow({
-                      ticket_id: ticketId,
-                      from: "System",
-                      type: 1,
-                      content: message,
-                    });
-                    refetchTicket();
-                    setMessage("");
-                  }
+                  await sendReply(message, 1, Number(ticketId));
                 }}
               >
-                <Button className="p-0" type="button" variant="outline">
+                <Button
+                  className="p-0"
+                  disabled={sendingReply}
+                  type="button"
+                  variant="outline"
+                >
                   <Label className="p-2" htmlFor="picture">
                     <Icon className="text-2xl" icon="uil:image-upload" />
                   </Label>
                   <Input
                     accept="image/*"
                     className="hidden"
+                    disabled={sendingReply}
                     id="picture"
                     onChange={(event) => {
+                      const replyTicketId = Number(ticketId);
                       const file = event.target.files?.[0];
+                      event.target.value = "";
                       if (file?.type.startsWith("image/")) {
                         const reader = new FileReader();
                         reader.readAsDataURL(file);
@@ -349,15 +414,22 @@ export default function Page() {
                             canvas.toBlob(
                               (blob) => {
                                 const reader = new FileReader();
-                                reader.readAsDataURL(blob!);
+                                if (!blob) {
+                                  setReplyError(
+                                    t(
+                                      "replyFailed",
+                                      "Reply could not be sent. Please try again."
+                                    )
+                                  );
+                                  return;
+                                }
+                                reader.readAsDataURL(blob);
                                 reader.onloadend = async () => {
-                                  await createTicketFollow({
-                                    ticket_id: ticketId,
-                                    from: "System",
-                                    type: 2,
-                                    content: reader.result as string,
-                                  });
-                                  refetchTicket();
+                                  await sendReply(
+                                    reader.result as string,
+                                    2,
+                                    replyTicketId
+                                  );
                                 };
                               },
                               "image/webp",
@@ -371,14 +443,29 @@ export default function Page() {
                   />
                 </Button>
                 <Input
-                  onChange={(e) => setMessage(e.target.value)}
+                  aria-describedby={
+                    replyError ? "ticket-reply-error" : undefined
+                  }
+                  aria-invalid={!!replyError}
+                  disabled={sendingReply}
+                  maxLength={MAX_TICKET_CONTENT_LENGTH}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    setReplyError(undefined);
+                  }}
                   placeholder={t(
                     "inputPlaceholder",
                     "Please enter your question, we will reply as soon as possible."
                   )}
                   value={message}
                 />
-                <Button disabled={!message} type="submit">
+                <Button
+                  aria-label={t("sendReply", "Send reply")}
+                  disabled={!message.trim()}
+                  loading={sendingReply}
+                  loadingLabel={t("sending", "Sending...")}
+                  type="submit"
+                >
                   <Icon icon="uil:navigator" />
                 </Button>
               </form>

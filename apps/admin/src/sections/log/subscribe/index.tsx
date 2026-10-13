@@ -14,7 +14,13 @@ export default function SubscribeLogPage() {
   return (
     <LogPage<
       API.SubscribeLog,
-      { date?: string; user_id?: number; user_subscribe_id?: number }
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        user_id?: number;
+        user_subscribe_id?: number;
+      }
     >
       columns={[
         {
@@ -66,20 +72,23 @@ export default function SubscribeLogPage() {
         "Trace subscription access by user, subscription, client address, and device."
       )}
       filterTypes={{
-        date: "string",
+        search: "string",
+        start_date: "string",
+        end_date: "string",
         user_id: "number",
         user_subscribe_id: "number",
       }}
       load={(pagination, filter) =>
         filterSubscribeLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           user_id: filter.user_id,
           user_subscribe_id: filter.user_subscribe_id,
         })
       }
       params={[
-        { key: "date", type: "date" },
         { key: "user_id", placeholder: t("column.userId", "User ID") },
         {
           key: "user_subscribe_id",

@@ -7,6 +7,21 @@
     "updatePassword": "更新密码",
     "updateSuccess": "密码更新成功"
   },
+  "currentCredential": {
+    "bindHint": "请输入发送至新邮箱或手机号的验证码，完成绑定。",
+    "replaceHint": "更换已绑定的邮箱或手机后，所有登录会话将失效。请验证新地址以及当前密码或验证码。",
+    "bindingsRemain": "第三方登录仍保持绑定：{{providers}}。重新登录后请检查第三方账户，并解绑不认识的登录方式。",
+    "currentMobile": "请输入当前手机号（{{mobile}}）的完整号码，而不是新手机号。",
+    "mobile": "当前手机号",
+    "code": "发送至 {{email}} 的验证码",
+    "codeRequired": "请输入验证码",
+    "firstPassword": "首次设置密码时请留空",
+    "password": "当前密码",
+    "passwordRequired": "请输入当前密码",
+    "signInAgain": "更新成功，请重新登录",
+    "useCode": "未设置密码？改用发送至 {{email}} 的验证码",
+    "usePassword": "改用当前密码验证"
+  },
   "notify": {
     "balanceChange": "余额变动通知",
     "finance": "财务通知",
@@ -18,6 +33,7 @@
   },
   "thirdParty": {
     "bind": "绑定",
+    "bindEmail": "绑定邮箱",
     "bindFailed": "绑定失败",
     "bindMobile": "绑定手机",
     "bindSuccess": "绑定成功",

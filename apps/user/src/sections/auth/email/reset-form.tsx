@@ -27,7 +27,7 @@ export default function ResetForm({
   onSwitchForm,
 }: {
   loading?: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<boolean>;
   initialValues: any;
   setInitialValues: Dispatch<SetStateAction<any>>;
   onSwitchForm: Dispatch<SetStateAction<"register" | "reset" | "login">>;
@@ -35,14 +35,14 @@ export default function ResetForm({
   const { t } = useTranslation("auth");
 
   const { common } = useGlobalStore();
-  const { verify, auth } = common;
+  const { verify } = common;
 
   const formSchema = z.object({
     email: z
       .string()
       .email(t("reset.email", "Please enter a valid email address")),
     password: z.string(),
-    code: auth?.email?.enable_verify ? z.string() : z.string().nullish(),
+    code: z.string().min(1, t("placeholders.code", "Enter code...")),
     cf_token:
       verify.enable_reset_password_verify && verify.turnstile_site_key
         ? z.string()
@@ -54,10 +54,15 @@ export default function ResetForm({
   });
 
   const turnstile = useRef<TurnstileRef>(null);
-  const handleSubmit = form.handleSubmit((data) => {
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      onSubmit(data);
+      const succeeded = await onSubmit(data);
+      if (succeeded === false) {
+        form.setValue("cf_token", "");
+        turnstile.current?.reset();
+      }
     } catch (_error) {
+      form.setValue("cf_token", "");
       turnstile.current?.reset();
     }
   });

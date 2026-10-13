@@ -41,7 +41,15 @@ export default function OrderLogPage() {
     `#${subscribeId}`;
 
   return (
-    <LogPage<API.OrderLog, { date?: string; search?: string; user_id?: number }>
+    <LogPage<
+      API.OrderLog,
+      {
+        start_date?: string;
+        end_date?: string;
+        search?: string;
+        user_id?: number;
+      }
+    >
       columns={[
         {
           accessorKey: "user_id",
@@ -153,12 +161,18 @@ export default function OrderLogPage() {
         "description.order",
         "Trace order creation, payment sources, pricing and request metadata."
       )}
-      filterTypes={{ date: "string", search: "string", user_id: "number" }}
+      filterTypes={{
+        start_date: "string",
+        end_date: "string",
+        search: "string",
+        user_id: "number",
+      }}
       load={(pagination, filter) =>
         filterOrderLog({
           page: pagination.page,
           size: pagination.size,
-          date: filter?.date,
+          start_date: filter?.start_date,
+          end_date: filter?.end_date,
           search: filter?.search,
           user_id: filter?.user_id,
         })
@@ -240,7 +254,6 @@ export default function OrderLogPage() {
         },
       }}
       params={[
-        { key: "date", type: "date" },
         {
           key: "search",
           label: t("column.queryOrder", "Order log search"),

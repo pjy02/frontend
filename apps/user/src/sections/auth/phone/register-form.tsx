@@ -28,7 +28,7 @@ export default function RegisterForm({
   onSwitchForm,
 }: {
   loading?: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<boolean>;
   initialValues: any;
   onSwitchForm: Dispatch<SetStateAction<"register" | "reset" | "login">>;
 }) {
@@ -47,7 +47,7 @@ export default function RegisterForm({
       invite: invite.forced_invite ? z.string().min(1) : z.string().nullish(),
       cf_token:
         verify.enable_register_verify && verify.turnstile_site_key
-          ? z.string()
+          ? z.string().min(1)
           : z.string().nullish(),
     })
     .superRefine(({ password, repeat_password }, ctx) => {
@@ -70,10 +70,15 @@ export default function RegisterForm({
   });
 
   const turnstile = useRef<TurnstileRef>(null);
-  const handleSubmit = form.handleSubmit((data) => {
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      onSubmit(data);
+      const succeeded = await onSubmit(data);
+      if (succeeded === false) {
+        form.setValue("cf_token", "");
+        turnstile.current?.reset();
+      }
     } catch (_error) {
+      form.setValue("cf_token", "");
       turnstile.current?.reset();
     }
   });
@@ -193,7 +198,13 @@ export default function RegisterForm({
                       />
 
                       <SendCode
+                        disabled={loading}
+                        onChallengeUsed={() => {
+                          form.setValue("cf_token", "");
+                          turnstile.current?.reset();
+                        }}
                         params={{
+                          cf_token: form.watch("cf_token"),
                           telephone: form.watch("telephone"),
                           telephone_area_code: form.watch(
                             "telephone_area_code"

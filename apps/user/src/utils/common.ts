@@ -1,5 +1,7 @@
 import { removeCookie, setCookie } from "@workspace/ui/lib/cookies";
 import { isBrowser } from "@workspace/ui/utils/index";
+import { useGlobalStore } from "@/stores/global";
+import { clearOAuthAttempt } from "./oauth";
 
 export function getPlatform(): string {
   if (typeof window === "undefined") return "unknown";
@@ -84,6 +86,9 @@ export function setRedirectUrl(value?: string) {
 export function Logout() {
   if (!isBrowser()) return;
   removeCookie("Authorization");
+  useGlobalStore.getState().setUser(undefined);
+  useGlobalStore.getState().clearUserLoading();
+  clearOAuthAttempt();
 
   const pathname = location.pathname;
   const hash = location.hash.slice(1); // 移除 '#'

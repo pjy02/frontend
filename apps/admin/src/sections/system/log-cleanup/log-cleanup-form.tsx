@@ -22,22 +22,19 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { z } from "zod";
+import type { z } from "zod";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/settings-workspace";
+import { logCleanupSchema } from "@/utils/admin-form-contracts";
 
-const logCleanupSchema = z.object({
-  auto_clear: z.boolean(),
-  clear_days: z.number().min(1),
-});
-
-type LogCleanupFormData = z.infer<typeof logCleanupSchema>;
+type LogCleanupFormData = z.infer<ReturnType<typeof logCleanupSchema>>;
 
 export default function LogCleanupForm() {
   const { t } = useTranslation("system");
@@ -54,7 +51,11 @@ export default function LogCleanupForm() {
   });
 
   const form = useForm<LogCleanupFormData>({
-    resolver: zodResolver(logCleanupSchema),
+    resolver: zodResolver(
+      logCleanupSchema(
+        t("logCleanup.minimumDays", "Keep logs for at least 7 whole days.")
+      )
+    ),
     defaultValues: {
       auto_clear: false,
       clear_days: 30,
@@ -109,6 +110,12 @@ export default function LogCleanupForm() {
           <SheetTitle>
             {t("logCleanup.title", "Log Cleanup Settings")}
           </SheetTitle>
+          <SheetDescription className="sr-only">
+            {t(
+              "logCleanup.description",
+              "Configure automatic log cleanup rules and retention period"
+            )}
+          </SheetDescription>
         </SheetHeader>
         <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
           <Form {...form}>
@@ -117,6 +124,18 @@ export default function LogCleanupForm() {
               id="log-cleanup-form"
               onSubmit={form.handleSubmit(onSubmit)}
             >
+              {data && data.clear_days < 7 && (
+                <p
+                  className="rounded-lg border border-border bg-muted/30 p-3 text-sm"
+                  role="alert"
+                >
+                  {t(
+                    "logCleanup.legacyRetention",
+                    "The saved retention is {{days}} days. The backend now requires at least 7 days; choose a new value before saving. The saved value has not been changed.",
+                    { days: data.clear_days }
+                  )}
+                </p>
+              )}
               <FormField
                 control={form.control}
                 name="auto_clear"
@@ -153,12 +172,13 @@ export default function LogCleanupForm() {
                     </FormLabel>
                     <FormControl>
                       <EnhancedInput
-                        disabled={!form.watch("auto_clear")}
+                        min={7}
                         onValueChange={(value) => field.onChange(Number(value))}
                         placeholder={t(
                           "logCleanup.clearDaysPlaceholder",
                           "Enter retention days"
                         )}
+                        step={1}
                         type="number"
                         value={field.value?.toString()}
                       />

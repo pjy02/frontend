@@ -7,6 +7,21 @@
     "updatePassword": "Update Password",
     "updateSuccess": "Password updated successfully"
   },
+  "currentCredential": {
+    "bindHint": "Verify the code sent to your new address to connect it.",
+    "replaceHint": "Replacing a bound address signs out all sessions. Verify both the new address and your current credential.",
+    "bindingsRemain": "Third-party sign-in remains connected: {{providers}}. Review Connected Accounts and remove any unfamiliar bindings after signing in again.",
+    "currentMobile": "Enter the full current phone number ({{mobile}}), not the new number.",
+    "mobile": "Current phone number",
+    "code": "Code sent to {{email}}",
+    "codeRequired": "Enter the verification code",
+    "firstPassword": "Leave empty when setting your first password.",
+    "password": "Current password",
+    "passwordRequired": "Enter your current password",
+    "signInAgain": "Updated. Please sign in again.",
+    "useCode": "No password set? Verify with a code sent to {{email}}",
+    "usePassword": "Use your current password"
+  },
   "notify": {
     "balanceChange": "Balance Change Notification",
     "finance": "Finance Notification",
@@ -17,15 +32,16 @@
     "updateSuccess": "Notification settings updated successfully"
   },
   "thirdParty": {
-    "bind": "thirdParty.bind",
+    "bind": "Connect",
+    "bindEmail": "Connect Email",
     "bindFailed": "Bind failed",
     "bindMobile": "Bind Mobile",
     "bindSuccess": "Bind successfully",
     "confirm": "Confirm",
-    "save": "thirdParty.save",
+    "save": "Save",
     "title": "Third-party Accounts",
-    "unbind": "thirdParty.unbind",
-    "update": "thirdParty.update",
+    "unbind": "Disconnect",
+    "update": "Update",
     "updateSuccess": "Update successfully"
   }
 }

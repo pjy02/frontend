@@ -16,6 +16,10 @@ import SubscribeLogPage from "./subscribe";
 
 vi.mock("@tanstack/react-router", () => ({
   useSearch: () => ({}),
+  useElementScrollRestoration: vi.fn(),
+  useLocation: vi.fn(),
+  useMatch: () => "",
+  useRouter: () => ({ history: { location: { pathname: "" } } }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -29,6 +33,7 @@ vi.mock("@/utils/use-table-search-params", () => ({
   getTablePagination: () => ({ page: 1, size: 10 }),
   useTablePaginationSearchParams: () => vi.fn(),
   useTableSearchParams: () => vi.fn(),
+  useTableSearchWriter: () => vi.fn(),
 }));
 
 vi.mock("@workspace/ui/composed/pro-table/pro-table", () => ({

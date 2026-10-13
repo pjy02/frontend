@@ -5,7 +5,12 @@ import { postAuthOauthLoginToken as oAuthLoginGetToken } from "@workspace/ui/ser
 import { useEffect, useRef } from "react";
 import { useGlobalStore } from "@/stores/global";
 import { getRedirectUrl, setAuthorization } from "@/utils/common";
-import { takeOAuthCfToken, takeOAuthInvite } from "@/utils/oauth";
+import {
+  clearOAuthAttempt,
+  takeOAuthCfToken,
+  takeOAuthInvite,
+  takeOAuthNonce,
+} from "@/utils/oauth";
 
 interface CertificationProps {
   platform: string;
@@ -29,11 +34,13 @@ export default function Certification({
       try {
         const cfToken = takeOAuthCfToken();
         const invite = takeOAuthInvite();
+        const nonce = takeOAuthNonce(platform);
         const res = await oAuthLoginGetToken({
           method: platform,
           callback: searchParams as Record<string, string>,
           ...(cfToken && { cf_token: cfToken }),
           ...(invite && { invite }),
+          ...(nonce && { nonce }),
         });
         const token = res?.data?.data?.token;
         if (!token) {
@@ -43,6 +50,7 @@ export default function Certification({
         await getUserInfo();
         await router.navigate({ to: getRedirectUrl() });
       } catch {
+        clearOAuthAttempt();
         await router.navigate({ to: "/auth" });
       }
     };

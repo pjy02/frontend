@@ -1,4 +1,5 @@
 {
+  "fingerprintLegacyValue": "{{value}} (saved value)",
   "actions": {
     "cancel": "Cancel",
     "save": "Save"

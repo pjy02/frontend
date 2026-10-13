@@ -13,7 +13,13 @@ export default function SubscribeTrafficLogPage() {
   return (
     <LogPage<
       API.UserSubscribeTrafficLog,
-      { date?: string; user_id?: number; user_subscribe_id?: number }
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        user_id?: number;
+        user_subscribe_id?: number;
+      }
     >
       actions={{
         render: (row) => [
@@ -73,20 +79,23 @@ export default function SubscribeTrafficLogPage() {
         "Compare daily traffic consumption by user and subscription."
       )}
       filterTypes={{
-        date: "string",
+        search: "string",
+        start_date: "string",
+        end_date: "string",
         user_id: "number",
         user_subscribe_id: "number",
       }}
       load={(pagination, filter) =>
         filterUserSubscribeTrafficLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           user_id: filter.user_id,
           user_subscribe_id: filter.user_subscribe_id,
         })
       }
       params={[
-        { key: "date", type: "date" },
         { key: "user_id", placeholder: t("column.userId", "User ID") },
         {
           key: "user_subscribe_id",

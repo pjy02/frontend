@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   setAuthorization: vi.fn(),
   takeOAuthCfToken: vi.fn(),
   takeOAuthInvite: vi.fn(),
+  takeOAuthNonce: vi.fn(),
+  clearOAuthAttempt: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -38,6 +40,8 @@ vi.mock("@/utils/common", () => ({
 vi.mock("@/utils/oauth", () => ({
   takeOAuthCfToken: mocks.takeOAuthCfToken,
   takeOAuthInvite: mocks.takeOAuthInvite,
+  takeOAuthNonce: mocks.takeOAuthNonce,
+  clearOAuthAttempt: mocks.clearOAuthAttempt,
 }));
 
 beforeEach(() => {
@@ -47,6 +51,7 @@ beforeEach(() => {
   mocks.navigate.mockResolvedValue(undefined);
   mocks.takeOAuthCfToken.mockReturnValue("turnstile-token");
   mocks.takeOAuthInvite.mockReturnValue("invite-code");
+  mocks.takeOAuthNonce.mockReturnValue("oauth-nonce");
 });
 
 afterEach(() => {
@@ -74,6 +79,7 @@ describe("OAuth callback certification", () => {
       callback: mocks.search,
       cf_token: "turnstile-token",
       invite: "invite-code",
+      nonce: "oauth-nonce",
     });
     expect(mocks.setAuthorization).toHaveBeenCalledWith("jwt");
     expect(mocks.getUserInfo).toHaveBeenCalledTimes(1);
@@ -95,5 +101,35 @@ describe("OAuth callback certification", () => {
       expect(mocks.navigate).toHaveBeenCalledWith({ to: "/auth" });
     });
     expect(mocks.getUserInfo).not.toHaveBeenCalled();
+    expect(mocks.clearOAuthAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a callback from the wrong provider without exchanging a token", async () => {
+    mocks.takeOAuthNonce.mockImplementationOnce(() => {
+      throw new Error("Wrong provider");
+    });
+    render(
+      <Certification platform="apple">
+        <div>Authenticating</div>
+      </Certification>
+    );
+    await waitFor(() =>
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: "/auth" })
+    );
+    expect(mocks.exchangeToken).not.toHaveBeenCalled();
+    expect(mocks.clearOAuthAttempt).toHaveBeenCalled();
+  });
+
+  it("supports callbacks started before nonce support", async () => {
+    mocks.takeOAuthNonce.mockReturnValueOnce(undefined);
+    render(
+      <Certification platform="google">
+        <div>Authenticating</div>
+      </Certification>
+    );
+    await waitFor(() =>
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: "/wallet" })
+    );
+    expect(mocks.exchangeToken.mock.calls[0]?.[0]).not.toHaveProperty("nonce");
   });
 });

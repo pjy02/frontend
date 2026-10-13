@@ -48,6 +48,9 @@ const CloudFlareTurnstile = function CloudFlareTurnstile({
         fixedSize
         id={id}
         language={locale.toLowerCase()}
+        onError={() => {
+          onChange();
+        }}
         onExpire={() => {
           onChange();
           turnstile.reset();
@@ -57,10 +60,6 @@ const CloudFlareTurnstile = function CloudFlareTurnstile({
           turnstile.reset();
         }}
         onVerify={(token) => onChange(token)}
-        // onError={() => {
-        //   onChange();
-        //   turnstile.reset();
-        // }}
         sitekey={verify.turnstile_site_key}
         theme={resolvedTheme as "light" | "dark"}
       />

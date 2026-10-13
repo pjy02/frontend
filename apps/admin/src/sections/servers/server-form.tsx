@@ -35,7 +35,7 @@ import { Switch } from "@workspace/ui/components/switch";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -49,8 +49,8 @@ import {
 } from "@/components/workspace-dialog";
 import { useNode } from "@/stores/node";
 import {
+  createServerFormSchema,
   type FieldConfig,
-  formSchema,
   getLabel,
   getProtocolDefaultConfig,
   protocols as PROTOCOLS,
@@ -113,6 +113,7 @@ function normalizeMultiplexValue(
 }
 
 const PRESERVED_HIDDEN_PROTOCOL_FIELDS = new Set([
+  "fingerprint",
   "server_key",
   "reality_private_key",
   "reality_public_key",
@@ -138,6 +139,7 @@ function DynamicField({
   protocolIndex: number;
   protocolData: any;
 }) {
+  const { t } = useTranslation("servers");
   const fieldName = `protocols.${protocolIndex}.${field.name}` as const;
 
   if (field.condition && !field.condition(protocolData, {})) {
@@ -323,6 +325,20 @@ function DynamicField({
                         {getLabel(option)}
                       </SelectItem>
                     ))}
+                    {field.name === "fingerprint" &&
+                      typeof fieldProps.value === "string" &&
+                      fieldProps.value.length > 0 &&
+                      !field.options?.includes(fieldProps.value) && (
+                        <SelectItem value={fieldProps.value}>
+                          {t(
+                            "fingerprintLegacyValue",
+                            "{{value}} (saved value)",
+                            {
+                              value: fieldProps.value,
+                            }
+                          )}
+                        </SelectItem>
+                      )}
                   </SelectContent>
                 </Select>
               </FormControl>
@@ -540,8 +556,13 @@ export default function ServerForm(props: ServerFormProps) {
   const { isProtocolUsedInNodes } = useNode();
   const PROTOCOL_FIELDS = useProtocolFields();
 
+  const editableSchema = useMemo(
+    () => createServerFormSchema(initialValues?.protocols),
+    [initialValues?.protocols]
+  );
+
   const form = useForm<Record<string, any>>({
-    resolver: zodResolver(formSchema) as unknown as Resolver<
+    resolver: zodResolver(editableSchema) as unknown as Resolver<
       Record<string, any>
     >,
     defaultValues: {

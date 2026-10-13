@@ -30,11 +30,11 @@ declare namespace API {
 
   type BindOAuthCallbackRequest = {
     callback: any;
-    method: "google" | "apple" | "telegram" | "github";
+    method: "google" | "apple" | "telegram" | "github" | "facebook";
   };
 
   type BindOAuthRequest = {
-    method: "google" | "apple" | "telegram" | "github";
+    method: "google" | "apple" | "telegram" | "github" | "facebook";
     redirect: string;
   };
 
@@ -87,15 +87,16 @@ declare namespace API {
   };
 
   type CreateUserTicketFollowRequest = {
-    content?: string;
+    content: string;
+    /** From is ignored: the author is always the ticket owner. */
     from?: string;
-    ticket_id?: number;
-    type?: number;
+    ticket_id: number;
+    type?: 0 | 1 | 2;
   };
 
   type CreateUserTicketRequest = {
     description?: string;
-    title?: string;
+    title: string;
   };
 
   type Document = {
@@ -147,6 +148,13 @@ declare namespace API {
   type GetUserTicketListResponse = {
     list: Ticket[];
     total: number;
+  };
+
+  type getV1AppWsUseridIdentifierParams = {
+    /** User ID of the signed-in user */
+    userid: number;
+    /** Device identifier */
+    identifier: string;
   };
 
   type getV1PublicAnnouncementListParams = {
@@ -265,6 +273,10 @@ declare namespace API {
     type: number;
     updated_at: number;
     user_id: number;
+    /** UserSubscribeId is the user subscription a renewal or traffic reset
+order applies to; zero for other orders and for orders created before
+it was recorded. */
+    user_subscribe_id: number;
   };
 
   type PaymentMethod = {
@@ -280,7 +292,7 @@ declare namespace API {
   };
 
   type PortalPurchaseRequest = {
-    auth_type: string;
+    auth_type: "email" | "mobile";
     coupon?: string;
     identifier: string;
     invite_code?: string;
@@ -533,13 +545,32 @@ declare namespace API {
   };
 
   type UpdateBindEmailRequest = {
+    /** Code is the register-type verification code sent to Email. */
+    code: string;
+    /** CurrentCode is the security-type verification code sent to the email
+the account already has. Replacing it requires the code when the
+account has no password. */
+    current_code?: string;
     email: string;
+    /** Password is the account's current password. Replacing an email the
+account already has requires it when the account has a password; a
+first binding does not. */
+    password?: string;
   };
 
   type UpdateBindMobileRequest = {
     area_code: string;
+    /** Code is the register-type verification code sent to Mobile. */
     code: string;
+    /** CurrentCode is the security-type verification code sent to the number
+the account already has. Replacing it requires the code when the
+account has no password. */
+    current_code?: string;
     mobile: string;
+    /** Password is the account's current password. Replacing a number the
+account already has requires it when the account has a password; a
+first binding does not. */
+    password?: string;
   };
 
   type UpdateUserNotifyRequest = {
@@ -550,7 +581,23 @@ declare namespace API {
   };
 
   type UpdateUserPasswordRequest = {
+    /** CurrentCode is the security-type verification code sent to the email
+or phone number the account has bound. Setting the first password of
+an account that has one bound requires it; an account with neither a
+password nor a bound email or phone number (OAuth or device sign-in
+only) sets its first password without it. */
+    current_code?: string;
+    /** OldPassword is required once the account has a password. */
+    old_password?: string;
     password: string;
+  };
+
+  type UpdateUserPasswordResponse = {
+    /** ThirdPartyBindings lists the types of the third-party sign-in methods
+(OAuth providers, Telegram) still bound to the account, so the client
+can show them: a binding made during a compromise keeps signing in
+until its owner removes it. */
+    third_party_bindings: string[];
   };
 
   type UpdateUserRulesRequest = {
@@ -635,6 +682,7 @@ declare namespace API {
   type UserSubscribe = {
     created_at: number;
     download: number;
+    entitlement_source: string;
     expire_time: number;
     finished_at: number;
     id: number;
@@ -655,6 +703,7 @@ declare namespace API {
   type UserSubscribeInfo = {
     created_at: number;
     download: number;
+    entitlement_source: string;
     expire_time: number;
     finished_at: number;
     id: number;
@@ -729,10 +778,11 @@ declare namespace API {
   };
 
   type V2GuestOrderRequest = {
-    auth_type?: string;
+    auth_type?: "email" | "mobile";
     identifier?: string;
     invite_code?: string;
     password?: string;
+    turnstile_token?: string;
   };
 
   type V2OrderEvents = {

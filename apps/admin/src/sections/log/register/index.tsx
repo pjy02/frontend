@@ -15,7 +15,15 @@ import { UserDetail } from "@/sections/user/user-detail";
 export default function RegisterLogPage() {
   const { t } = useTranslation("log");
   return (
-    <LogPage<API.RegisterLog, { date?: string; user_id?: number }>
+    <LogPage<
+      API.RegisterLog,
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        user_id?: number;
+      }
+    >
       columns={[
         {
           accessorKey: "user",
@@ -69,18 +77,22 @@ export default function RegisterLogPage() {
         "description.register",
         "Review account registrations, identifiers, source addresses, and clients."
       )}
-      filterTypes={{ date: "string", user_id: "number" }}
+      filterTypes={{
+        search: "string",
+        start_date: "string",
+        end_date: "string",
+        user_id: "number",
+      }}
       load={(pagination, filter) =>
         filterRegisterLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           user_id: filter.user_id,
         })
       }
-      params={[
-        { key: "date", type: "date" },
-        { key: "user_id", placeholder: t("column.userId", "User ID") },
-      ]}
+      params={[{ key: "user_id", placeholder: t("column.userId", "User ID") }]}
       title={t("title.register", "Register Log")}
     />
   );

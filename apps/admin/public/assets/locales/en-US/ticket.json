@@ -1,4 +1,8 @@
 {
+  "replyInvalid": "Enter a message or attachment of at most 65535 characters.",
+  "replyFailed": "Reply could not be sent. Please try again.",
+  "sendReply": "Send reply",
+  "sending": "Sending...",
   "cancel": "Cancel",
   "check": "Check",
   "close": "Close",

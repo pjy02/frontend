@@ -1,4 +1,6 @@
 {
+  "referralPercentageInvalid": "佣金比例必须在 0 到 100 之间。",
+  "saving": "保存中...",
   "accountEnable": "账户启用",
   "accountSearch": "账号信息",
   "accountSearchPlaceholder": "邮箱 / 手机号 / 用户名",

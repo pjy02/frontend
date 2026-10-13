@@ -1,4 +1,8 @@
 {
+  "replyInvalid": "请输入非空回复，文字或附件内容不能超过 65535 个字符。",
+  "replyFailed": "回复发送失败，请重试。",
+  "sendReply": "发送回复",
+  "sending": "发送中...",
   "cancel": "取消",
   "check": "查看",
   "close": "关闭",

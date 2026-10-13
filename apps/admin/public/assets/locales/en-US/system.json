@@ -21,6 +21,7 @@
     "title": "Currency Configuration"
   },
   "invite": {
+    "referralPercentageInvalid": "Referral percentage must be between 0 and 100.",
     "description": "Configure user invitation and referral reward settings",
     "forcedInvite": "Require Invitation to Register",
     "forcedInviteDescription": "When enabled, users must register through an invitation link",
@@ -34,6 +35,8 @@
     "title": "Invitation Settings"
   },
   "logCleanup": {
+    "minimumDays": "Keep logs for at least 7 whole days.",
+    "legacyRetention": "The saved retention is {{days}} days. The backend now requires at least 7 days; choose a new value before saving. The saved value has not been changed.",
     "autoClear": "Enable Auto Cleanup",
     "autoClearDescription": "When enabled, the system will automatically clear expired log records",
     "clearDays": "Retention Days",

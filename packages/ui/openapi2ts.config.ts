@@ -29,6 +29,30 @@ function requireResponseProperties(openAPIData: OpenAPIObject) {
   return openAPIData;
 }
 
+// openapi2ts only strips the prefix shared by every path. Common also serves
+// /healthz and /readyz, so strip /v1 explicitly to keep names like
+// getCommonSiteConfig instead of getV1CommonSiteConfig.
+function commonFunctionName({
+  method,
+  path,
+}: {
+  method: string;
+  path: string;
+}) {
+  const name = path
+    .replace(/^\/v1(?=\/)/, "")
+    .split("/")
+    .map((segment) => {
+      const word = segment
+        .replace(/[-_](\w)/g, (_, letter: string) => letter.toUpperCase())
+        .replace(/\W/g, "");
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join("");
+
+  return `${method}${name}`;
+}
+
 const baseConfig = {
   requestLibPath: "import request from '@workspace/ui/lib/request';",
   serversPath: "./src/services",
@@ -45,6 +69,10 @@ const config = [
     schemaPath:
       "https://raw.githubusercontent.com/perfect-panel/frontend/refs/heads/main/docs/public/swagger/common.json",
     projectName: "common",
+    hook: {
+      ...baseConfig.hook,
+      customFunctionName: commonFunctionName,
+    },
   },
   {
     ...baseConfig,

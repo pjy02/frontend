@@ -23,7 +23,12 @@ export default function ResetSubscribeLogPage() {
   return (
     <LogPage<
       API.ResetSubscribeLog,
-      { date?: string; user_subscribe_id?: number }
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        user_subscribe_id?: number;
+      }
     >
       columns={[
         {
@@ -71,16 +76,22 @@ export default function ResetSubscribeLogPage() {
         "description.resetSubscribe",
         "Review subscription resets, their source orders, and affected accounts."
       )}
-      filterTypes={{ date: "string", user_subscribe_id: "number" }}
+      filterTypes={{
+        search: "string",
+        start_date: "string",
+        end_date: "string",
+        user_subscribe_id: "number",
+      }}
       load={(pagination, filter) =>
         filterResetSubscribeLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           user_subscribe_id: filter.user_subscribe_id,
         })
       }
       params={[
-        { key: "date", type: "date" },
         {
           key: "user_subscribe_id",
           placeholder: t("column.subscribeId", "Subscribe ID"),

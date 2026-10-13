@@ -1,4 +1,6 @@
 {
+  "referralPercentageInvalid": "Referral percentage must be between 0 and 100.",
+  "saving": "Saving...",
   "accountEnable": "Account Enable",
   "accountSearch": "Account",
   "accountSearchPlaceholder": "Email / phone / username",

@@ -16,6 +16,7 @@ const logGroups = [
   {
     key: "account",
     routes: [
+      { key: "adminAction", url: "/dashboard/log/admin" },
       { key: "login", url: "/dashboard/log/login" },
       { key: "register", url: "/dashboard/log/register" },
       { key: "subscribe", url: "/dashboard/log/subscribe" },
@@ -40,6 +41,7 @@ const logGroups = [
   {
     key: "finance",
     routes: [
+      { key: "unmatchedPayment", url: "/dashboard/log/payment-unmatched" },
       { key: "order", url: "/dashboard/log/order" },
       { key: "balance", url: "/dashboard/log/balance" },
       { key: "commission", url: "/dashboard/log/commission" },
@@ -95,7 +97,7 @@ export function LogNavigation() {
                   <DropdownMenuItem asChild key={route.key}>
                     <Link
                       className="flex justify-between"
-                      search={search}
+                      search={{ ...search, page: undefined }}
                       to={route.url}
                     >
                       <span>

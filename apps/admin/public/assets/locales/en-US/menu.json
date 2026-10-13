@@ -42,5 +42,7 @@
   "Infrastructure": "Infrastructure",
   "Operations": "Operations",
   "Platform": "Platform",
-  "Products & Billing": "Products & Billing"
+  "Products & Billing": "Products & Billing",
+  "Administrator Action Log": "Administrator Action Log",
+  "Unmatched Payment Log": "Unmatched Payment Log"
 }

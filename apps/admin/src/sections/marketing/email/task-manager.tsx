@@ -135,6 +135,25 @@ export default function EmailTaskManager() {
                             </div>
                             <div>
                               <h4 className="mb-2 font-medium text-muted-foreground text-sm">
+                                {t("recipientCount", "Total recipients")}
+                              </h4>
+                              <EmailRecipientCount
+                                value={selectedTask.recipient_count}
+                              />
+                              <p className="mt-1 text-muted-foreground text-xs">
+                                {t(
+                                  "recipientSnapshotDescription",
+                                  "The recipient list is a recorded preview and may be incomplete. The total includes additional recipients."
+                                )}
+                              </p>
+                              {selectedTask.recipients && (
+                                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+                                  {selectedTask.recipients}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="mb-2 font-medium text-muted-foreground text-sm">
                                 {t("content", "Email Content")}
                               </h4>
                               <div
@@ -204,6 +223,13 @@ export default function EmailTaskManager() {
                       `${t("scope", "Send Scope")} ${scope}`
                     );
                   },
+                },
+                {
+                  accessorKey: "recipient_count",
+                  header: t("recipientCount", "Total recipients"),
+                  cell: ({ row }) => (
+                    <EmailRecipientCount value={row.original.recipient_count} />
+                  ),
                 },
                 {
                   accessorKey: "status",
@@ -298,4 +324,13 @@ export default function EmailTaskManager() {
       </SheetContent>
     </Sheet>
   );
+}
+
+export function EmailRecipientCount({ value }: { value?: number }) {
+  const { i18n } = useTranslation("marketing");
+  const count =
+    typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value.toLocaleString(i18n.resolvedLanguage || i18n.language)
+      : "—";
+  return <span className="tabular-nums">{count}</span>;
 }

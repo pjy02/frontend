@@ -88,7 +88,9 @@ export function ColumnFilter<TData>({
             : "";
       return (
         <Input
-          aria-label={param.placeholder || t("table.date", "Date")}
+          aria-label={
+            param.label || param.placeholder || t("table.date", "Date")
+          }
           className={
             fullWidth
               ? "block h-10 w-full min-w-0 rounded-lg bg-background"
@@ -196,7 +198,21 @@ export function ColumnFilter<TData>({
                 </DrawerDescription>
               </DrawerHeader>
               <div className="grid min-h-0 gap-3 overflow-y-auto px-4 pb-4">
-                {advancedParams.map((param) => renderFilter(param, true))}
+                {advancedParams.map((param) =>
+                  param.label ? (
+                    <div
+                      className="grid min-w-0 gap-1.5 text-sm"
+                      key={param.key}
+                    >
+                      <span className="text-muted-foreground">
+                        {param.label}
+                      </span>
+                      {renderFilter(param, true)}
+                    </div>
+                  ) : (
+                    renderFilter(param, true)
+                  )
+                )}
               </div>
               <DrawerFooter className="grid grid-cols-2 border-t">
                 <Button

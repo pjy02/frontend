@@ -7,12 +7,12 @@ import {
   postAuthRegister as userRegister,
 } from "@workspace/ui/services/common/common";
 import type { ReactNode } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { USER_EMAIL, USER_PASSWORD } from "@/config";
 import { useGlobalStore } from "@/stores/global";
-import { getRedirectUrl, setAuthorization } from "@/utils/common";
+import { getRedirectUrl, Logout, setAuthorization } from "@/utils/common";
 import LoginForm from "./login-form";
 import RegisterForm from "./register-form";
 import ResetForm from "./reset-form";
@@ -23,7 +23,8 @@ export default function EmailAuthForm() {
   const { getUserInfo } = useGlobalStore();
   const searchParams = useSearch({ strict: false }) as { invite?: string };
   const [type, setType] = useState<"login" | "register" | "reset">("login");
-  const [loading, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
+  const pending = useRef(false);
   const [initialValues, setInitialValues] = useState<{
     email?: string;
     password?: string;
@@ -41,37 +42,55 @@ export default function EmailAuthForm() {
   }, [searchParams.invite]);
 
   const handleFormSubmit = async (params: any) => {
+    if (pending.current) return false;
+    pending.current = true;
+    setLoading(true);
     const onLogin = async (token?: string) => {
       if (!token) return;
       setAuthorization(token);
       await getUserInfo();
       navigate({ to: getRedirectUrl() });
     };
-    startTransition(async () => {
-      try {
-        switch (type) {
-          case "login": {
-            const login = await userLogin(params);
-            toast.success(t("login.success", "Login successful!"));
-            onLogin(login.data.data?.token);
-            break;
-          }
-          case "register": {
-            const create = await userRegister(params);
-            toast.success(t("register.success", "Registration successful!"));
-            onLogin(create.data.data?.token);
-            break;
-          }
-          case "reset":
-            await resetPassword(params);
-            toast.success(t("reset.success", "Password reset successful!"));
-            setType("login");
-            break;
+    try {
+      switch (type) {
+        case "login": {
+          const login = await userLogin(params);
+          toast.success(t("login.success", "Login successful!"));
+          await onLogin(login.data.data?.token);
+          break;
         }
-      } catch {
-        // The request layer already toasted the reason.
+        case "register": {
+          const create = await userRegister(params);
+          toast.success(t("register.success", "Registration successful!"));
+          await onLogin(create.data.data?.token);
+          break;
+        }
+        case "reset": {
+          const response = await resetPassword(params);
+          toast.success(t("reset.success", "Password reset successful!"));
+          const bindings = response.data.data?.third_party_bindings;
+          if (bindings?.length)
+            toast.warning(
+              t(
+                "reset.bindingsRemain",
+                "Third-party sign-in remains connected: {{providers}}. Review Connected Accounts and remove any unfamiliar bindings after signing in again.",
+                { providers: bindings.join(", ") }
+              ),
+              { duration: 20_000 }
+            );
+          Logout();
+          setType("login");
+          break;
+        }
       }
-    });
+    } catch {
+      // The request layer already toasted the reason.
+      return false;
+    } finally {
+      pending.current = false;
+      setLoading(false);
+    }
+    return true;
   };
 
   let UserForm: ReactNode = null;

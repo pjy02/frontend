@@ -43,6 +43,7 @@ vi.mock("./turnstile", () => ({
 }));
 
 beforeEach(() => {
+  sessionStorage.clear();
   mocks.oauthLogin.mockResolvedValue({ data: { data: {} } });
 });
 
@@ -67,8 +68,34 @@ describe("OAuth methods", () => {
     await waitFor(() => {
       expect(mocks.oauthLogin).toHaveBeenCalledWith({
         method: "google",
+        nonce: expect.stringMatching(/^[a-f0-9]{48}$/),
         redirect: "http://localhost:3000/oauth/google/",
       });
     });
+    await waitFor(() =>
+      expect(sessionStorage.getItem("oauth-nonce")).toBeNull()
+    );
+  });
+
+  it("clears all temporary values on failure and prevents duplicate attempts", async () => {
+    let reject: (error: Error) => void = vi.fn();
+    mocks.oauthLogin.mockReturnValue(
+      new Promise((_resolve, rejectPromise) => {
+        reject = rejectPromise;
+      })
+    );
+    render(<OAuthMethods />);
+    fireEvent.click(screen.getByRole("button", { name: "Solve challenge" }));
+    const button = screen.getByRole("button", { name: "Continue with google" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(mocks.oauthLogin).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("oauth-nonce")).not.toBeNull();
+    reject(new Error("offline"));
+    await waitFor(() =>
+      expect(sessionStorage.getItem("oauth-nonce")).toBeNull()
+    );
+    expect(sessionStorage.getItem("oauth-cf-token")).toBeNull();
+    expect(sessionStorage.getItem("oauth-invite")).toBeNull();
   });
 });

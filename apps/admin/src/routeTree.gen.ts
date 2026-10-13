@@ -85,6 +85,9 @@ const DashboardLogResetSubscribeLazyRouteImport = createFileRoute(
 const DashboardLogRegisterLazyRouteImport = createFileRoute(
   '/dashboard/log/register',
 )()
+const DashboardLogPaymentUnmatchedLazyRouteImport = createFileRoute(
+  '/dashboard/log/payment-unmatched',
+)()
 const DashboardLogOrderLazyRouteImport = createFileRoute(
   '/dashboard/log/order',
 )()
@@ -103,6 +106,9 @@ const DashboardLogCommissionLazyRouteImport = createFileRoute(
 )()
 const DashboardLogBalanceLazyRouteImport = createFileRoute(
   '/dashboard/log/balance',
+)()
+const DashboardLogAdminLazyRouteImport = createFileRoute(
+  '/dashboard/log/admin',
 )()
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -343,6 +349,16 @@ const DashboardLogRegisterLazyRoute =
   } as any).lazy(() =>
     import('./routes/dashboard/log/register.lazy').then((d) => d.Route),
   )
+const DashboardLogPaymentUnmatchedLazyRoute =
+  DashboardLogPaymentUnmatchedLazyRouteImport.update({
+    id: '/payment-unmatched',
+    path: '/payment-unmatched',
+    getParentRoute: () => DashboardLogRouteLazyRoute,
+  } as any).lazy(() =>
+    import('./routes/dashboard/log/payment-unmatched.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const DashboardLogOrderLazyRoute = DashboardLogOrderLazyRouteImport.update({
   id: '/order',
   path: '/order',
@@ -393,6 +409,13 @@ const DashboardLogBalanceLazyRoute = DashboardLogBalanceLazyRouteImport.update({
 } as any).lazy(() =>
   import('./routes/dashboard/log/balance.lazy').then((d) => d.Route),
 )
+const DashboardLogAdminLazyRoute = DashboardLogAdminLazyRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => DashboardLogRouteLazyRoute,
+} as any).lazy(() =>
+  import('./routes/dashboard/log/admin.lazy').then((d) => d.Route),
+)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
@@ -403,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/nodes': typeof DashboardNodesLazyRoute
   '/dashboard/withdrawal': typeof DashboardWithdrawalLazyRoute
   '/dashboard/': typeof DashboardIndexLazyRoute
+  '/dashboard/log/admin': typeof DashboardLogAdminLazyRoute
   '/dashboard/log/balance': typeof DashboardLogBalanceLazyRoute
   '/dashboard/log/commission': typeof DashboardLogCommissionLazyRoute
   '/dashboard/log/email': typeof DashboardLogEmailLazyRoute
@@ -410,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/log/login': typeof DashboardLogLoginLazyRoute
   '/dashboard/log/mobile': typeof DashboardLogMobileLazyRoute
   '/dashboard/log/order': typeof DashboardLogOrderLazyRoute
+  '/dashboard/log/payment-unmatched': typeof DashboardLogPaymentUnmatchedLazyRoute
   '/dashboard/log/register': typeof DashboardLogRegisterLazyRoute
   '/dashboard/log/reset-subscribe': typeof DashboardLogResetSubscribeLazyRoute
   '/dashboard/log/server-traffic': typeof DashboardLogServerTrafficLazyRoute
@@ -440,6 +465,7 @@ export interface FileRoutesByTo {
   '/dashboard/nodes': typeof DashboardNodesLazyRoute
   '/dashboard/withdrawal': typeof DashboardWithdrawalLazyRoute
   '/dashboard': typeof DashboardIndexLazyRoute
+  '/dashboard/log/admin': typeof DashboardLogAdminLazyRoute
   '/dashboard/log/balance': typeof DashboardLogBalanceLazyRoute
   '/dashboard/log/commission': typeof DashboardLogCommissionLazyRoute
   '/dashboard/log/email': typeof DashboardLogEmailLazyRoute
@@ -447,6 +473,7 @@ export interface FileRoutesByTo {
   '/dashboard/log/login': typeof DashboardLogLoginLazyRoute
   '/dashboard/log/mobile': typeof DashboardLogMobileLazyRoute
   '/dashboard/log/order': typeof DashboardLogOrderLazyRoute
+  '/dashboard/log/payment-unmatched': typeof DashboardLogPaymentUnmatchedLazyRoute
   '/dashboard/log/register': typeof DashboardLogRegisterLazyRoute
   '/dashboard/log/reset-subscribe': typeof DashboardLogResetSubscribeLazyRoute
   '/dashboard/log/server-traffic': typeof DashboardLogServerTrafficLazyRoute
@@ -481,6 +508,7 @@ export interface FileRoutesById {
   '/dashboard/nodes': typeof DashboardNodesLazyRoute
   '/dashboard/withdrawal': typeof DashboardWithdrawalLazyRoute
   '/dashboard/': typeof DashboardIndexLazyRoute
+  '/dashboard/log/admin': typeof DashboardLogAdminLazyRoute
   '/dashboard/log/balance': typeof DashboardLogBalanceLazyRoute
   '/dashboard/log/commission': typeof DashboardLogCommissionLazyRoute
   '/dashboard/log/email': typeof DashboardLogEmailLazyRoute
@@ -488,6 +516,7 @@ export interface FileRoutesById {
   '/dashboard/log/login': typeof DashboardLogLoginLazyRoute
   '/dashboard/log/mobile': typeof DashboardLogMobileLazyRoute
   '/dashboard/log/order': typeof DashboardLogOrderLazyRoute
+  '/dashboard/log/payment-unmatched': typeof DashboardLogPaymentUnmatchedLazyRoute
   '/dashboard/log/register': typeof DashboardLogRegisterLazyRoute
   '/dashboard/log/reset-subscribe': typeof DashboardLogResetSubscribeLazyRoute
   '/dashboard/log/server-traffic': typeof DashboardLogServerTrafficLazyRoute
@@ -523,6 +552,7 @@ export interface FileRouteTypes {
     | '/dashboard/nodes'
     | '/dashboard/withdrawal'
     | '/dashboard/'
+    | '/dashboard/log/admin'
     | '/dashboard/log/balance'
     | '/dashboard/log/commission'
     | '/dashboard/log/email'
@@ -530,6 +560,7 @@ export interface FileRouteTypes {
     | '/dashboard/log/login'
     | '/dashboard/log/mobile'
     | '/dashboard/log/order'
+    | '/dashboard/log/payment-unmatched'
     | '/dashboard/log/register'
     | '/dashboard/log/reset-subscribe'
     | '/dashboard/log/server-traffic'
@@ -560,6 +591,7 @@ export interface FileRouteTypes {
     | '/dashboard/nodes'
     | '/dashboard/withdrawal'
     | '/dashboard'
+    | '/dashboard/log/admin'
     | '/dashboard/log/balance'
     | '/dashboard/log/commission'
     | '/dashboard/log/email'
@@ -567,6 +599,7 @@ export interface FileRouteTypes {
     | '/dashboard/log/login'
     | '/dashboard/log/mobile'
     | '/dashboard/log/order'
+    | '/dashboard/log/payment-unmatched'
     | '/dashboard/log/register'
     | '/dashboard/log/reset-subscribe'
     | '/dashboard/log/server-traffic'
@@ -600,6 +633,7 @@ export interface FileRouteTypes {
     | '/dashboard/nodes'
     | '/dashboard/withdrawal'
     | '/dashboard/'
+    | '/dashboard/log/admin'
     | '/dashboard/log/balance'
     | '/dashboard/log/commission'
     | '/dashboard/log/email'
@@ -607,6 +641,7 @@ export interface FileRouteTypes {
     | '/dashboard/log/login'
     | '/dashboard/log/mobile'
     | '/dashboard/log/order'
+    | '/dashboard/log/payment-unmatched'
     | '/dashboard/log/register'
     | '/dashboard/log/reset-subscribe'
     | '/dashboard/log/server-traffic'
@@ -856,6 +891,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardLogRegisterLazyRouteImport
       parentRoute: typeof DashboardLogRouteLazyRoute
     }
+    '/dashboard/log/payment-unmatched': {
+      id: '/dashboard/log/payment-unmatched'
+      path: '/payment-unmatched'
+      fullPath: '/dashboard/log/payment-unmatched'
+      preLoaderRoute: typeof DashboardLogPaymentUnmatchedLazyRouteImport
+      parentRoute: typeof DashboardLogRouteLazyRoute
+    }
     '/dashboard/log/order': {
       id: '/dashboard/log/order'
       path: '/order'
@@ -905,10 +947,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardLogBalanceLazyRouteImport
       parentRoute: typeof DashboardLogRouteLazyRoute
     }
+    '/dashboard/log/admin': {
+      id: '/dashboard/log/admin'
+      path: '/admin'
+      fullPath: '/dashboard/log/admin'
+      preLoaderRoute: typeof DashboardLogAdminLazyRouteImport
+      parentRoute: typeof DashboardLogRouteLazyRoute
+    }
   }
 }
 
 interface DashboardLogRouteLazyRouteChildren {
+  DashboardLogAdminLazyRoute: typeof DashboardLogAdminLazyRoute
   DashboardLogBalanceLazyRoute: typeof DashboardLogBalanceLazyRoute
   DashboardLogCommissionLazyRoute: typeof DashboardLogCommissionLazyRoute
   DashboardLogEmailLazyRoute: typeof DashboardLogEmailLazyRoute
@@ -916,6 +966,7 @@ interface DashboardLogRouteLazyRouteChildren {
   DashboardLogLoginLazyRoute: typeof DashboardLogLoginLazyRoute
   DashboardLogMobileLazyRoute: typeof DashboardLogMobileLazyRoute
   DashboardLogOrderLazyRoute: typeof DashboardLogOrderLazyRoute
+  DashboardLogPaymentUnmatchedLazyRoute: typeof DashboardLogPaymentUnmatchedLazyRoute
   DashboardLogRegisterLazyRoute: typeof DashboardLogRegisterLazyRoute
   DashboardLogResetSubscribeLazyRoute: typeof DashboardLogResetSubscribeLazyRoute
   DashboardLogServerTrafficLazyRoute: typeof DashboardLogServerTrafficLazyRoute
@@ -925,6 +976,7 @@ interface DashboardLogRouteLazyRouteChildren {
 }
 
 const DashboardLogRouteLazyRouteChildren: DashboardLogRouteLazyRouteChildren = {
+  DashboardLogAdminLazyRoute: DashboardLogAdminLazyRoute,
   DashboardLogBalanceLazyRoute: DashboardLogBalanceLazyRoute,
   DashboardLogCommissionLazyRoute: DashboardLogCommissionLazyRoute,
   DashboardLogEmailLazyRoute: DashboardLogEmailLazyRoute,
@@ -932,6 +984,7 @@ const DashboardLogRouteLazyRouteChildren: DashboardLogRouteLazyRouteChildren = {
   DashboardLogLoginLazyRoute: DashboardLogLoginLazyRoute,
   DashboardLogMobileLazyRoute: DashboardLogMobileLazyRoute,
   DashboardLogOrderLazyRoute: DashboardLogOrderLazyRoute,
+  DashboardLogPaymentUnmatchedLazyRoute: DashboardLogPaymentUnmatchedLazyRoute,
   DashboardLogRegisterLazyRoute: DashboardLogRegisterLazyRoute,
   DashboardLogResetSubscribeLazyRoute: DashboardLogResetSubscribeLazyRoute,
   DashboardLogServerTrafficLazyRoute: DashboardLogServerTrafficLazyRoute,

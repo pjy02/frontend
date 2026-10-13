@@ -1,3 +1,4 @@
+import { getCookie } from "@workspace/ui/lib/cookies";
 import { getV1PublicUserInfo as queryUserInfo } from "@workspace/ui/services/user/user";
 import { isBrowser } from "@workspace/ui/utils/index";
 import { create } from "zustand";
@@ -107,10 +108,11 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
   setCommonError: (commonError) => set({ commonError, isLoadingCommon: false }),
   setUser: (user) => set({ user }),
   getUserInfo: async () => {
+    const token = getCookie("Authorization");
     set({ isLoadingUser: true });
     try {
       const { data } = await queryUserInfo();
-      set({ user: data.data });
+      if (token === getCookie("Authorization")) set({ user: data.data });
     } catch (error) {
       console.error("Failed to refresh user:", error);
     } finally {

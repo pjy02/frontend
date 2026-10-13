@@ -1,4 +1,4 @@
-import { useRouter } from "@tanstack/react-router";
+import { useMatch, useRouter } from "@tanstack/react-router";
 import type { ProTablePagination } from "@workspace/ui/composed/pro-table/pro-table";
 import { useCallback } from "react";
 
@@ -20,12 +20,19 @@ export function getTablePagination(search: TableSearch): ProTablePagination {
   };
 }
 
-function useTableSearchWriter() {
+export function useTableSearchWriter() {
   const router = useRouter();
+  const ownerPathname = useMatch({
+    strict: false,
+    select: (match) => match.pathname,
+  });
 
   return useCallback(
     (update: (search: URLSearchParams) => void) => {
       const location = router.history.location;
+      // Effects from the previous list may finish after a fast navigation.
+      // They must never write its filters into the destination page's URL.
+      if (location.pathname !== ownerPathname) return;
       const search = new URLSearchParams(location.search);
       update(search);
 
@@ -35,7 +42,7 @@ function useTableSearchWriter() {
         router.history.replace(nextHref, location.state);
       }
     },
-    [router]
+    [router, ownerPathname]
   );
 }
 

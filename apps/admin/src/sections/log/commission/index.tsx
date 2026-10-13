@@ -21,7 +21,15 @@ export default function CommissionLogPage() {
   };
 
   return (
-    <LogPage<API.CommissionLog, { date?: string; user_id?: number }>
+    <LogPage<
+      API.CommissionLog,
+      {
+        start_date?: string;
+        search?: string;
+        end_date?: string;
+        user_id?: number;
+      }
+    >
       columns={[
         {
           accessorKey: "user",
@@ -64,18 +72,22 @@ export default function CommissionLogPage() {
         "description.commission",
         "Trace commission credits and the orders that generated them."
       )}
-      filterTypes={{ date: "string", user_id: "number" }}
+      filterTypes={{
+        search: "string",
+        start_date: "string",
+        end_date: "string",
+        user_id: "number",
+      }}
       load={(pagination, filter) =>
         filterCommissionLog({
           ...pagination,
-          date: filter.date,
+          start_date: filter.start_date,
+          end_date: filter.end_date,
+          search: filter.search,
           user_id: filter.user_id,
         })
       }
-      params={[
-        { key: "date", type: "date" },
-        { key: "user_id", placeholder: t("column.userId", "User ID") },
-      ]}
+      params={[{ key: "user_id", placeholder: t("column.userId", "User ID") }]}
       title={t("title.commission", "Commission Log")}
     />
   );

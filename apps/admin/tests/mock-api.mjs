@@ -486,6 +486,10 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/v1/admin/tool/restart") {
+    if (request.method !== "POST") {
+      send(response, 405, { code: 405, msg: "Restart requires POST" });
+      return;
+    }
     if (systemRestartMode === "error") {
       send(response, 200, { code: 500, msg: "Restart acceptance error" });
       return;
@@ -571,6 +575,52 @@ createServer(async (request, response) => {
     send(response, 200, {
       code: 200,
       data: { list: [orderLogFixture], total: 1 },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/log/admin/list") {
+    send(response, 200, {
+      code: 200,
+      data: {
+        list: [
+          {
+            ...orderLogFixture,
+            id: 81,
+            user_id: 1,
+            action: "system.update",
+            object: "system",
+            object_id: 42,
+            source: "admin",
+            telegram_sender_id: 0,
+            detail: JSON.stringify({ dns: "updated" }),
+            created_at: now,
+          },
+        ],
+        total: 1,
+      },
+    });
+    return;
+  }
+
+  if (url.pathname === "/v1/admin/log/payment/unmatched/list") {
+    send(response, 200, {
+      code: 200,
+      data: {
+        list: [
+          {
+            ...orderLogFixture,
+            id: 91,
+            platform: "stripe",
+            trade_no: "trade-unmatched-91",
+            currency: "EUR",
+            amount: 12_800,
+            reason: "Order was canceled before the payment callback",
+            created_at: now,
+          },
+        ],
+        total: 1,
+      },
     });
     return;
   }

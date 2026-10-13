@@ -21,6 +21,7 @@
     "title": "货币配置"
   },
   "invite": {
+    "referralPercentageInvalid": "佣金比例必须在 0 到 100 之间。",
     "description": "配置用户邀请和推荐奖励设置",
     "forcedInvite": "强制邀请注册",
     "forcedInviteDescription": "启用后，用户必须通过邀请链接注册",
@@ -34,6 +35,8 @@
     "title": "邀请设置"
   },
   "logCleanup": {
+    "minimumDays": "日志至少保留 7 天，请输入整数天数。",
+    "legacyRetention": "当前已保存的保留期限为 {{days}} 天。后端现在要求至少保留 7 天，请调整后再保存；原有值未被自动修改。",
     "autoClear": "启用自动清理",
     "autoClearDescription": "启用后，系统将自动清理过期的日志记录",
     "clearDays": "保留天数",

@@ -31,10 +31,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/settings-workspace";
+import { referralPercentageSchema } from "@/utils/admin-form-contracts";
 
 const inviteSchema = z.object({
   forced_invite: z.boolean().optional(),
-  referral_percentage: z.number().optional(),
+  referral_percentage: referralPercentageSchema(),
   only_first_purchase: z.boolean().optional(),
 });
 
@@ -55,7 +56,16 @@ export default function InviteConfig() {
   });
 
   const form = useForm<InviteFormData>({
-    resolver: zodResolver(inviteSchema),
+    resolver: zodResolver(
+      inviteSchema.extend({
+        referral_percentage: referralPercentageSchema(
+          t(
+            "invite.referralPercentageInvalid",
+            "Referral percentage must be between 0 and 100."
+          )
+        ),
+      })
+    ),
     defaultValues: {
       forced_invite: false,
       referral_percentage: 0,

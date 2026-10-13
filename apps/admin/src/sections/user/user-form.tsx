@@ -28,6 +28,7 @@ import {
   SheetTrigger,
 } from "@/components/settings-workspace";
 import { useGlobalStore } from "@/stores/global";
+import { referralPercentageSchema } from "@/utils/admin-form-contracts";
 
 interface UserFormProps<T> {
   onSubmit: (data: T) => Promise<boolean> | boolean;
@@ -57,7 +58,12 @@ export default function UserForm<T extends Record<string, any>>({
     password: z.string().optional(),
     referer_id: z.number().optional(),
     refer_code: z.string().optional(),
-    referral_percentage: z.number().optional(),
+    referral_percentage: referralPercentageSchema(
+      t(
+        "referralPercentageInvalid",
+        "Referral percentage must be between 0 and 100."
+      )
+    ),
     only_first_purchase: z.boolean().optional(),
     is_admin: z.boolean().optional(),
     balance: z.number().optional(),

@@ -10,6 +10,23 @@ export async function get(options?: { [key: string]: any }) {
   });
 }
 
+/** Device WebSocket Upgrades the connection to the signed-in user's device socket. The client sends "ping" (or "heartbeat") as its heartbeat and is answered "ping"; the server pushes JSON messages such as {"method":"subscribe_update"}, {"method":"kicked_device"} and {"method":"kicked_admin"}. GET /v1/app/ws/${param0}/${param1} */
+export async function getV1AppWsUseridIdentifier(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getV1AppWsUseridIdentifierParams,
+  options?: { [key: string]: any }
+) {
+  const { userid: param0, identifier: param1, ...queryParams } = params;
+  return request<any>(
+    `${import.meta.env.VITE_API_PREFIX || ""}/v1/app/ws/${param0}/${param1}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** Query announcement GET /v1/public/announcement/list */
 export async function getV1PublicAnnouncementList(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
@@ -471,7 +488,7 @@ export async function getV1PublicUserBalanceLog(options?: {
   });
 }
 
-/** Update Bind Email PUT /v1/public/user/bind_email */
+/** Update Bind Email Binds the email address proven by the code sent to it. Replacing the one the account already has also requires the current password (password), or, for an account without a password, the security code sent to the current email address (current_code), and ends every session of the account. PUT /v1/public/user/bind_email */
 export async function putV1PublicUserBindEmail(
   body: API.UpdateBindEmailRequest,
   options?: { [key: string]: any }
@@ -489,7 +506,7 @@ export async function putV1PublicUserBindEmail(
   );
 }
 
-/** Update Bind Mobile PUT /v1/public/user/bind_mobile */
+/** Update Bind Mobile Binds the phone number proven by the code sent to it. Replacing the one the account already has also requires the current password (password), or, for an account without a password, the security code sent to the current phone number (current_code), and ends every session of the account. PUT /v1/public/user/bind_mobile */
 export async function putV1PublicUserBindMobile(
   body: API.UpdateBindMobileRequest,
   options?: { [key: string]: any }
@@ -634,6 +651,17 @@ export async function getV1PublicUserLoginLog(
   );
 }
 
+/** Logout POST /v1/public/user/logout */
+export async function postV1PublicUserLogout(options?: { [key: string]: any }) {
+  return request<API.ResponseSuccessBean>(
+    `${import.meta.env.VITE_API_PREFIX || ""}/v1/public/user/logout`,
+    {
+      method: "POST",
+      ...(options || {}),
+    }
+  );
+}
+
 /** Update User Notify PUT /v1/public/user/notify */
 export async function putV1PublicUserNotify(
   body: API.UpdateUserNotifyRequest,
@@ -664,22 +692,21 @@ export async function getV1PublicUserOauthMethods(options?: {
   });
 }
 
-/** Update User Password PUT /v1/public/user/password */
+/** Update User Password Sets the account's password and ends every session of the account. Changing an existing password requires the current one (old_password); setting the first password of an account with a bound email or phone number requires the security code sent to it (current_code); an account with neither sets it with the session alone. The response lists the third-party sign-in methods (OAuth providers, Telegram) still bound to the account, which the change does not remove. PUT /v1/public/user/password */
 export async function putV1PublicUserPassword(
   body: API.UpdateUserPasswordRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.ResponseSuccessBean>(
-    `${import.meta.env.VITE_API_PREFIX || ""}/v1/public/user/password`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      data: body,
-      ...(options || {}),
-    }
-  );
+  return request<
+    API.ResponseSuccessBean & { data?: API.UpdateUserPasswordResponse }
+  >(`${import.meta.env.VITE_API_PREFIX || ""}/v1/public/user/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
 }
 
 /** Update User Rules PUT /v1/public/user/rules */

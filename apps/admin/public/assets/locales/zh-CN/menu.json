@@ -42,5 +42,7 @@
   "Infrastructure": "基础设施",
   "Operations": "运营管理",
   "Platform": "平台设置",
-  "Products & Billing": "商品与财务"
+  "Products & Billing": "商品与财务",
+  "Administrator Action Log": "管理员操作日志",
+  "Unmatched Payment Log": "未匹配支付日志"
 }
