@@ -55,7 +55,9 @@ export function SortableMobileCard({
 
   return (
     <motion.article
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      // DndKit owns the outer transform. Motion position/scale animations on
+      // this same node overwrite drag transforms and invalidate measurements.
+      animate={{ opacity: 1 }}
       aria-label={label}
       className={cn(
         "admin-pro-table-card relative overflow-hidden rounded-xl border bg-card",
@@ -65,21 +67,14 @@ export function SortableMobileCard({
       data-dragging={isDragging || undefined}
       data-feedback={feedback}
       data-state={selected ? "selected" : undefined}
-      exit={motionEnabled ? { opacity: 0, scale: 0.99, y: -4 } : undefined}
-      initial={motionEnabled ? { opacity: 0, scale: 0.99, y: 4 } : false}
-      layout={motionEnabled && !isDragging ? "position" : false}
+      exit={motionEnabled ? { opacity: 0 } : undefined}
+      initial={motionEnabled ? { opacity: 0 } : false}
       ref={setNodeRef}
       style={style}
-      transition={{
-        duration: motionEnabled ? 0.18 : 0,
-        layout: {
-          duration: motionEnabled ? 0.22 : 0,
-          ease: [0.2, 0.8, 0.2, 1],
-        },
-      }}
+      transition={{ duration: motionEnabled ? 0.18 : 0 }}
     >
-      <div className="p-4">{children}</div>
-      <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+      <div className="admin-pro-table-card__body p-4">{children}</div>
+      <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
         <div className="flex min-w-0 items-center gap-1">
           <Button
             {...attributes}

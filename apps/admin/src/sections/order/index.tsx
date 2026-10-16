@@ -249,6 +249,7 @@ export default function Order() {
       initialFilters={initialFilters}
       initialPagination={initialPagination}
       mobile={{
+        // Long identifiers wrap inside each card instead of widening the grid.
         getAriaLabel: (row) => String(row.order_no || row.id),
         render: (row) => {
           const statusOption = statusOptions.find(
@@ -343,6 +344,7 @@ export default function Order() {
           total: data.data?.total || 0,
         };
       }}
+      tablet="grid"
     />
   );
 }

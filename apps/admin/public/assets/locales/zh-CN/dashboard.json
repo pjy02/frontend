@@ -3,7 +3,38 @@
     "button": "仪表盘组件",
     "description": "选择在当前设备上显示的可选内容。",
     "projectSupport": "项目支持",
-    "projectSupportDescription": "显示当前支持 PPanel 项目的组织和服务。"
+    "projectSupportDescription": "显示当前支持 PPanel 项目的组织和服务。",
+    "localHint": "设置按当前管理员保存在此浏览器中，手机/平板与电脑布局分别保存。",
+    "device": "编辑的布局",
+    "desktop": "电脑",
+    "mobile": "手机 / 平板",
+    "presets": "布局预设",
+    "preset": {
+      "operations": "运营视图",
+      "infrastructure": "基础设施视图",
+      "minimal": "精简视图"
+    },
+    "modules": {
+      "income": "收入",
+      "newUsers": "新增用户",
+      "onlineUsers": "在线用户数",
+      "monthTraffic": "本月流量",
+      "trafficRanking": "流量排行",
+      "revenueTrend": "收入趋势",
+      "userTrend": "新增用户趋势",
+      "systemHealth": "系统运行状态",
+      "servers": "节点和服务器",
+      "pending": "待处理事项",
+      "systemServices": "系统服务",
+      "systemOperations": "系统操作",
+      "projectSupport": "项目支持"
+    },
+    "moveUp": "上移{{name}}",
+    "moveDown": "下移{{name}}",
+    "storageUnavailable": "浏览器存储不可用，更改仅在当前会话有效。",
+    "restoreDefault": "恢复此布局默认设置",
+    "emptyTitle": "尚未选择仪表盘组件",
+    "emptyHint": "通过上方“仪表盘组件”显示模块或恢复预设。"
   },
   "overview": {
     "absoluteChange": "绝对变化",
@@ -91,7 +122,8 @@
     "waitingTelemetry": "正在等待遥测数据",
     "viewServers": "查看服务器",
     "viewTickets": "查看工单",
-    "yesterdayComparison": "昨日 / 变化"
+    "yesterdayComparison": "昨日 / 变化",
+    "trafficShareScope": "流量占比按当前接口返回的全部排行记录合计计算。"
   },
   "projectSupport": {
     "description": "当前为 PPanel 提供支持的组织和服务。",
@@ -123,5 +155,16 @@
   "users": "用户",
   "userTitle": "用户统计",
   "userTraffic": "用户流量",
-  "yesterday": "昨日"
+  "yesterday": "昨日",
+  "freshness": {
+    "stale": "刷新失败 · 显示上次数据",
+    "unavailable": "暂时无法加载数据",
+    "empty": "尚未收到数据",
+    "loading": "正在加载数据…",
+    "refreshing": "正在刷新 · 暂时显示上次数据",
+    "updated": "更新于",
+    "allUpdated": "全部统计数据已更新",
+    "allFailed": "全部数据源刷新失败；有历史数据的模块保留上次结果",
+    "partial": "{{total}} 个数据源中有 {{failed}} 个更新失败，其余已更新"
+  }
 }

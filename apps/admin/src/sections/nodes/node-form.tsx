@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -120,6 +121,7 @@ export default function NodeForm(props: {
       ...normalizeValues(initialValues),
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const serverId = form.watch("server_id");
 
@@ -131,7 +133,7 @@ export default function NodeForm(props: {
   const availableProtocols = getAvailableProtocols(serverId);
 
   useEffect(() => {
-    if (initialValues) {
+    if (initialValues && !safety.dirty && !safety.busy) {
       form.reset({
         name: "",
         server_id: undefined,
@@ -236,13 +238,14 @@ export default function NodeForm(props: {
   async function handleSubmit(values: NodeFormValues) {
     const result = await onSubmit(values);
     if (result) {
+      form.reset(form.getValues());
       setOpen(false);
       setAutoFilledFields(new Set());
     }
   }
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
@@ -268,7 +271,11 @@ export default function NodeForm(props: {
         </WorkspaceDialogHeader>
         <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
           <Form {...form}>
-            <form className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <form
+              className="grid grid-cols-1 gap-5 md:grid-cols-2"
+              onSubmit={safety.handleSubmit(handleSubmit)}
+            >
+              {safety.summary}
               <FormField
                 control={form.control}
                 name="server_id"
@@ -407,14 +414,14 @@ export default function NodeForm(props: {
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("cancel", "Cancel")}
           </Button>
           <Button
             disabled={loading}
-            onClick={form.handleSubmit(handleSubmit, (errors) => {
+            onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const key = Object.keys(errors)[0] as keyof typeof errors;
               if (key) toast.error(String(errors[key]?.message));
               return false;
@@ -424,6 +431,7 @@ export default function NodeForm(props: {
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

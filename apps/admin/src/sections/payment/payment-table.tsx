@@ -277,6 +277,7 @@ export default function PaymentTable() {
           total: data?.data?.total || 0,
         };
       }}
+      tablet="grid"
     />
   );
 }

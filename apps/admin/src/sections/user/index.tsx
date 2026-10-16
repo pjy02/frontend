@@ -352,7 +352,7 @@ function UserMobileCard({
   const isDeleted = Boolean(user.deleted_at);
 
   return (
-    <div className="space-y-4">
+    <div className="admin-tablet-user-summary space-y-4">
       <div className="flex min-w-0 items-start gap-3">
         <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 font-semibold text-primary text-xs">
           {identifier.slice(0, 2).toUpperCase()}
@@ -571,6 +571,11 @@ function ProfileSheet({
 }) {
   const { t } = useTranslation("user");
   const [open, setOpen] = useState(false);
+  const leaveGuard = useRef<(() => Promise<boolean>) | null>(null);
+  const requestOpenChange = async (next: boolean) => {
+    if (next || !leaveGuard.current || (await leaveGuard.current()))
+      setOpen(next);
+  };
   const { data: user, refetch } = useQuery({
     enabled: open,
     queryKey: ["user", userId],
@@ -586,7 +591,7 @@ function ProfileSheet({
     return Promise.resolve();
   };
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <Button
           aria-label={t("edit", "Edit")}
@@ -643,8 +648,18 @@ function ProfileSheet({
               </TabsList>
               <ScrollArea className="min-h-0 flex-1">
                 <div className="p-6 pt-4">
-                  <TabsContent className="mt-0" value="basic">
-                    <BasicInfoForm refetch={refetchAll} user={user} />
+                  <TabsContent
+                    className="mt-0 data-[state=inactive]:hidden"
+                    forceMount
+                    value="basic"
+                  >
+                    <BasicInfoForm
+                      onLeaveGuardChange={(guard) => {
+                        leaveGuard.current = guard;
+                      }}
+                      refetch={refetchAll}
+                      user={user}
+                    />
                   </TabsContent>
                   <TabsContent className="mt-0" value="notify">
                     <NotifySettingsForm refetch={refetchAll} user={user} />

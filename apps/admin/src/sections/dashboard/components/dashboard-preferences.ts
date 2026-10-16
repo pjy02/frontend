@@ -1,75 +1,149 @@
-import { useCallback, useEffect, useState } from "react";
+import { usePreferenceScope } from "@workspace/ui/composed/pro-table/view-preferences";
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
+import { useStoredPreference } from "@workspace/ui/hooks/use-stored-preference";
 
 export const DASHBOARD_PREFERENCES_STORAGE_KEY =
-  "ppanel.admin.dashboard.preferences.v1";
-
+  "ppanel.admin.dashboard.preferences.v2";
+export const DASHBOARD_MODULES = [
+  "income",
+  "newUsers",
+  "onlineUsers",
+  "monthTraffic",
+  "trafficRanking",
+  "revenueTrend",
+  "userTrend",
+  "systemHealth",
+  "servers",
+  "pending",
+  "systemServices",
+  "systemOperations",
+  "projectSupport",
+] as const;
+export type DashboardModuleId = (typeof DASHBOARD_MODULES)[number];
+export type DashboardLayout = {
+  order: DashboardModuleId[];
+  hidden: DashboardModuleId[];
+};
 export type DashboardPreferences = {
-  projectSupport: boolean;
+  desktop: DashboardLayout;
+  mobile: DashboardLayout;
 };
-
+export type DashboardPreset =
+  | "default"
+  | "operations"
+  | "infrastructure"
+  | "minimal";
+export function dashboardPreset(preset: DashboardPreset): DashboardLayout {
+  const visible: readonly DashboardModuleId[] =
+    preset === "operations"
+      ? [
+          "income",
+          "newUsers",
+          "onlineUsers",
+          "monthTraffic",
+          "trafficRanking",
+          "revenueTrend",
+          "userTrend",
+          "pending",
+        ]
+      : preset === "infrastructure"
+        ? [
+            "onlineUsers",
+            "monthTraffic",
+            "systemHealth",
+            "servers",
+            "trafficRanking",
+            "pending",
+            "systemServices",
+            "systemOperations",
+          ]
+        : preset === "minimal"
+          ? [
+              "income",
+              "newUsers",
+              "onlineUsers",
+              "monthTraffic",
+              "trafficRanking",
+              "pending",
+            ]
+          : DASHBOARD_MODULES.filter((id) => id !== "projectSupport");
+  return {
+    order: [
+      ...visible,
+      ...DASHBOARD_MODULES.filter((id) => !visible.includes(id)),
+    ],
+    hidden: DASHBOARD_MODULES.filter((id) => !visible.includes(id)),
+  };
+}
 export const DEFAULT_DASHBOARD_PREFERENCES: DashboardPreferences = {
-  projectSupport: false,
+  desktop: dashboardPreset("default"),
+  mobile: dashboardPreset("default"),
 };
-
+const isModule = (value: unknown): value is DashboardModuleId =>
+  DASHBOARD_MODULES.includes(value as DashboardModuleId);
+function parseLayout(value: unknown): DashboardLayout {
+  if (!value || typeof value !== "object") return dashboardPreset("default");
+  const candidate = value as Partial<DashboardLayout>;
+  const order = Array.isArray(candidate.order)
+    ? [...new Set(candidate.order.filter(isModule))]
+    : [];
+  return {
+    order: [...order, ...DASHBOARD_MODULES.filter((id) => !order.includes(id))],
+    hidden: Array.isArray(candidate.hidden)
+      ? [...new Set(candidate.hidden.filter(isModule))]
+      : ["projectSupport"],
+  };
+}
 export function parseDashboardPreferences(
-  value: string | null
+  raw: string | null
 ): DashboardPreferences {
-  if (!value) return DEFAULT_DASHBOARD_PREFERENCES;
-
   try {
-    const stored = JSON.parse(value) as Partial<DashboardPreferences>;
+    const value = JSON.parse(raw || "{}");
+    if (!value || typeof value !== "object")
+      return DEFAULT_DASHBOARD_PREFERENCES;
     return {
-      projectSupport:
-        typeof stored.projectSupport === "boolean"
-          ? stored.projectSupport
-          : DEFAULT_DASHBOARD_PREFERENCES.projectSupport,
+      desktop: parseLayout(value.desktop),
+      mobile: parseLayout(value.mobile),
     };
   } catch {
     return DEFAULT_DASHBOARD_PREFERENCES;
   }
 }
-
-function readDashboardPreferences(): DashboardPreferences {
-  if (typeof window === "undefined") return DEFAULT_DASHBOARD_PREFERENCES;
-
-  try {
-    return parseDashboardPreferences(
-      window.localStorage.getItem(DASHBOARD_PREFERENCES_STORAGE_KEY)
-    );
-  } catch {
-    return DEFAULT_DASHBOARD_PREFERENCES;
-  }
+export function moveDashboardModule(
+  layout: DashboardLayout,
+  id: DashboardModuleId,
+  offset: number
+): DashboardLayout {
+  const order = [...layout.order];
+  const index = order.indexOf(id);
+  const next = index + offset;
+  if (index < 0 || next < 0 || next >= order.length) return layout;
+  [order[index], order[next]] = [order[next]!, order[index]!];
+  return { ...layout, order };
 }
-
 export function useDashboardPreferences() {
-  const [preferences, setPreferences] = useState<DashboardPreferences>(
-    readDashboardPreferences
+  const scope = usePreferenceScope();
+  const mobile = useIsMobile();
+  const [preferences, setPreferences, unavailable] = useStoredPreference(
+    scope?.accountKey
+      ? `${DASHBOARD_PREFERENCES_STORAGE_KEY}.${encodeURIComponent(scope.accountKey)}`
+      : null,
+    parseDashboardPreferences
   );
-
-  const setProjectSupportVisible = useCallback((visible: boolean) => {
-    setPreferences((current) => {
-      const next = { ...current, projectSupport: visible };
-      try {
-        window.localStorage.setItem(
-          DASHBOARD_PREFERENCES_STORAGE_KEY,
-          JSON.stringify(next)
-        );
-      } catch {
-        // The preference remains active for this session if storage is blocked.
-      }
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    const syncPreferences = (event: StorageEvent) => {
-      if (event.key === DASHBOARD_PREFERENCES_STORAGE_KEY) {
-        setPreferences(parseDashboardPreferences(event.newValue));
-      }
-    };
-    window.addEventListener("storage", syncPreferences);
-    return () => window.removeEventListener("storage", syncPreferences);
-  }, []);
-
-  return { preferences, setProjectSupportVisible };
+  const device: keyof DashboardPreferences = mobile ? "mobile" : "desktop";
+  return {
+    preferences,
+    device,
+    layout: preferences[device],
+    unavailable,
+    ready: Boolean(scope?.accountKey),
+    updateLayout: (
+      target: keyof DashboardPreferences,
+      update: (layout: DashboardLayout) => DashboardLayout
+    ) =>
+      setPreferences((current) => ({
+        ...current,
+        [target]: update(current[target]),
+      })),
+  };
 }

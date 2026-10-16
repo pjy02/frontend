@@ -6,6 +6,13 @@ const PAGE_SIZES = new Set([10, 20, 50, 100]);
 
 type TableSearch = Record<string, unknown>;
 
+// File-based index routes may report a trailing slash while hash history does not.
+export function isSameTablePath(left: string, right: string) {
+  return (
+    (left.replace(/\/+$/, "") || "/") === (right.replace(/\/+$/, "") || "/")
+  );
+}
+
 function parsePositiveInteger(value: unknown) {
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
@@ -32,7 +39,7 @@ export function useTableSearchWriter() {
       const location = router.history.location;
       // Effects from the previous list may finish after a fast navigation.
       // They must never write its filters into the destination page's URL.
-      if (location.pathname !== ownerPathname) return;
+      if (!isSameTablePath(location.pathname, ownerPathname)) return;
       const search = new URLSearchParams(location.search);
       update(search);
 

@@ -2,16 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -49,6 +39,7 @@ import { type Control, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import { StatusChip } from "@/components/status-chip";
 import {
   WorkspaceDialog,
@@ -260,7 +251,6 @@ export default function ServerNodeConfig({
 }) {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
-  const [discardOpen, setDiscardOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const {
@@ -293,7 +283,7 @@ export default function ServerNodeConfig({
   });
 
   useEffect(() => {
-    if (!cfgResp) return;
+    if (!cfgResp || safety.dirty || safety.busy) return;
     form.reset(getFormValues(cfgResp));
   }, [cfgResp, form]);
 
@@ -305,7 +295,8 @@ export default function ServerNodeConfig({
   const dns = form.watch("dns");
   const outbound = form.watch("outbound");
   const block = form.watch("block");
-  const { isDirty } = form.formState;
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const isDirty = safety.dirty;
 
   const effectivePreview = useMemo(
     () => ({
@@ -346,29 +337,6 @@ export default function ServerNodeConfig({
     block: t("server_node_config.summaryBlock", "Block"),
   };
 
-  useEffect(() => {
-    if (!(open && isDirty)) return;
-    const preventUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener("beforeunload", preventUnload);
-    return () => window.removeEventListener("beforeunload", preventUnload);
-  }, [isDirty, open]);
-
-  function requestOpenChange(nextOpen: boolean) {
-    if (!nextOpen && isDirty && !saving) {
-      setDiscardOpen(true);
-      return;
-    }
-    setOpen(nextOpen);
-  }
-
-  function discardChanges() {
-    if (cfgResp) form.reset(getFormValues(cfgResp));
-    setDiscardOpen(false);
-    setOpen(false);
-  }
-
   async function onSubmit(values: ServerNodeConfigFormData) {
     setSaving(true);
     try {
@@ -398,7 +366,7 @@ export default function ServerNodeConfig({
   }
 
   return (
-    <WorkspaceDialog onOpenChange={requestOpenChange} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
         {trigger ?? (
           <Button variant="outline">
@@ -524,13 +492,16 @@ export default function ServerNodeConfig({
           ) : null}
           <Tabs className="mt-4" defaultValue="dns">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="dns">
+              <TabsTrigger data-form-path="dns inherit_dns" value="dns">
                 {t("server_config.tabs.dns", "DNS Configuration")}
               </TabsTrigger>
-              <TabsTrigger value="outbound">
+              <TabsTrigger
+                data-form-path="outbound inherit_outbound"
+                value="outbound"
+              >
                 {t("server_config.tabs.outbound", "Outbound Rules")}
               </TabsTrigger>
-              <TabsTrigger value="block">
+              <TabsTrigger data-form-path="block inherit_block" value="block">
                 {t("server_config.tabs.block", "Block Rules")}
               </TabsTrigger>
             </TabsList>
@@ -539,8 +510,9 @@ export default function ServerNodeConfig({
               <form
                 className="space-y-4 pt-4"
                 id="server-node-config-form"
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={safety.handleSubmit(onSubmit)}
               >
+                {safety.summary}
                 <TabsContent className="space-y-4" value="dns">
                   <ToggleField
                     control={form.control}
@@ -863,7 +835,7 @@ export default function ServerNodeConfig({
           <div className="flex gap-2">
             <Button
               disabled={saving}
-              onClick={() => requestOpenChange(false)}
+              onClick={() => safety.requestOpenChange(false)}
               variant="outline"
             >
               {t("actions.cancel", "Cancel")}
@@ -882,29 +854,7 @@ export default function ServerNodeConfig({
           </div>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
-      <AlertDialog onOpenChange={setDiscardOpen} open={discardOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("server_node_config.discardTitle", "Discard changes?")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t(
-                "server_node_config.discardDescription",
-                "The unsaved node configuration changes will be lost."
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
-              {t("server_node_config.keepEditing", "Keep editing")}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={discardChanges}>
-              {t("server_node_config.discardAction", "Discard changes")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

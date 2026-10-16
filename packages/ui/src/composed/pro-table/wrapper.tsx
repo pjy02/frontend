@@ -12,6 +12,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
 
 export function ProTableWrapper<TData extends { id?: string | number }>({
   children,
@@ -28,13 +29,17 @@ export function ProTableWrapper<TData extends { id?: string | number }>({
   data: TData[];
   setData: React.Dispatch<React.SetStateAction<TData[]>>;
 }) {
+  const reducedMotion = useReducedMotion();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 6,
       },
     }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      scrollBehavior: reducedMotion ? "auto" : "smooth",
+    })
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {

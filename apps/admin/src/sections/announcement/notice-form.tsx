@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -55,18 +56,23 @@ export default function AnnouncementForm<T extends Record<string, any>>({
       ...initialValues,
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
+    if (safety.dirty || safety.busy) return;
     form?.reset(initialValues);
   }, [form, initialValues]);
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
-    if (bool) setOpen(false);
+    if (bool) {
+      form.reset(form.getValues());
+      setOpen(false);
+    }
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <Button
           onClick={() => {
@@ -86,8 +92,9 @@ export default function AnnouncementForm<T extends Record<string, any>>({
             <form
               className="space-y-4 pt-4"
               id="notice-form"
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={safety.handleSubmit(handleSubmit)}
             >
+              {safety.summary}
               <FormField
                 control={form.control}
                 name="title"
@@ -129,14 +136,15 @@ export default function AnnouncementForm<T extends Record<string, any>>({
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             disabled={loading}
-            onClick={() => {
-              setOpen(false);
-            }}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("form.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} onClick={form.handleSubmit(handleSubmit)}>
+          <Button
+            disabled={loading}
+            onClick={safety.handleSubmit(handleSubmit)}
+          >
             {loading && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}{" "}
@@ -144,6 +152,7 @@ export default function AnnouncementForm<T extends Record<string, any>>({
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

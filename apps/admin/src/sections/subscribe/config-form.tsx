@@ -26,6 +26,7 @@ import { type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -79,9 +80,10 @@ export default function ConfigForm() {
       profile_web_page_url: "",
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
-    if (data) {
+    if (data && !safety.dirty && !safety.busy) {
       form.reset(data);
     }
   }, [data, form]);
@@ -92,6 +94,7 @@ export default function ConfigForm() {
       await updateSubscribeConfig(values as API.SubscribeConfig);
       toast.success(t("config.updateSuccess", "Settings updated successfully"));
       refetch();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (_error) {
       toast.error(t("config.updateError", "Update failed"));
@@ -101,7 +104,7 @@ export default function ConfigForm() {
   }
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -131,8 +134,9 @@ export default function ConfigForm() {
             <form
               className="space-y-2 pt-4"
               id="subscribe-config-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <FormField
                 control={form.control}
                 name="show_tutorial"
@@ -400,7 +404,7 @@ export default function ConfigForm() {
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("actions.cancel", "Cancel")}
@@ -413,6 +417,7 @@ export default function ConfigForm() {
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

@@ -18,6 +18,7 @@ import { type ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -69,10 +70,12 @@ export function SubscriptionForm({
       ...(initialData && { id: initialData.id }),
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const handleSubmit = async (values: any) => {
     const success = await onSubmit(values);
     if (success) {
+      form.reset(form.getValues());
       setOpen(false);
       form.reset();
     }
@@ -81,7 +84,7 @@ export function SubscriptionForm({
   const { subscribes } = useSubscribe();
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <Button
           aria-label={title}
@@ -115,8 +118,9 @@ export function SubscriptionForm({
             <Form {...form}>
               <form
                 className="space-y-5"
-                onSubmit={form.handleSubmit(handleSubmit)}
+                onSubmit={safety.handleSubmit(handleSubmit)}
               >
+                {safety.summary}
                 <FormField
                   control={form.control}
                   name="subscribe_id"
@@ -260,14 +264,15 @@ export function SubscriptionForm({
         <SheetFooter className="flex-row justify-end gap-2 border-t bg-background px-6 py-4">
           <Button
             disabled={loading}
-            onClick={() => {
-              setOpen(false);
-            }}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} onClick={form.handleSubmit(handleSubmit)}>
+          <Button
+            disabled={loading}
+            onClick={safety.handleSubmit(handleSubmit)}
+          >
             {loading && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}
@@ -275,6 +280,7 @@ export function SubscriptionForm({
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

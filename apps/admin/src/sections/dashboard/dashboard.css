@@ -175,6 +175,15 @@ html.admin-console.dark .dashboard-traffic-tooltip {
   box-shadow: 0 12px 32px rgb(0 0 0 / 52%);
 }
 
+html.admin-console .dashboard-traffic-detail {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboard-traffic-detail .text-xs {
+  font-size: 0.875rem;
+}
+
 .dashboard-traffic-tooltip__comparison {
   border-color: color-mix(in srgb, var(--border) 82%, transparent);
   background: color-mix(in srgb, var(--muted) 38%, var(--popover));

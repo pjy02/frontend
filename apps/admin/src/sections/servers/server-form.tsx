@@ -39,6 +39,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -574,12 +575,13 @@ export default function ServerForm(props: ServerFormProps) {
       ...initialValues,
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
   const { control } = form;
 
   const protocolsValues = useWatch({ control, name: "protocols" });
 
   useEffect(() => {
-    if (initialValues) {
+    if (initialValues && !safety.dirty && !safety.busy) {
       form.reset({
         name: "",
         address: "",
@@ -780,12 +782,13 @@ export default function ServerForm(props: ServerFormProps) {
     const ok = await onSubmit(result);
     if (ok) {
       form.reset();
+      form.reset(form.getValues());
       setOpen(false);
     }
   }
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       {trigger ? (
         <WorkspaceDialogTrigger asChild>
           <Button
@@ -813,8 +816,12 @@ export default function ServerForm(props: ServerFormProps) {
         </WorkspaceDialogHeader>
         <ScrollArea className="min-h-0 flex-1">
           <Form {...form}>
-            <form className="grid grid-cols-1 gap-2 px-6 pt-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
+            <form
+              className="grid grid-cols-1 gap-2 px-6 pt-4"
+              onSubmit={safety.handleSubmit(handleSubmit)}
+            >
+              {safety.summary}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={control}
                   name="name"
@@ -917,7 +924,10 @@ export default function ServerForm(props: ServerFormProps) {
                       key={type}
                       value={type}
                     >
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <AccordionTrigger
+                        className="px-4 py-3 hover:no-underline"
+                        data-form-path={`protocols.${i}`}
+                      >
                         <div className="flex w-full items-center justify-between">
                           <div className="flex flex-col items-start gap-1">
                             <div className="flex items-center gap-1">
@@ -1051,14 +1061,14 @@ export default function ServerForm(props: ServerFormProps) {
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("cancel", "Cancel")}
           </Button>
           <Button
             disabled={loading}
-            onClick={form.handleSubmit(handleSubmit, (errors) => {
+            onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const key = Object.keys(errors)[0] as keyof typeof errors;
               if (key) toast.error(String(errors[key]?.message));
               return false;
@@ -1071,6 +1081,7 @@ export default function ServerForm(props: ServerFormProps) {
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

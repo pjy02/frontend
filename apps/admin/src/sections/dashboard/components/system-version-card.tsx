@@ -27,6 +27,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import packageJson from "../../../../../../package.json";
+import { DataFreshness } from "./data-freshness";
 
 export default function SystemVersionCard() {
   const { t } = useTranslation("tool");
@@ -38,6 +39,7 @@ export default function SystemVersionCard() {
     isLoading: isVersionLoading,
     isFetching: isVersionFetching,
     refetch: refetchVersion,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: ["getServerVersion"],
     queryFn: async () => {
@@ -142,7 +144,7 @@ export default function SystemVersionCard() {
                 <Icon className="size-3.5 animate-spin" icon="mdi:loading" />
                 {t("versionLoading", "Loading...")}
               </span>
-            ) : isVersionError ? (
+            ) : isVersionError && serverVersion === undefined ? (
               <Button
                 className="h-7 px-2 text-destructive hover:text-destructive"
                 disabled={isVersionFetching}
@@ -167,6 +169,14 @@ export default function SystemVersionCard() {
             )}
           </div>
         </div>
+        <DataFreshness
+          query={{
+            data: serverVersion,
+            dataUpdatedAt,
+            isError: isVersionError,
+            isFetching: isVersionFetching,
+          }}
+        />
       </CardContent>
     </Card>
   );

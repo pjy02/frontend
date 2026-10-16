@@ -43,6 +43,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -103,9 +104,10 @@ export default function ServerConfig() {
       outbound: [],
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
-    if (cfgResp) {
+    if (cfgResp && !safety.dirty && !safety.busy) {
       form.reset({
         node_secret: cfgResp.node_secret ?? "",
         node_pull_interval: cfgResp.node_pull_interval as number | undefined,
@@ -134,6 +136,7 @@ export default function ServerConfig() {
       } as API.NodeConfig);
       toast.success(t("server_config.saveSuccess", "Saved successfully"));
       await refetchCfg();
+      form.reset(form.getValues());
       setOpen(false);
     } finally {
       setSaving(false);
@@ -141,7 +144,7 @@ export default function ServerConfig() {
   }
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
         <Card className="admin-server-shortcut h-full">
           <CardContent className="admin-server-shortcut__content">
@@ -199,8 +202,9 @@ export default function ServerConfig() {
               <form
                 className="mt-4"
                 id="server-config-form"
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={safety.handleSubmit(onSubmit)}
               >
+                {safety.summary}
                 <TabsContent className="space-y-4" value="basic">
                   <FormField
                     control={form.control}
@@ -544,7 +548,7 @@ export default function ServerConfig() {
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={saving}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("actions.cancel", "Cancel")}
@@ -558,6 +562,7 @@ export default function ServerConfig() {
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -76,19 +77,24 @@ export default function UserForm<T extends Record<string, any>>({
       ...initialValues,
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
+    if (safety.dirty || safety.busy) return;
     form?.reset(initialValues);
   }, [form, initialValues]);
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
 
-    if (bool) setOpen(false);
+    if (bool) {
+      form.reset(form.getValues());
+      setOpen(false);
+    }
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <Button
           onClick={() => {
@@ -116,8 +122,9 @@ export default function UserForm<T extends Record<string, any>>({
           <Form {...form}>
             <form
               className="grid grid-cols-1 gap-5 px-6 py-5 sm:grid-cols-2"
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={safety.handleSubmit(handleSubmit)}
             >
+              {safety.summary}
               <FormField
                 control={form.control}
                 name="email"
@@ -410,14 +417,15 @@ export default function UserForm<T extends Record<string, any>>({
         <SheetFooter className="flex-row justify-end gap-2 border-t bg-background px-6 py-4">
           <Button
             disabled={loading}
-            onClick={() => {
-              setOpen(false);
-            }}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} onClick={form.handleSubmit(handleSubmit)}>
+          <Button
+            disabled={loading}
+            onClick={safety.handleSubmit(handleSubmit)}
+          >
             {loading && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}{" "}
@@ -425,6 +433,7 @@ export default function UserForm<T extends Record<string, any>>({
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

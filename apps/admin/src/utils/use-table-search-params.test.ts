@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getTablePagination } from "./use-table-search-params";
+import { getTablePagination, isSameTablePath } from "./use-table-search-params";
 
 describe("table URL pagination", () => {
+  it("treats index route trailing slashes as the same owner, without accepting other pages", () => {
+    expect(isSameTablePath("/dashboard/user", "/dashboard/user/")).toBe(true);
+    expect(isSameTablePath("/dashboard/user/", "/dashboard/user")).toBe(true);
+    expect(isSameTablePath("/dashboard/order", "/dashboard/user/")).toBe(false);
+  });
   it("restores supported page and page-size values from the URL", () => {
     expect(getTablePagination({ page: "4", size: "50" })).toEqual({
       page: 4,

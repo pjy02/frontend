@@ -31,6 +31,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -92,9 +93,10 @@ export default function EmailSettingsForm() {
       },
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
-    if (data) {
+    if (data && !safety.dirty && !safety.busy) {
       form.reset(data);
     }
   }, [data, form]);
@@ -111,6 +113,7 @@ export default function EmailSettingsForm() {
       } as API.UpdateAuthMethodConfigRequest);
       toast.success(t("common.saveSuccess", "Saved successfully"));
       refetch();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (_error) {
       toast.error(t("common.saveFailed", "Save failed"));
@@ -120,7 +123,7 @@ export default function EmailSettingsForm() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -151,8 +154,9 @@ export default function EmailSettingsForm() {
             <form
               className="space-y-2 pt-4"
               id="email-settings-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <Tabs className="space-y-2" defaultValue="basic">
                 <TabsList className="flex h-full w-full flex-wrap *:flex-auto md:flex-nowrap">
                   <TabsTrigger value="basic">
@@ -978,7 +982,7 @@ export default function EmailSettingsForm() {
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("common.cancel", "Cancel")}
@@ -991,6 +995,7 @@ export default function EmailSettingsForm() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

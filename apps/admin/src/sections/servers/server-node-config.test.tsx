@@ -137,6 +137,9 @@ describe("server node configuration", () => {
     expect((save as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(save);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
 
     await waitFor(() => {
       expect(mocks.updateConfig).toHaveBeenCalledWith(
@@ -168,7 +171,7 @@ describe("server node configuration", () => {
     ).toBe(true);
   });
 
-  it("protects unsaved changes when the workspace is closed", () => {
+  it("protects unsaved changes when the workspace is closed", async () => {
     render(<ServerNodeConfig server={server} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Node Config" }));
@@ -178,7 +181,7 @@ describe("server node configuration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(
-      screen.getByRole("heading", { name: "Discard changes?" })
+      screen.getByRole("heading", { name: "Discard unsaved changes?" })
     ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
@@ -189,9 +192,11 @@ describe("server node configuration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
 
-    expect(
-      screen.queryByRole("heading", { name: "Node configuration overrides" })
-    ).toBeNull();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Node configuration overrides" })
+      ).toBeNull()
+    );
   });
 
   it("normalizes custom DNS and block rules before saving", () => {

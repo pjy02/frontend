@@ -22,6 +22,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -57,9 +58,10 @@ export default function TosConfig() {
       tos_content: "",
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
-    if (data) {
+    if (data && !safety.dirty && !safety.busy) {
       form.reset({
         tos_content: data.tos_content || "",
       });
@@ -72,6 +74,7 @@ export default function TosConfig() {
       await updateTosConfig(values as API.TosConfig);
       toast.success(t("common.saveSuccess", "Save Successful"));
       refetch();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (_error) {
       toast.error(t("common.saveFailed", "Save Failed"));
@@ -81,7 +84,7 @@ export default function TosConfig() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -115,8 +118,9 @@ export default function TosConfig() {
             <form
               className="space-y-2 pt-4"
               id="tos-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <FormField
                 control={form.control}
                 name="tos_content"
@@ -145,7 +149,7 @@ export default function TosConfig() {
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("common.cancel", "Cancel")}
@@ -158,6 +162,7 @@ export default function TosConfig() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

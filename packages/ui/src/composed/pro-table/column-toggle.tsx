@@ -43,7 +43,12 @@ export function ColumnToggle<TData>({
           .map((column) => {
             const columns = table
               .getAllColumns()
-              .filter((item) => item.getIsVisible());
+              .filter(
+                (item) =>
+                  item.getIsVisible() &&
+                  typeof item.accessorFn !== "undefined" &&
+                  item.getCanHide()
+              );
             return (
               <DropdownMenuCheckboxItem
                 checked={column.getIsVisible()}

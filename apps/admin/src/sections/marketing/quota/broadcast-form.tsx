@@ -29,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Display } from "@/components/display";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -77,6 +78,7 @@ export default function QuotaBroadcastForm() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const { subscribes } = useSubscribe();
 
@@ -167,6 +169,7 @@ export default function QuotaBroadcastForm() {
       );
       form.reset();
       setRecipients(0);
+      form.reset(form.getValues());
       setOpen(false); // Close the sheet after successful submission
     } catch (error) {
       console.error("Failed to create quota task:", error);
@@ -177,7 +180,7 @@ export default function QuotaBroadcastForm() {
   };
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -208,8 +211,9 @@ export default function QuotaBroadcastForm() {
             <form
               className="mt-4 space-y-6"
               id="quota-broadcast-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               {/* Subscribers selection */}
               <FormField
                 control={form.control}
@@ -510,7 +514,10 @@ export default function QuotaBroadcastForm() {
           </Form>
         </ScrollArea>
         <SheetFooter className="flex flex-row items-center justify-end gap-2 pt-3">
-          <Button onClick={() => setOpen(false)} variant="outline">
+          <Button
+            onClick={() => safety.requestOpenChange(false)}
+            variant="outline"
+          >
             {t("cancel", "Cancel")}
           </Button>
           <Button
@@ -529,6 +536,7 @@ export default function QuotaBroadcastForm() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

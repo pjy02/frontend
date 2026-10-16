@@ -36,6 +36,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import { SettingsSection } from "@/components/settings-section";
 import {
   Sheet,
@@ -123,6 +124,7 @@ export default function PhoneSettingsForm() {
       },
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const selectedPlatform = platforms?.find(
     (platform) => platform.platform === form.watch("config.platform")
@@ -131,7 +133,7 @@ export default function PhoneSettingsForm() {
     selectedPlatform ?? {};
 
   useEffect(() => {
-    if (data) {
+    if (data && !safety.dirty && !safety.busy) {
       form.reset(data);
     }
   }, [data, form]);
@@ -142,6 +144,7 @@ export default function PhoneSettingsForm() {
       await updateAuthMethodConfig(values as API.UpdateAuthMethodConfigRequest);
       toast.success(t("common.saveSuccess", "Saved successfully"));
       refetch();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (_error) {
       toast.error(t("common.saveFailed", "Save failed"));
@@ -151,7 +154,7 @@ export default function PhoneSettingsForm() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -180,8 +183,9 @@ export default function PhoneSettingsForm() {
             <form
               className="space-y-5 pt-4"
               id="phone-settings-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <SettingsSection
                 description={t(
                   "phone.accessDescription",
@@ -650,7 +654,7 @@ export default function PhoneSettingsForm() {
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("common.cancel", "Cancel")}
@@ -663,6 +667,7 @@ export default function PhoneSettingsForm() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

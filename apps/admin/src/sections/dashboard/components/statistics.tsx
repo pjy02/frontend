@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -33,6 +33,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { usePreferenceScope } from "@workspace/ui/composed/pro-table/view-preferences";
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
 import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { cn } from "@workspace/ui/lib/utils";
 import {
@@ -62,7 +64,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Area,
@@ -75,28 +77,36 @@ import {
 } from "recharts";
 import { useAdminMotion } from "@/components/motion-provider";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/states";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
 import {
   WorkspaceDialog,
   WorkspaceDialogBody,
   WorkspaceDialogContent,
   WorkspaceDialogDescription,
+  WorkspaceDialogFooter,
   WorkspaceDialogHeader,
   WorkspaceDialogTitle,
   WorkspaceDialogTrigger,
 } from "@/components/workspace-dialog";
 import { useGlobalStore } from "@/stores/global";
+import { useTableSearchWriter } from "@/utils/use-table-search-params";
 import { DashboardComponentsMenu } from "./dashboard-components-menu";
 import {
   AnimatedNumber,
   DashboardDataTransition,
   DashboardFadeThrough,
 } from "./dashboard-motion";
-import { useDashboardPreferences } from "./dashboard-preferences";
+import {
+  type DashboardModuleId,
+  useDashboardPreferences,
+} from "./dashboard-preferences";
+import { DataFreshness, refreshDashboardSources } from "./data-freshness";
 import { ProjectSupport } from "./project-support";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
+import { useDashboardScroll } from "./use-dashboard-scroll";
 
 type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
@@ -152,7 +162,7 @@ function shiftDateKey(value: string, offset: number) {
 
 function AnimatedCurrency({
   className,
-  value = 0,
+  value,
 }: {
   className?: string;
   value?: number;
@@ -160,6 +170,7 @@ function AnimatedCurrency({
   const currencySymbol = useGlobalStore(
     (state) => state.common.currency?.currency_symbol || ""
   );
+  if (value == null) return <span className={className}>—</span>;
   return (
     <AnimatedNumber
       className={className}
@@ -370,13 +381,40 @@ function DataUnavailable({ text }: { text: string }) {
 }
 
 export default function Statistics() {
-  const { t, i18n } = useTranslation("dashboard");
+  const { t } = useTranslation("dashboard");
   const queryClient = useQueryClient();
-  const { preferences, setProjectSupportVisible } = useDashboardPreferences();
-  const [range, setRange] = useState<DashboardRange>("month");
-  const [trafficType, setTrafficType] = useState<TrafficType>("nodes");
-  const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("today");
-  const [trafficLimit, setTrafficLimit] = useState<TrafficLimit>(8);
+  const [refreshResult, setRefreshResult] = useState<{
+    failed: number;
+    total: number;
+  } | null>(null);
+  const refreshLock = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const dashboardPreferences = useDashboardPreferences();
+  const { layout } = dashboardPreferences;
+  const search = useSearch({
+    strict: false,
+    structuralSharing: false,
+  }) as Record<string, unknown>;
+  const writeSearch = useTableSearchWriter();
+  const range: DashboardRange = search.range === "total" ? "total" : "month";
+  const trafficType: TrafficType =
+    search.trafficType === "users" ? "users" : "nodes";
+  const trafficPeriod: TrafficPeriod =
+    search.trafficPeriod === "yesterday" ? "yesterday" : "today";
+  const trafficLimit: TrafficLimit = [5, 8, 10, 20].includes(
+    Number(search.trafficLimit)
+  )
+    ? (Number(search.trafficLimit) as TrafficLimit)
+    : 8;
+  const changeControl = (key: string, value: string | number) =>
+    writeSearch((params) => params.set(key, String(value)));
+  const setRange = (value: DashboardRange) => changeControl("range", value);
+  const setTrafficType = (value: TrafficType) =>
+    changeControl("trafficType", value);
+  const setTrafficPeriod = (value: TrafficPeriod) =>
+    changeControl("trafficPeriod", value);
+  const setTrafficLimit = (value: TrafficLimit) =>
+    changeControl("trafficLimit", value);
 
   const serverQuery = useQuery({
     ...LIVE_QUERY_OPTIONS,
@@ -452,22 +490,276 @@ export default function Statistics() {
     range === "month" ? revenueQuery.data?.monthly : revenueQuery.data?.all;
   const selectedUsers =
     range === "month" ? userQuery.data?.monthly : userQuery.data?.all;
-  const isRefreshing = [serverQuery, ticketQuery, revenueQuery, userQuery].some(
-    (query) => query.isFetching
-  );
-  const updatedAt = Math.max(
-    serverQuery.dataUpdatedAt,
-    ticketQuery.dataUpdatedAt,
-    revenueQuery.dataUpdatedAt,
-    userQuery.dataUpdatedAt
-  );
+  const isRefreshing =
+    refreshing ||
+    [serverQuery, ticketQuery, revenueQuery, userQuery].some(
+      (query) => query.isFetching
+    );
+  const refreshAll = async () => {
+    if (refreshLock.current) return;
+    refreshLock.current = true;
+    setRefreshing(true);
+    setRefreshResult(null);
+    try {
+      setRefreshResult(
+        await refreshDashboardSources([
+          serverQuery,
+          ticketQuery,
+          revenueQuery,
+          userQuery,
+          ...(queryClient
+            .getQueryCache()
+            .find({ queryKey: ["getServerVersion"], exact: true })
+            ?.isActive()
+            ? [
+                {
+                  refetch: async () => {
+                    await queryClient.refetchQueries(
+                      {
+                        queryKey: ["getServerVersion"],
+                        exact: true,
+                        type: "active",
+                      },
+                      { throwOnError: true }
+                    );
+                    return {
+                      isError:
+                        queryClient.getQueryState(["getServerVersion"])
+                          ?.status === "error",
+                      data: {},
+                    };
+                  },
+                },
+              ]
+            : []),
+        ])
+      );
+    } finally {
+      refreshLock.current = false;
+      setRefreshing(false);
+    }
+  };
+  const moduleSources: Partial<
+    Record<
+      DashboardModuleId,
+      {
+        query:
+          | typeof serverQuery
+          | typeof ticketQuery
+          | typeof revenueQuery
+          | typeof userQuery;
+        label?: string;
+      }[]
+    >
+  > = {
+    income: [{ query: revenueQuery }],
+    revenueTrend: [{ query: revenueQuery }],
+    newUsers: [{ query: userQuery }],
+    userTrend: [{ query: userQuery }],
+    onlineUsers: [{ query: serverQuery }],
+    monthTraffic: [{ query: serverQuery }],
+    trafficRanking: [{ query: serverQuery }],
+    systemHealth: [{ query: serverQuery }],
+    servers: [{ query: serverQuery }],
+    pending: [
+      {
+        query: serverQuery,
+        label: t("overview.serverSummary", "Nodes and servers"),
+      },
+      { query: ticketQuery, label: t("pendingTickets", "Pending tickets") },
+    ],
+  };
 
   const currentTraffic = createTrafficRanking(
     server,
     trafficType,
     trafficPeriod
   );
+  const preferenceScope = usePreferenceScope();
+  useDashboardScroll(
+    dashboardPreferences.ready &&
+      ![serverQuery, ticketQuery, revenueQuery, userQuery].some(
+        (query) => query.isLoading
+      ),
+    preferenceScope?.accountKey || null
+  );
 
+  const modules: Record<DashboardModuleId, React.ReactNode> = {
+    income: (
+      <MetricCard
+        description={
+          revenueQuery.data == null
+            ? t("overview.unavailable", "Data unavailable")
+            : t("overview.incomeBreakdown", "New purchases and renewals")
+        }
+        icon={WalletCards}
+        loading={revenueQuery.isLoading}
+        title={
+          range === "month"
+            ? t("overview.monthIncome", "Month income")
+            : t("totalIncome", "Total income")
+        }
+        value={
+          revenueQuery.data == null ? (
+            "—"
+          ) : (
+            <AnimatedCurrency value={selectedRevenue?.amount_total} />
+          )
+        }
+      />
+    ),
+    newUsers: (
+      <MetricCard
+        description={t(
+          "overview.newUsersHint",
+          "Accounts registered in the selected range"
+        )}
+        icon={Users}
+        loading={userQuery.isLoading}
+        title={t("overview.newUsers", "New users")}
+        value={
+          userQuery.data == null ? (
+            "—"
+          ) : selectedUsers?.register == null ? (
+            "—"
+          ) : (
+            <AnimatedNumber value={selectedUsers.register} />
+          )
+        }
+      />
+    ),
+    onlineUsers: (
+      <MetricCard
+        description={t("currentlyOnline", "Currently online")}
+        icon={Activity}
+        loading={serverQuery.isLoading}
+        title={t("onlineUsersCount", "Online users")}
+        value={
+          serverQuery.data == null ? (
+            "—"
+          ) : server?.online_users == null ? (
+            "—"
+          ) : (
+            <AnimatedNumber value={server.online_users} />
+          )
+        }
+      />
+    ),
+    monthTraffic: (
+      <MetricCard
+        description={
+          serverQuery.data == null ? (
+            t("overview.unavailable", "Data unavailable")
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1">
+                <ArrowUp className="size-3" />
+                {formatBytes(server?.monthly_upload || 0)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ArrowDown className="size-3" />
+                {formatBytes(server?.monthly_download || 0)}
+              </span>
+            </span>
+          )
+        }
+        icon={Gauge}
+        loading={serverQuery.isLoading}
+        title={t("monthTraffic", "Month traffic")}
+        value={
+          serverQuery.data == null ? (
+            "—"
+          ) : (
+            <AnimatedNumber
+              format={formatBytes}
+              value={
+                (server?.monthly_upload || 0) + (server?.monthly_download || 0)
+              }
+            />
+          )
+        }
+      />
+    ),
+    trafficRanking: (
+      <TrafficRanking
+        activeDate={
+          trafficPeriod === "today"
+            ? getDateKey()
+            : shiftDateKey(getDateKey(), -1)
+        }
+        data={currentTraffic}
+        limit={trafficLimit}
+        loading={serverQuery.isLoading}
+        onLimitChange={setTrafficLimit}
+        onPeriodChange={setTrafficPeriod}
+        onTypeChange={setTrafficType}
+        pendingUserIds={pendingRankedUserIds}
+        period={trafficPeriod}
+        serverError={serverQuery.data == null}
+        systemTotal={
+          trafficPeriod === "today"
+            ? (server?.today_upload || 0) + (server?.today_download || 0)
+            : undefined
+        }
+        trafficType={trafficType}
+        userEmailById={rankedUserEmailById}
+      />
+    ),
+    revenueTrend: (
+      <BusinessTrends
+        kind="revenue"
+        range={range}
+        revenue={revenueQuery.data}
+        revenueError={revenueQuery.data == null}
+        revenueLoading={revenueQuery.isLoading}
+        users={userQuery.data}
+        usersError={userQuery.data == null}
+        usersLoading={userQuery.isLoading}
+      />
+    ),
+    userTrend: (
+      <BusinessTrends
+        kind="users"
+        range={range}
+        revenue={revenueQuery.data}
+        revenueError={revenueQuery.data == null}
+        revenueLoading={revenueQuery.isLoading}
+        users={userQuery.data}
+        usersError={userQuery.data == null}
+        usersLoading={userQuery.isLoading}
+      />
+    ),
+    systemHealth: (
+      <SystemHealthCard
+        error={serverQuery.data == null}
+        loading={serverQuery.isLoading}
+        offline={offlineServers}
+        online={onlineServers}
+        onlineRate={onlineRate}
+        serverUpdatedAt={serverQuery.dataUpdatedAt}
+        total={serverTotal}
+      />
+    ),
+    servers: (
+      <ServerSummaryCard
+        error={serverQuery.data == null}
+        loading={serverQuery.isLoading}
+        server={server}
+      />
+    ),
+    pending: (
+      <PendingCard
+        loading={serverQuery.isLoading || ticketQuery.isLoading}
+        offlineServers={offlineServers}
+        pendingTickets={pendingTickets}
+        serverError={serverQuery.data == null}
+        ticketError={ticketQuery.data == null}
+      />
+    ),
+    systemServices: <SystemVersionCard />,
+    systemOperations: <SystemOperations />,
+    projectSupport: <ProjectSupport />,
+  };
   return (
     <div className="space-y-5">
       <PageHeader
@@ -494,15 +786,8 @@ export default function Statistics() {
               </TabsList>
             </Tabs>
             <SystemLogsDialog />
-            <DashboardComponentsMenu
-              onProjectSupportVisibleChange={setProjectSupportVisible}
-              projectSupportVisible={preferences.projectSupport}
-            />
-            <Button
-              disabled={isRefreshing}
-              onClick={() => queryClient.invalidateQueries()}
-              size="sm"
-            >
+            <DashboardComponentsMenu {...dashboardPreferences} />
+            <Button disabled={isRefreshing} onClick={refreshAll} size="sm">
               <RefreshCw
                 className={isRefreshing ? "animate-spin" : undefined}
               />
@@ -514,175 +799,82 @@ export default function Statistics() {
           "overview.description",
           "Monitor users, revenue, traffic, and system health in one place."
         )}
-        eyebrow={
-          updatedAt > 0
-            ? t("overview.updatedAt", "Updated {{time}}", {
-                time: new Date(updatedAt).toLocaleTimeString(i18n.language, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              })
-            : t("overview.liveOverview", "Operations overview")
-        }
+        eyebrow={t("overview.liveOverview", "Operations overview")}
         title={t("overview.title", "Dashboard")}
       />
 
-      <section className="dashboard-metrics dashboard-section grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <MetricCard
-          description={
-            revenueQuery.isError
-              ? t("overview.unavailable", "Data unavailable")
-              : t("overview.incomeBreakdown", "New purchases and renewals")
-          }
-          icon={WalletCards}
-          loading={revenueQuery.isLoading}
-          title={
-            range === "month"
-              ? t("overview.monthIncome", "Month income")
-              : t("totalIncome", "Total income")
-          }
-          value={
-            revenueQuery.isError ? (
-              "—"
-            ) : (
-              <AnimatedCurrency value={selectedRevenue?.amount_total} />
-            )
-          }
-        />
-        <MetricCard
+      {refreshResult && (
+        <p
+          aria-live="polite"
+          className="text-muted-foreground text-sm"
+          data-dashboard-refresh-result
+          role="status"
+        >
+          {refreshResult.failed === 0
+            ? t("freshness.allUpdated", "All dashboard data updated")
+            : refreshResult.failed === refreshResult.total
+              ? t(
+                  "freshness.allFailed",
+                  "Refresh failed for all sources; previous data is retained where available"
+                )
+              : t(
+                  "freshness.partial",
+                  "{{failed}} of {{total}} sources failed; other sources updated",
+                  refreshResult
+                )}
+        </p>
+      )}
+
+      <div className="dashboard-module-grid grid grid-cols-2 gap-4 xl:grid-cols-12">
+        {layout.order
+          .filter((id) => !layout.hidden.includes(id))
+          .map((id) => (
+            <div
+              className={cn(
+                "min-w-0",
+                ["income", "newUsers", "onlineUsers", "monthTraffic"].includes(
+                  id
+                )
+                  ? "col-span-1 xl:col-span-3"
+                  : ["trafficRanking", "projectSupport"].includes(id)
+                    ? "col-span-2 xl:col-span-12"
+                    : ["systemHealth", "servers", "pending"].includes(id)
+                      ? "col-span-2 xl:col-span-4"
+                      : "col-span-2 xl:col-span-6"
+              )}
+              data-dashboard-module={id}
+              key={id}
+            >
+              {modules[id]}
+              {moduleSources[id] && (
+                <div className="mt-2 space-y-1 px-1">
+                  {moduleSources[id].map(({ query, label }, index) => (
+                    <DataFreshness
+                      key={label || index}
+                      label={label}
+                      query={query}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+      {layout.hidden.length === layout.order.length && (
+        <EmptyState
           description={t(
-            "overview.newUsersHint",
-            "Accounts registered in the selected range"
+            "components.emptyHint",
+            "Use Dashboard components above to show components or restore a preset."
           )}
-          icon={Users}
-          loading={userQuery.isLoading}
-          title={t("overview.newUsers", "New users")}
-          value={
-            userQuery.isError ? (
-              "—"
-            ) : (
-              <AnimatedNumber value={selectedUsers?.register || 0} />
-            )
-          }
+          title={t("components.emptyTitle", "No dashboard components selected")}
         />
-        <MetricCard
-          description={t("currentlyOnline", "Currently online")}
-          icon={Activity}
-          loading={serverQuery.isLoading}
-          title={t("onlineUsersCount", "Online users")}
-          value={
-            serverQuery.isError ? (
-              "—"
-            ) : (
-              <AnimatedNumber value={server?.online_users || 0} />
-            )
-          }
-        />
-        <MetricCard
-          description={
-            serverQuery.isError ? (
-              t("overview.unavailable", "Data unavailable")
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <span className="inline-flex items-center gap-1">
-                  <ArrowUp className="size-3" />
-                  {formatBytes(server?.monthly_upload || 0)}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <ArrowDown className="size-3" />
-                  {formatBytes(server?.monthly_download || 0)}
-                </span>
-              </span>
-            )
-          }
-          icon={Gauge}
-          loading={serverQuery.isLoading}
-          title={t("monthTraffic", "Month traffic")}
-          value={
-            serverQuery.isError ? (
-              "—"
-            ) : (
-              <AnimatedNumber
-                format={formatBytes}
-                value={
-                  (server?.monthly_upload || 0) +
-                  (server?.monthly_download || 0)
-                }
-              />
-            )
-          }
-        />
-      </section>
-
-      <TrafficRanking
-        activeDate={
-          trafficPeriod === "today"
-            ? getDateKey()
-            : shiftDateKey(getDateKey(), -1)
-        }
-        data={currentTraffic}
-        limit={trafficLimit}
-        loading={serverQuery.isLoading}
-        onLimitChange={setTrafficLimit}
-        onPeriodChange={setTrafficPeriod}
-        onTypeChange={setTrafficType}
-        pendingUserIds={pendingRankedUserIds}
-        period={trafficPeriod}
-        serverError={serverQuery.isError}
-        systemTotal={
-          trafficPeriod === "today"
-            ? (server?.today_upload || 0) + (server?.today_download || 0)
-            : undefined
-        }
-        trafficType={trafficType}
-        userEmailById={rankedUserEmailById}
-      />
-
-      <BusinessTrends
-        range={range}
-        revenue={revenueQuery.data}
-        revenueError={revenueQuery.isError}
-        revenueLoading={revenueQuery.isLoading}
-        users={userQuery.data}
-        usersError={userQuery.isError}
-        usersLoading={userQuery.isLoading}
-      />
-
-      <section className="dashboard-section grid items-stretch gap-4 xl:grid-cols-3">
-        <SystemHealthCard
-          error={serverQuery.isError}
-          loading={serverQuery.isLoading}
-          offline={offlineServers}
-          online={onlineServers}
-          onlineRate={onlineRate}
-          serverUpdatedAt={serverQuery.dataUpdatedAt}
-          total={serverTotal}
-        />
-        <ServerSummaryCard
-          error={serverQuery.isError}
-          loading={serverQuery.isLoading}
-          server={server}
-        />
-        <PendingCard
-          loading={serverQuery.isLoading || ticketQuery.isLoading}
-          offlineServers={offlineServers}
-          pendingTickets={pendingTickets}
-          serverError={serverQuery.isError}
-          ticketError={ticketQuery.isError}
-        />
-      </section>
-
-      <section className="dashboard-section grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
-        <SystemVersionCard />
-        <SystemOperations />
-      </section>
-
-      {preferences.projectSupport ? <ProjectSupport /> : null}
+      )}
     </div>
   );
 }
 
 function BusinessTrends({
+  kind,
   range,
   revenue,
   revenueError,
@@ -691,6 +883,7 @@ function BusinessTrends({
   usersError,
   usersLoading,
 }: {
+  kind?: "revenue" | "users";
   range: DashboardRange;
   revenue?: API.RevenueStatisticsResponse;
   revenueError: boolean;
@@ -787,78 +980,92 @@ function BusinessTrends({
   };
 
   return (
-    <section className="dashboard-section grid items-stretch gap-4 xl:grid-cols-2">
-      <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
-          <SectionHeading
-            description={t(
-              "overview.revenueTrendHint",
-              "New purchases and renewals over time"
-            )}
-            title={t("overview.revenueTrend", "Revenue trend")}
-          />
-          <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
-            <div className="dashboard-trend-header__summary text-right">
-              <div className="text-muted-foreground text-xs">
-                {t("totalIncome", "Total income")}
-              </div>
-              <div className="font-semibold tabular-nums">
-                <AnimatedCurrency value={revenueRange?.amount_total} />
-              </div>
-            </div>
-            <ChartExpandDialog
+    <section
+      className={
+        kind
+          ? "h-full"
+          : "dashboard-section grid items-stretch gap-4 xl:grid-cols-2"
+      }
+    >
+      {kind !== "users" && (
+        <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
+          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
+            <SectionHeading
               description={t(
                 "overview.revenueTrendHint",
                 "New purchases and renewals over time"
               )}
-              disabled={
-                revenueLoading || revenueError || revenueData.length === 0
-              }
               title={t("overview.revenueTrend", "Revenue trend")}
-            >
-              {renderRevenueChart(true)}
-            </ChartExpandDialog>
-          </div>
-        </CardHeader>
-        <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
-          {renderRevenueChart()}
-        </CardContent>
-      </Card>
-
-      <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
-          <SectionHeading
-            description={t(
-              "overview.userTrendHint",
-              "Registrations and first-time purchasers"
-            )}
-            title={t("overview.userTrend", "New user trend")}
-          />
-          <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
-            <div className="dashboard-trend-header__summary text-right">
-              <div className="text-muted-foreground text-xs">
-                {t("register", "Registered")}
+            />
+            <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
+              <div className="dashboard-trend-header__summary text-right">
+                <div className="text-muted-foreground text-xs">
+                  {t("totalIncome", "Total income")}
+                </div>
+                <div className="font-semibold tabular-nums">
+                  <AnimatedCurrency value={revenueRange?.amount_total} />
+                </div>
               </div>
-              <div className="font-semibold tabular-nums">
-                <AnimatedNumber value={userRange?.register || 0} />
-              </div>
+              <ChartExpandDialog
+                description={t(
+                  "overview.revenueTrendHint",
+                  "New purchases and renewals over time"
+                )}
+                disabled={
+                  revenueLoading || revenueError || revenueData.length === 0
+                }
+                title={t("overview.revenueTrend", "Revenue trend")}
+              >
+                {renderRevenueChart(true)}
+              </ChartExpandDialog>
             </div>
-            <ChartExpandDialog
+          </CardHeader>
+          <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
+            {renderRevenueChart()}
+          </CardContent>
+        </Card>
+      )}
+
+      {kind !== "revenue" && (
+        <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
+          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
+            <SectionHeading
               description={t(
                 "overview.userTrendHint",
                 "Registrations and first-time purchasers"
               )}
-              disabled={usersLoading || usersError || userData.length === 0}
               title={t("overview.userTrend", "New user trend")}
-            >
-              {renderUserChart(true)}
-            </ChartExpandDialog>
-          </div>
-        </CardHeader>
-        <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
-          {renderUserChart()}
-        </CardContent>
-      </Card>
+            />
+            <div className="dashboard-trend-header__actions flex shrink-0 items-start gap-1.5">
+              <div className="dashboard-trend-header__summary text-right">
+                <div className="text-muted-foreground text-xs">
+                  {t("register", "Registered")}
+                </div>
+                <div className="font-semibold tabular-nums">
+                  {userRange?.register == null ? (
+                    "—"
+                  ) : (
+                    <AnimatedNumber value={userRange.register} />
+                  )}
+                </div>
+              </div>
+              <ChartExpandDialog
+                description={t(
+                  "overview.userTrendHint",
+                  "Registrations and first-time purchasers"
+                )}
+                disabled={usersLoading || usersError || userData.length === 0}
+                title={t("overview.userTrend", "New user trend")}
+              >
+                {renderUserChart(true)}
+              </ChartExpandDialog>
+            </div>
+          </CardHeader>
+          <CardContent className="dashboard-trend-chart h-60 p-3 sm:h-72 sm:p-5 lg:h-80">
+            {renderUserChart()}
+          </CardContent>
+        </Card>
+      )}
     </section>
   );
 }
@@ -1142,9 +1349,9 @@ function SystemHealthCard({
                   </span>
                 </div>
                 <span className="inline-flex text-muted-foreground text-xs tabular-nums">
-                  <AnimatedNumber value={online} />
+                  {error ? "—" : <AnimatedNumber value={online} />}
                   <span aria-hidden="true">&nbsp;/&nbsp;</span>
-                  <AnimatedNumber value={total} />
+                  {error ? "—" : <AnimatedNumber value={total} />}
                 </span>
               </div>
               <Progress className="h-2" value={error ? 0 : onlineRate} />
@@ -1153,12 +1360,12 @@ function SystemHealthCard({
               <HealthValue
                 label={t("online", "Online")}
                 tone="success"
-                value={online}
+                value={error ? undefined : online}
               />
               <HealthValue
                 label={t("offline", "Offline")}
                 tone={offline ? "danger" : "neutral"}
-                value={offline}
+                value={error ? undefined : offline}
               />
             </div>
             <p className="text-muted-foreground text-xs">
@@ -1185,17 +1392,21 @@ function HealthValue({
 }: {
   label: string;
   tone: StatusChipTone;
-  value: number;
+  value?: number;
 }) {
   return (
     <div className="rounded-lg border bg-muted/20 p-3">
       <StatusChip dot tone={tone}>
         {label}
       </StatusChip>
-      <AnimatedNumber
-        className="mt-2 block font-semibold text-xl tabular-nums"
-        value={value}
-      />
+      {value === undefined ? (
+        <span className="mt-2 block font-semibold text-xl">—</span>
+      ) : (
+        <AnimatedNumber
+          className="mt-2 block font-semibold text-xl tabular-nums"
+          value={value}
+        />
+      )}
     </div>
   );
 }
@@ -1271,7 +1482,7 @@ function ServerSummaryCard({
                   {t("overview.upload", "Upload")}
                 </div>
                 <div className="mt-1 font-medium text-sm tabular-nums">
-                  {formatBytes(server?.monthly_upload || 0)}
+                  {error ? "—" : formatBytes(server?.monthly_upload || 0)}
                 </div>
               </div>
               <div className="rounded-lg bg-muted/35 p-3">
@@ -1280,7 +1491,7 @@ function ServerSummaryCard({
                   {t("overview.download", "Download")}
                 </div>
                 <div className="mt-1 font-medium text-sm tabular-nums">
-                  {formatBytes(server?.monthly_download || 0)}
+                  {error ? "—" : formatBytes(server?.monthly_download || 0)}
                 </div>
               </div>
             </div>
@@ -1824,7 +2035,7 @@ function RankChangeChip({ item }: { item: TrafficRankingItem }) {
   );
 }
 
-function TrafficRankingRow({
+export function TrafficRankingRow({
   currentLabel,
   index,
   item,
@@ -1869,6 +2080,121 @@ function TrafficRankingRow({
   )}`;
   const tooltipDataKey = `${trafficType}-${currentLabel}-${item.id}-${item.total}-${item.previousTotal}-${userEmail || "pending"}`;
 
+  const [detailOpen, setDetailOpen] = useState(false);
+  const detailTrigger = useRef<HTMLButtonElement>(null);
+  const mobile = useIsMobile();
+  const touchDetails =
+    mobile ||
+    (typeof window !== "undefined" &&
+      window.matchMedia("(pointer: coarse)").matches);
+  const detailContent = (
+    <AnimatePresence initial={false} mode="wait">
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        className="dashboard-traffic-tooltip__data space-y-3"
+        data-tooltip-key={tooltipDataKey}
+        exit={reducedMotion ? undefined : { opacity: 0, y: -2 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 2 }}
+        key={tooltipDataKey}
+        transition={{ duration: reducedMotion ? 0 : 0.1 }}
+      >
+        <div>
+          <div className="wrap-anywhere font-semibold text-sm">
+            {displayName}
+          </div>
+          <div className="mt-1 flex gap-2 text-muted-foreground text-xs">
+            {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
+            <span>SID {item.sid}</span>
+          </div>
+        </div>
+        <div className="dashboard-traffic-tooltip__comparison space-y-2.5 rounded-xl border p-2.5">
+          <div className="dashboard-traffic-tooltip__legend flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--upload" />
+              {t("overview.upload", "Upload")}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--download" />
+              {t("overview.download", "Download")}
+            </span>
+          </div>
+          <TrafficTooltipComparisonBar
+            downloadShare={downloadShare}
+            label={currentLabel}
+            total={item.total}
+            uploadShare={uploadShare}
+            width={tooltipCurrentWidth}
+          />
+          <TrafficTooltipComparisonBar
+            downloadShare={previousDownloadShare}
+            label={previousLabel}
+            muted
+            total={item.previousTotal}
+            uploadShare={previousUploadShare}
+            width={tooltipPreviousWidth}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+          <TrafficTooltipValue
+            label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
+            tone="upload"
+            value={formatBytes(item.upload)}
+          />
+          <TrafficTooltipValue
+            label={`${currentLabel} · ${t("overview.download", "Download")}`}
+            tone="download"
+            value={formatBytes(item.download)}
+          />
+          <TrafficTooltipValue
+            label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
+            tone="upload"
+            value={formatBytes(item.previousUpload)}
+          />
+          <TrafficTooltipValue
+            label={`${previousLabel} · ${t("overview.download", "Download")}`}
+            tone="download"
+            value={formatBytes(item.previousDownload)}
+          />
+          <TrafficTooltipValue
+            label={t("traffic", "Total traffic")}
+            value={formatBytes(item.total)}
+          />
+          <TrafficTooltipValue
+            label={t("overview.share", "Traffic share")}
+            value={`${item.share.toFixed(2)}%`}
+          />
+          <TrafficTooltipValue
+            label={currentLabel}
+            value={formatBytes(item.total)}
+          />
+          <TrafficTooltipValue
+            label={previousLabel}
+            value={formatBytes(item.previousTotal)}
+          />
+          <TrafficTooltipValue
+            label={t("overview.absoluteChange", "Absolute change")}
+            value={changeLabel}
+          />
+          <TrafficTooltipValue
+            label={t("overview.rankChange", "Rank change")}
+            value={
+              item.isNew
+                ? t("overview.newToRanking", "New")
+                : item.rankChange
+                  ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
+                  : "—"
+            }
+          />
+        </div>
+        <div className="flex items-center justify-between border-t pt-2 text-xs">
+          <span className="text-muted-foreground">
+            {t("overview.growth", "Growth")}
+          </span>
+          <GrowthChip value={item.growth} />
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
   return (
     <motion.li
       className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
@@ -1881,7 +2207,10 @@ function TrafficRankingRow({
         },
       }}
     >
-      <Tooltip delayDuration={100}>
+      <Tooltip
+        delayDuration={100}
+        open={touchDetails || detailOpen ? false : undefined}
+      >
         <TooltipTrigger asChild>
           <button
             aria-label={t(
@@ -1890,6 +2219,10 @@ function TrafficRankingRow({
               { name: accessibleName }
             )}
             className="min-w-0 rounded-lg p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => {
+              if (touchDetails) setDetailOpen(true);
+            }}
+            ref={detailTrigger}
             type="button"
           >
             <div className="flex items-start gap-3">
@@ -2012,110 +2345,7 @@ function TrafficRankingRow({
           className="dashboard-traffic-tooltip w-72 p-3"
           side="top"
         >
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              animate={{ opacity: 1, y: 0 }}
-              className="dashboard-traffic-tooltip__data space-y-3"
-              data-tooltip-key={tooltipDataKey}
-              exit={reducedMotion ? undefined : { opacity: 0, y: -2 }}
-              initial={reducedMotion ? false : { opacity: 0, y: 2 }}
-              key={tooltipDataKey}
-              transition={{ duration: reducedMotion ? 0 : 0.1 }}
-            >
-              <div>
-                <div className="font-semibold text-sm">{displayName}</div>
-                <div className="mt-1 flex gap-2 text-muted-foreground text-xs">
-                  {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
-                  <span>SID {item.sid}</span>
-                </div>
-              </div>
-              <div className="dashboard-traffic-tooltip__comparison space-y-2.5 rounded-xl border p-2.5">
-                <div className="dashboard-traffic-tooltip__legend flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--upload" />
-                    {t("overview.upload", "Upload")}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--download" />
-                    {t("overview.download", "Download")}
-                  </span>
-                </div>
-                <TrafficTooltipComparisonBar
-                  downloadShare={downloadShare}
-                  label={currentLabel}
-                  total={item.total}
-                  uploadShare={uploadShare}
-                  width={tooltipCurrentWidth}
-                />
-                <TrafficTooltipComparisonBar
-                  downloadShare={previousDownloadShare}
-                  label={previousLabel}
-                  muted
-                  total={item.previousTotal}
-                  uploadShare={previousUploadShare}
-                  width={tooltipPreviousWidth}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <TrafficTooltipValue
-                  label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
-                  tone="upload"
-                  value={formatBytes(item.upload)}
-                />
-                <TrafficTooltipValue
-                  label={`${currentLabel} · ${t("overview.download", "Download")}`}
-                  tone="download"
-                  value={formatBytes(item.download)}
-                />
-                <TrafficTooltipValue
-                  label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
-                  tone="upload"
-                  value={formatBytes(item.previousUpload)}
-                />
-                <TrafficTooltipValue
-                  label={`${previousLabel} · ${t("overview.download", "Download")}`}
-                  tone="download"
-                  value={formatBytes(item.previousDownload)}
-                />
-                <TrafficTooltipValue
-                  label={t("traffic", "Total traffic")}
-                  value={formatBytes(item.total)}
-                />
-                <TrafficTooltipValue
-                  label={t("overview.share", "Traffic share")}
-                  value={`${item.share.toFixed(2)}%`}
-                />
-                <TrafficTooltipValue
-                  label={currentLabel}
-                  value={formatBytes(item.total)}
-                />
-                <TrafficTooltipValue
-                  label={previousLabel}
-                  value={formatBytes(item.previousTotal)}
-                />
-                <TrafficTooltipValue
-                  label={t("overview.absoluteChange", "Absolute change")}
-                  value={changeLabel}
-                />
-                <TrafficTooltipValue
-                  label={t("overview.rankChange", "Rank change")}
-                  value={
-                    item.isNew
-                      ? t("overview.newToRanking", "New")
-                      : item.rankChange
-                        ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
-                        : "—"
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between border-t pt-2 text-xs">
-                <span className="text-muted-foreground">
-                  {t("overview.growth", "Growth")}
-                </span>
-                <GrowthChip value={item.growth} />
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          {detailContent}
         </TooltipContent>
       </Tooltip>
       <Button
@@ -2145,6 +2375,59 @@ function TrafficRankingRow({
           </Link>
         )}
       </Button>
+      <WorkspaceDialog onOpenChange={setDetailOpen} open={detailOpen}>
+        <WorkspaceDialogContent
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            detailTrigger.current?.focus({ preventScroll: true });
+          }}
+          size="md"
+        >
+          <WorkspaceDialogHeader>
+            <WorkspaceDialogTitle className="wrap-anywhere">
+              {t(
+                "overview.trafficTooltipLabel",
+                "Traffic details for {{name}}",
+                { name: displayName }
+              )}
+            </WorkspaceDialogTitle>
+            <WorkspaceDialogDescription>
+              {selectedDate} · {currentLabel} / {previousLabel}
+              <span className="mt-1 block">
+                {t(
+                  "overview.trafficShareScope",
+                  "Traffic share is relative to all ranking records returned by the API."
+                )}
+              </span>
+            </WorkspaceDialogDescription>
+          </WorkspaceDialogHeader>
+          <WorkspaceDialogBody>
+            <div className="dashboard-traffic-tooltip dashboard-traffic-detail space-y-4">
+              {detailContent}
+            </div>
+          </WorkspaceDialogBody>
+          <WorkspaceDialogFooter className="flex-row">
+            <Button asChild className="min-h-11 w-full">
+              <Link
+                search={{
+                  date: selectedDate,
+                  ...(trafficType === "nodes"
+                    ? { server_id: item.sid }
+                    : { user_id: item.uid, user_subscribe_id: item.sid }),
+                }}
+                to={
+                  trafficType === "nodes"
+                    ? "/dashboard/log/server-traffic"
+                    : "/dashboard/log/subscribe-traffic"
+                }
+              >
+                {t("overview.trafficLogs", "Traffic logs")}
+                <ArrowUpRight />
+              </Link>
+            </Button>
+          </WorkspaceDialogFooter>
+        </WorkspaceDialogContent>
+      </WorkspaceDialog>
     </motion.li>
   );
 }

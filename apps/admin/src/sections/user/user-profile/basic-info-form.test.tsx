@@ -80,6 +80,9 @@ describe("user wallet profile update", () => {
       />
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
     const body = mocks.update.mock.calls[0]![0];
     expect(body).toMatchObject({ user_id: 7, refer_code: "NEW" });
@@ -94,6 +97,9 @@ describe("user wallet profile update", () => {
       target: { value: "0" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
     expect(mocks.update.mock.calls[0]![0]).toMatchObject({
       user_id: 7,
@@ -109,6 +115,9 @@ describe("user wallet profile update", () => {
       target: { value: "50" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(
@@ -120,6 +129,9 @@ describe("user wallet profile update", () => {
       "50"
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(2));
     expect(mocks.update.mock.calls[1]![0]).toMatchObject({ balance: 5000 });
   });

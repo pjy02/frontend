@@ -22,6 +22,7 @@ interface DataToolbarProps<TData> {
   mobileFilterMode?: "inline" | "drawer";
   onRefresh: () => void;
   onReset: () => void;
+  viewSettings?: ReactNode;
   labels?: Partial<{
     refresh: string;
     refreshed: string;
@@ -44,6 +45,7 @@ export function DataToolbar<TData>({
   onRefresh,
   onReset,
   labels,
+  viewSettings,
 }: DataToolbarProps<TData>) {
   return (
     <div
@@ -81,7 +83,11 @@ export function DataToolbar<TData>({
             >
               <RefreshCcw className={loading ? "animate-spin" : undefined} />
             </Button>
-            <div className={mobileCards ? "hidden lg:block" : undefined}>
+            <div
+              className={
+                mobileCards ? "admin-table-columns hidden lg:block" : undefined
+              }
+            >
               <ColumnToggle table={table} title={labels?.columns} />
             </div>
             <Button
@@ -94,6 +100,7 @@ export function DataToolbar<TData>({
             >
               <ListRestart />
             </Button>
+            {viewSettings}
           </div>
           {toolbar ? (
             <div className="admin-data-toolbar__actions flex min-w-0 flex-wrap items-center justify-end gap-2">

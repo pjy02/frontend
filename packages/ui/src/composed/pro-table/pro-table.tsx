@@ -43,6 +43,7 @@ import { SortableMobileCard } from "@workspace/ui/composed/pro-table/sortable-mo
 import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
+import { useStoredPreference } from "@workspace/ui/hooks/use-stored-preference";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   ChevronDown,
@@ -55,6 +56,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import {
+  useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -70,6 +72,14 @@ import {
   type PageDirection,
   type RowFeedback,
 } from "./data-continuity.js";
+import {
+  parseTablePreferences,
+  type SavedTableView,
+  safeViewFilters,
+  tablePreferenceStorageKey,
+  usePreferenceScope,
+} from "./view-preferences";
+import { TableViewSettings } from "./view-settings";
 
 export interface ProTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -99,6 +109,8 @@ export interface ProTableProps<TData, TValue> {
       }
     | false;
   mobileFilterMode?: "inline" | "drawer";
+  /** Admin only. Sortable lists stay single-column to preserve vertical ordering. */
+  tablet?: "list" | "grid";
   pagination?: boolean;
   action?: React.Ref<ProTableActions | undefined>;
   texts?: Partial<{
@@ -130,6 +142,7 @@ export interface ProTableProps<TData, TValue> {
   validateFilters?: (filters: TValue) => string | undefined;
   resetFilters?: Record<string, unknown>;
   onDataReady?: () => void;
+  preferencesKey?: string;
 }
 
 export interface ProTablePagination {
@@ -164,14 +177,64 @@ export function ProTable<
   onDataReady,
   mobile,
   mobileFilterMode,
+  tablet = "list",
+  preferencesKey,
   pagination: paginationEnabled = true,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
+  const actionOptions = useRef({ actions, texts, t });
+  actionOptions.current = { actions, texts, t };
+  // A new component type on each table render unmounts open row workspaces.
+  // Keep the renderer identity stable while reading the latest callbacks/text.
+  const renderActions = useCallback(({ row }: { row: Row<TData> }) => {
+    const {
+      actions: currentActions,
+      texts: currentTexts,
+      t: translate,
+    } = actionOptions.current;
+    return (
+      <RowActions
+        items={currentActions?.render?.(row.original) || []}
+        moreLabel={
+          currentTexts?.moreActions ||
+          translate("table.moreActions", "More actions")
+        }
+        visibleCount={currentActions?.visibleCount}
+      />
+    );
+  }, []);
+  const preferenceScope = usePreferenceScope();
+  const columnSignature = columns
+    .map(
+      (column, index) =>
+        column.id ||
+        ("accessorKey" in column
+          ? String(column.accessorKey)
+          : `column-${index}`)
+    )
+    .join("|");
+  const preferenceKey = preferenceScope?.accountKey
+    ? tablePreferenceStorageKey(
+        preferenceScope.accountKey,
+        preferenceScope.pageKey,
+        preferencesKey || columnSignature
+      )
+    : null;
+  const [viewPreferences, setViewPreferences, storageUnavailable] =
+    useStoredPreference(preferenceKey, parseTablePreferences);
+  const columnVisibility = viewPreferences.visibility;
+  const setColumnVisibility = (
+    update: VisibilityState | ((current: VisibilityState) => VisibilityState)
+  ) =>
+    setViewPreferences((current) => ({
+      ...current,
+      visibility:
+        typeof update === "function" ? update(current.visibility) : update,
+    }));
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
     toColumnFilters(initialFilters || {})
   );
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [data, setData] = useState<TData[]>([]);
   const [rowCount, setRowCount] = useState<number>(0);
@@ -263,15 +326,7 @@ export function ProTable<
             {
               id: "actions",
               header: texts?.actions,
-              cell: ({ row }) => (
-                <RowActions
-                  items={actions?.render?.(row.original) || []}
-                  moreLabel={
-                    texts?.moreActions || t("table.moreActions", "More actions")
-                  }
-                  visibleCount={actions.visibleCount}
-                />
-              ),
+              cell: renderActions,
               enableSorting: false,
               enableHiding: false,
             },
@@ -395,10 +450,92 @@ export function ProTable<
   const reset = async () => {
     setSorting([]);
     setColumnFilters(toColumnFilters(resetFilters || {}));
-    setColumnVisibility({});
+    if (!preferenceKey) setColumnVisibility({});
     setRowSelection({});
     setPagination((current) => ({ ...current, pageIndex: 0, pageSize: 10 }));
     table.resetGlobalFilter(true);
+  };
+  const resetFiltersOnly = () => {
+    setColumnFilters(toColumnFilters(resetFilters || {}));
+    setRowSelection({});
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+    table.resetGlobalFilter(true);
+  };
+  const restoreDefaults = () => {
+    reset();
+    setViewPreferences((current) => ({
+      ...current,
+      visibility: {},
+      density: "comfortable",
+    }));
+  };
+  const editableFilterKeys = new Set((params || []).map((param) => param.key));
+  const currentFilters = Object.fromEntries(
+    columnFilters.map((item) => [item.id, item.value])
+  );
+  const sensitiveViewFilters = Object.keys(currentFilters).some(
+    (key) =>
+      editableFilterKeys.has(key) &&
+      !Object.hasOwn(safeViewFilters(currentFilters), key)
+  );
+  const saveView = (name: string) => {
+    const filters = safeViewFilters(
+      Object.fromEntries(
+        Object.entries(currentFilters).filter(([key]) =>
+          editableFilterKeys.has(key)
+        )
+      )
+    );
+    setViewPreferences((current) => {
+      const existing = current.views.find((view) => view.name === name);
+      if (!existing && current.views.length >= 10) return current;
+      const view: SavedTableView = {
+        id: existing?.id || crypto.randomUUID(),
+        name,
+        filters,
+        visibility: current.visibility,
+        density: current.density,
+      };
+      return {
+        ...current,
+        views: [...current.views.filter((item) => item.id !== view.id), view],
+      };
+    });
+  };
+  const applyView = (view: SavedTableView) => {
+    const filters = {
+      ...Object.fromEntries(
+        Object.entries(initialFilters || {}).filter(
+          ([key]) => !editableFilterKeys.has(key)
+        )
+      ),
+      ...Object.fromEntries(
+        Object.entries(view.filters).filter(([key]) =>
+          editableFilterKeys.has(key)
+        )
+      ),
+    } as TValue;
+    const error = validateFilters?.(filters);
+    if (error) {
+      setFilterError(error);
+      return;
+    }
+    const hidableIds = new Set(
+      table
+        .getAllLeafColumns()
+        .filter((column) => column.getCanHide())
+        .map((column) => column.id)
+    );
+    setViewPreferences((current) => ({
+      ...current,
+      density: view.density,
+      visibility: Object.fromEntries(
+        Object.entries(view.visibility).filter(([id]) => hidableIds.has(id))
+      ),
+    }));
+    setColumnFilters(toColumnFilters(filters));
+    setRowSelection({});
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
   };
   useLayoutEffect(() => {
     if (!isLoading && data.length > 0) onDataReadyRef.current?.();
@@ -496,9 +633,17 @@ export function ProTable<
     <div
       aria-busy={isLoading}
       className="admin-pro-table flex min-w-0 flex-col gap-4"
+      data-density={preferenceKey ? viewPreferences.density : undefined}
       data-loading={isLoading}
       data-refreshing={isLoading && data.length > 0}
       data-selection-active={selectedCount > 0 && Boolean(actions?.batchRender)}
+      data-tablet-layout={
+        preferenceScope && mobileCardsEnabled
+          ? onSort
+            ? "list"
+            : tablet
+          : undefined
+      }
     >
       {!header?.hidden && (
         <DataToolbar
@@ -510,18 +655,45 @@ export function ProTable<
             refresh: texts?.refresh || t("table.refresh", "Refresh data"),
             refreshed: t("table.refreshed", "Data refreshed"),
             refreshing: t("table.refreshing", "Refreshing data"),
-            reset: texts?.reset || t("table.reset", "Reset table"),
+            reset: preferenceKey
+              ? t("table.views.resetFilters", "Reset filters")
+              : texts?.reset || t("table.reset", "Reset table"),
           }}
           loading={isLoading}
           mobileCards={mobileCardsEnabled}
           mobileFilterMode={mobileFilterMode}
           onRefresh={() => fetchData(true)}
-          onReset={reset}
+          onReset={preferenceKey ? resetFiltersOnly : reset}
           params={params}
           refreshSucceeded={refreshSucceeded}
           table={table}
           title={header?.title}
           toolbar={header?.toolbar}
+          viewSettings={
+            preferenceKey ? (
+              <TableViewSettings
+                invalidFilters={Boolean(
+                  validateFilters?.(currentFilters as TValue)
+                )}
+                key={preferenceKey}
+                onApply={applyView}
+                onDelete={(id) =>
+                  setViewPreferences((current) => ({
+                    ...current,
+                    views: current.views.filter((view) => view.id !== id),
+                  }))
+                }
+                onDensity={(density) =>
+                  setViewPreferences((current) => ({ ...current, density }))
+                }
+                onRestore={restoreDefaults}
+                onSave={saveView}
+                preferences={viewPreferences}
+                sensitiveFilters={sensitiveViewFilters}
+                unavailable={storageUnavailable}
+              />
+            ) : undefined
+          }
         />
       )}
 
@@ -612,7 +784,7 @@ export function ProTable<
           setData={setContinuousData}
         >
           <div
-            className="admin-pro-table-mobile grid gap-3 lg:hidden"
+            className="admin-pro-table-mobile grid items-start gap-3 lg:hidden"
             data-page-direction={pageDirection}
             key={`mobile-page-${pageTransitionVersion}`}
           >
@@ -692,9 +864,11 @@ export function ProTable<
                       layout={adminMotionEnabled ? "position" : false}
                       transition={getRowMotionTransition(adminMotionEnabled)}
                     >
-                      <div className="p-4">{body}</div>
+                      <div className="admin-pro-table-card__body p-4">
+                        {body}
+                      </div>
                       {(actions?.batchRender || rowActions.length > 0) && (
-                        <div className="flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+                        <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
                           {selection || <span />}
                           {rowActionsMenu}
                         </div>
@@ -706,7 +880,7 @@ export function ProTable<
             ) : isLoading ? (
               Array.from({ length: 3 }, (_, index) => (
                 <div
-                  className="space-y-3 rounded-xl border bg-card p-4"
+                  className="admin-pro-table-placeholder space-y-3 rounded-xl border bg-card p-4"
                   key={`mobile-skeleton-${index}`}
                 >
                   <Skeleton className="h-5 w-2/3" />
@@ -716,7 +890,7 @@ export function ProTable<
               ))
             ) : fetchError ? (
               <div
-                className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-center"
+                className="col-span-full flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-center"
                 role="alert"
               >
                 <div
@@ -754,7 +928,7 @@ export function ProTable<
                 ) : null}
               </div>
             ) : (
-              <div className="rounded-xl border bg-card py-10">
+              <div className="col-span-full rounded-xl border bg-card py-10">
                 {empty || <Empty />}
               </div>
             )}
@@ -764,7 +938,7 @@ export function ProTable<
 
       <div
         className={cn(
-          "relative min-w-0 overflow-hidden rounded-xl border bg-card",
+          "admin-pro-table-desktop relative min-w-0 overflow-hidden rounded-xl border bg-card",
           mobileCardsEnabled && "hidden lg:block"
         )}
       >

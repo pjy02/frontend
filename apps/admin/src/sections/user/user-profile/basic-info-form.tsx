@@ -25,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import * as z from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import { useGlobalStore } from "@/stores/global";
 import {
   buildBasicInfoUpdate,
@@ -65,9 +66,11 @@ function initialUserValues(user: API.User): BasicInfoValues {
 export function BasicInfoForm({
   user,
   refetch,
+  onLeaveGuardChange,
 }: {
   user: API.User;
   refetch: () => Promise<unknown>;
+  onLeaveGuardChange?: (guard: (() => Promise<boolean>) | null) => void;
 }) {
   const { t } = useTranslation("user");
   const saveInFlight = useRef(false);
@@ -88,6 +91,17 @@ export function BasicInfoForm({
     defaultValues: initialUserValues(user),
   });
   const { isDirty, isSubmitting } = form.formState;
+  const safety = useFormSafety({
+    form,
+    open: true,
+    onOpenChange: () => {
+      /* The owning profile controls its workspace. */
+    },
+  });
+  useEffect(() => {
+    onLeaveGuardChange?.(safety.canLeave);
+    return () => onLeaveGuardChange?.(null);
+  }, [onLeaveGuardChange, safety.canLeave]);
   useEffect(() => {
     if (!(isDirty || isSubmitting)) {
       form.reset(initialUserValues(user));
@@ -120,7 +134,8 @@ export function BasicInfoForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={safety.handleSubmit(onSubmit)}>
+        {safety.summary}
         <fieldset className="min-w-0" disabled={form.formState.isSubmitting}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -168,7 +183,7 @@ export function BasicInfoForm({
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="balance"
@@ -392,6 +407,7 @@ export function BasicInfoForm({
           </Card>
         </fieldset>
       </form>
+      {safety.dialogs}
     </Form>
   );
 }

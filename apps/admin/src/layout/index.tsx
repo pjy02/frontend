@@ -3,15 +3,18 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@workspace/ui/components/sidebar";
+import { TablePreferencesProvider } from "@workspace/ui/composed/pro-table/view-preferences";
 import { getCookie } from "@workspace/ui/lib/cookies";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/layout/header";
+import { useGlobalStore } from "@/stores/global";
 import { SidebarLeft } from "./sidebar-left";
 
 export default function DashboardLayout() {
   const { t } = useTranslation("components");
   const pathname = useLocation({ select: (location) => location.pathname });
+  const accountId = useGlobalStore((state) => state.user?.id);
   const mainRef = useRef<HTMLElement>(null);
   const previousPathname = useRef(pathname);
   const routeWorkspaceRoot = ["/dashboard/servers", "/dashboard/product"].find(
@@ -37,48 +40,55 @@ export default function DashboardLayout() {
   }, [pathname]);
 
   return (
-    <SidebarProvider
-      className="admin-shell"
-      onOpenChange={setOpen}
-      open={open}
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--sidebar-width-icon": "4.25rem",
-        } as CSSProperties
-      }
+    <TablePreferencesProvider
+      value={{
+        accountKey: accountId === undefined ? null : String(accountId),
+        pageKey: pathname,
+      }}
     >
-      <button
-        className="admin-skip-link"
-        onClick={() => mainRef.current?.focus({ preventScroll: true })}
-        onKeyDown={(event) => {
-          if (event.key !== "Enter" && event.key !== " ") {
-            return;
-          }
-          event.preventDefault();
-          mainRef.current?.focus({ preventScroll: true });
-        }}
-        type="button"
+      <SidebarProvider
+        className="admin-shell"
+        onOpenChange={setOpen}
+        open={open}
+        style={
+          {
+            "--sidebar-width": "16rem",
+            "--sidebar-width-icon": "4.25rem",
+          } as CSSProperties
+        }
       >
-        {t("accessibility.skipToContent", "Skip to main content")}
-      </button>
-      <SidebarLeft />
-      <SidebarInset className="admin-main relative flex-grow overflow-hidden">
-        <Header />
-        <main
-          className="admin-content flex-grow outline-none"
-          id="admin-main-content"
-          ref={mainRef}
-          tabIndex={-1}
+        <button
+          className="admin-skip-link"
+          onClick={() => mainRef.current?.focus({ preventScroll: true })}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") {
+              return;
+            }
+            event.preventDefault();
+            mainRef.current?.focus({ preventScroll: true });
+          }}
+          type="button"
         >
-          <div
-            className="admin-content__inner admin-page-transition"
-            key={pageTransitionKey}
+          {t("accessibility.skipToContent", "Skip to main content")}
+        </button>
+        <SidebarLeft />
+        <SidebarInset className="admin-main relative flex-grow overflow-hidden">
+          <Header />
+          <main
+            className="admin-content flex-grow outline-none"
+            id="admin-main-content"
+            ref={mainRef}
+            tabIndex={-1}
           >
-            <Outlet />
-          </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+            <div
+              className="admin-content__inner admin-page-transition"
+              key={pageTransitionKey}
+            >
+              <Outlet />
+            </div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </TablePreferencesProvider>
   );
 }

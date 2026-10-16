@@ -30,6 +30,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import * as z from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -96,6 +97,7 @@ export default function PaymentForm<T extends { platform?: string }>({
       ...(initialValues as any),
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const feeMode = form.watch("fee_mode");
   const platformValue = form.watch("platform");
@@ -150,7 +152,7 @@ export default function PaymentForm<T extends { platform?: string }>({
   };
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>{trigger}</WorkspaceDialogTrigger>
       <WorkspaceDialogContent size="lg">
         <WorkspaceDialogHeader>
@@ -160,8 +162,9 @@ export default function PaymentForm<T extends { platform?: string }>({
           <Form {...form}>
             <form
               className="space-y-6 px-6 pt-4"
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={safety.handleSubmit(handleSubmit)}
             >
+              {safety.summary}
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
@@ -454,10 +457,17 @@ export default function PaymentForm<T extends { platform?: string }>({
         </ScrollArea>
 
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
-          <Button disabled={loading} onClick={handleClose} variant="outline">
+          <Button
+            disabled={loading}
+            onClick={() => safety.requestOpenChange(false)}
+            variant="outline"
+          >
             {t("cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} onClick={form.handleSubmit(handleSubmit)}>
+          <Button
+            disabled={loading}
+            onClick={safety.handleSubmit(handleSubmit)}
+          >
             {loading && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}
@@ -465,6 +475,7 @@ export default function PaymentForm<T extends { platform?: string }>({
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

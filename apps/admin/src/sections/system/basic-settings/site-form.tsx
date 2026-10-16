@@ -25,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import { SettingsSection } from "@/components/settings-section";
 import {
   Sheet,
@@ -73,9 +74,10 @@ export default function SiteConfig() {
       custom_data: {},
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   useEffect(() => {
-    if (data) {
+    if (data && !safety.dirty && !safety.busy) {
       form.reset(data);
     }
   }, [data, form]);
@@ -86,6 +88,7 @@ export default function SiteConfig() {
       await updateSiteConfig(values as API.SiteConfig);
       toast.success(t("common.saveSuccess", "Save Successful"));
       refetch();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (_error) {
       toast.error(t("common.saveFailed", "Save Failed"));
@@ -95,7 +98,7 @@ export default function SiteConfig() {
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -126,8 +129,9 @@ export default function SiteConfig() {
             <form
               className="space-y-5 pt-4"
               id="site-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <SettingsSection
                 description={t(
                   "site.identityDescription",
@@ -399,7 +403,7 @@ export default function SiteConfig() {
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             disabled={loading}
-            onClick={() => setOpen(false)}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("common.cancel", "Cancel")}
@@ -412,6 +416,7 @@ export default function SiteConfig() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

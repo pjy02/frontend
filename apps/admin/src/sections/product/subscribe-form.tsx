@@ -43,6 +43,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -143,6 +144,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
       shake(initialValues, (value) => value === null) as Record<string, any>
     ),
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const debouncedCalculateDiscount = useCallback(
     (
@@ -246,6 +248,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
   );
 
   useEffect(() => {
+    if (safety.dirty || safety.busy) return;
     form?.reset(
       assign(
         defaultValues,
@@ -269,7 +272,10 @@ export default function SubscribeForm<T extends Record<string, any>>({
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
-    if (bool) setOpen(false);
+    if (bool) {
+      form.reset(form.getValues());
+      setOpen(false);
+    }
   }
 
   const { getAllAvailableTags, getNodesByTag, getNodesWithoutTags } = useNode();
@@ -279,7 +285,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
   const unit_time = form.watch("unit_time");
 
   return (
-    <WorkspaceDialog onOpenChange={setOpen} open={open}>
+    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       {trigger ? (
         <WorkspaceDialogTrigger asChild>
           <Button
@@ -298,11 +304,13 @@ export default function SubscribeForm<T extends Record<string, any>>({
         </WorkspaceDialogHeader>
         <ScrollArea className="min-h-0 flex-1 px-5 sm:px-7">
           <Form {...form}>
-            <form className="pt-4" onSubmit={form.handleSubmit(handleSubmit)}>
+            <form className="pt-4" onSubmit={safety.handleSubmit(handleSubmit)}>
+              {safety.summary}
               <Tabs className="w-full" defaultValue="basic">
                 <TabsList className="mb-6 grid w-full grid-cols-3">
                   <TabsTrigger
                     className="flex items-center gap-2"
+                    data-form-path="name description traffic speed_limit device_limit quota language"
                     value="basic"
                   >
                     <Settings className="h-4 w-4" />
@@ -310,6 +318,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
                   </TabsTrigger>
                   <TabsTrigger
                     className="flex items-center gap-2"
+                    data-form-path="unit_price unit_time discount inventory replacement deduction_ratio allow_deduction reset_cycle renewal_reset show_original_price"
                     value="pricing"
                   >
                     <CreditCard className="h-4 w-4" />
@@ -317,6 +326,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
                   </TabsTrigger>
                   <TabsTrigger
                     className="flex items-center gap-2"
+                    data-form-path="nodes node_tags"
                     value="servers"
                   >
                     <Server className="h-4 w-4" />
@@ -371,7 +381,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       <FormField
                         control={form.control}
                         name="traffic"
@@ -451,7 +461,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       <FormField
                         control={form.control}
                         name="inventory"
@@ -1056,16 +1066,14 @@ export default function SubscribeForm<T extends Record<string, any>>({
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
             disabled={loading}
-            onClick={() => {
-              setOpen(false);
-            }}
+            onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("form.cancel")}
           </Button>
           <Button
             disabled={loading}
-            onClick={form.handleSubmit(handleSubmit, (errors) => {
+            onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const keys = Object.keys(errors);
               for (const key of keys) {
                 const formattedKey = key.replace(/_([a-z])/g, (_, letter) =>
@@ -1086,6 +1094,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
           </Button>
         </WorkspaceDialogFooter>
       </WorkspaceDialogContent>
+      {safety.dialogs}
     </WorkspaceDialog>
   );
 }

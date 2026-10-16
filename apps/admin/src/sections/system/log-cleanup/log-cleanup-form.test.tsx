@@ -70,6 +70,9 @@ describe("legacy log retention", () => {
     expect(input.value).toBe("3");
     fireEvent.change(input, { target: { value: "7" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
     await waitFor(() =>
       expect(mocks.update).toHaveBeenCalledWith({
         auto_clear: false,

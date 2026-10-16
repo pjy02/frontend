@@ -3,7 +3,38 @@
     "button": "Dashboard components",
     "description": "Choose the optional sections shown on this device.",
     "projectSupport": "Project support",
-    "projectSupportDescription": "Show the current PPanel project supporters."
+    "projectSupportDescription": "Show the current PPanel project supporters.",
+    "localHint": "Settings are saved for this administrator in this browser. Phone/tablet and desktop layouts are independent.",
+    "device": "Layout device",
+    "desktop": "Desktop",
+    "mobile": "Phone / tablet",
+    "presets": "Presets",
+    "preset": {
+      "operations": "Operations",
+      "infrastructure": "Infrastructure",
+      "minimal": "Minimal"
+    },
+    "modules": {
+      "income": "Income",
+      "newUsers": "New users",
+      "onlineUsers": "Online users",
+      "monthTraffic": "Month traffic",
+      "trafficRanking": "Traffic ranking",
+      "revenueTrend": "Revenue trend",
+      "userTrend": "New user trend",
+      "systemHealth": "System health",
+      "servers": "Nodes and servers",
+      "pending": "Pending tasks",
+      "systemServices": "System services",
+      "systemOperations": "System operations",
+      "projectSupport": "Project support"
+    },
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "storageUnavailable": "Browser storage is unavailable. Changes apply only to this session.",
+    "restoreDefault": "Restore this layout",
+    "emptyTitle": "No dashboard components selected",
+    "emptyHint": "Use Dashboard components above to show components or restore a preset."
   },
   "overview": {
     "absoluteChange": "Absolute change",
@@ -93,7 +124,8 @@
     "waitingTelemetry": "Waiting for telemetry",
     "viewServers": "View servers",
     "viewTickets": "View tickets",
-    "yesterdayComparison": "Yesterday / change"
+    "yesterdayComparison": "Yesterday / change",
+    "trafficShareScope": "Traffic share is relative to all ranking records returned by the API."
   },
   "projectSupport": {
     "description": "Organizations and services currently supporting PPanel.",
@@ -125,5 +157,16 @@
   "users": "Users",
   "userTitle": "User Statistics",
   "userTraffic": "User Traffic",
-  "yesterday": "Yesterday"
+  "yesterday": "Yesterday",
+  "freshness": {
+    "stale": "Refresh failed · showing previous data",
+    "unavailable": "Unable to load data",
+    "empty": "No data received",
+    "loading": "Loading data…",
+    "refreshing": "Refreshing · showing previous data",
+    "updated": "Updated",
+    "allUpdated": "All statistics updated",
+    "allFailed": "Refresh failed for all sources; previous data is retained where available",
+    "partial": "{{failed}} of {{total}} sources failed; other sources updated"
+  }
 }

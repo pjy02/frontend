@@ -37,6 +37,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   Sheet,
   SheetContent,
@@ -128,6 +129,7 @@ export default function EmailBroadcastForm() {
       limit: 1000,
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   // Calculate recipient count
   const calculateRecipients = async () => {
@@ -276,6 +278,7 @@ export default function EmailBroadcastForm() {
       }
 
       form.reset();
+      form.reset(form.getValues());
       setOpen(false);
     } catch (error) {
       console.error("Email broadcast failed:", error);
@@ -286,7 +289,7 @@ export default function EmailBroadcastForm() {
   };
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <div className="flex cursor-pointer items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
@@ -317,8 +320,9 @@ export default function EmailBroadcastForm() {
             <form
               className="space-y-2 pt-4"
               id="broadcast-form"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={safety.handleSubmit(onSubmit)}
             >
+              {safety.summary}
               <Tabs className="space-y-2" defaultValue="content">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="content">
@@ -655,7 +659,10 @@ export default function EmailBroadcastForm() {
           </Form>
         </ScrollArea>
         <SheetFooter className="flex flex-row items-center justify-end gap-2 pt-3">
-          <Button onClick={() => setOpen(false)} variant="outline">
+          <Button
+            onClick={() => safety.requestOpenChange(false)}
+            variant="outline"
+          >
             {t("cancel", "Cancel")}
           </Button>
           <Button disabled={loading} form="broadcast-form" type="submit">
@@ -671,6 +678,7 @@ export default function EmailBroadcastForm() {
           </Button>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

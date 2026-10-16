@@ -56,6 +56,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFormSafety } from "@/components/form-safety";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -124,6 +125,7 @@ export function ProtocolForm() {
       },
     },
   });
+  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
 
   const request = async (
     pagination: { page: number; size: number },
@@ -332,7 +334,7 @@ export function ProtocolForm() {
         });
         toast.success(t("actions.createSuccess", "Created successfully"));
       }
-
+      form.reset(form.getValues());
       setOpen(false);
       tableRef.current?.refresh();
     } catch (error) {
@@ -434,7 +436,7 @@ export function ProtocolForm() {
         request={request}
       />
 
-      <WorkspaceDialog onOpenChange={setOpen} open={open}>
+      <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
         <WorkspaceDialogContent size="xl">
           <WorkspaceDialogHeader>
             <WorkspaceDialogTitle>
@@ -446,6 +448,7 @@ export function ProtocolForm() {
           <ScrollArea className="min-h-0 flex-1 px-5 sm:px-7">
             <Form {...form}>
               <form className="space-y-6 py-4">
+                {safety.summary}
                 <Tabs className="w-full" defaultValue="basic">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="basic">
@@ -921,10 +924,13 @@ export function ProtocolForm() {
             </Form>
           </ScrollArea>
           <WorkspaceDialogFooter className="flex-row justify-end gap-2">
-            <Button onClick={() => setOpen(false)} variant="outline">
+            <Button
+              onClick={() => safety.requestOpenChange(false)}
+              variant="outline"
+            >
               {t("actions.cancel", "Cancel")}
             </Button>
-            <Button disabled={loading} onClick={form.handleSubmit(onSubmit)}>
+            <Button disabled={loading} onClick={safety.handleSubmit(onSubmit)}>
               {loading && (
                 <Icon className="mr-2 animate-spin" icon="mdi:loading" />
               )}
@@ -934,6 +940,7 @@ export function ProtocolForm() {
             </Button>
           </WorkspaceDialogFooter>
         </WorkspaceDialogContent>
+        {safety.dialogs}
       </WorkspaceDialog>
     </>
   );

@@ -72,11 +72,13 @@ const FormItemContext = React.createContext<FormItemContextValue>(
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
+  const field = React.useContext(FormFieldContext);
 
   return (
     <FormItemContext.Provider value={{ id }}>
       <div
         className={cn("grid gap-2", className)}
+        data-form-field-container={field.name}
         data-slot="form-item"
         {...props}
       />
@@ -102,7 +104,7 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } =
+  const { error, name, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 
   return (
@@ -111,6 +113,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
         error ? `${formDescriptionId} ${formMessageId}` : `${formDescriptionId}`
       }
       aria-invalid={!!error}
+      data-form-field={name}
       data-slot="form-control"
       id={formItemId}
       {...props}
