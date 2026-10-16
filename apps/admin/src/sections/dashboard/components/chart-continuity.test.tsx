@@ -117,6 +117,11 @@ describe("dashboard chart continuity", () => {
       />
     );
     const view = render(component("month"));
+    // The module grid appends freshness after this section. A 100% section
+    // would consume its footer's space and place the timestamp in the next row.
+    expect(
+      view.container.querySelector("section")?.classList.contains("h-full")
+    ).toBe(false);
     const key = kind === "revenue" ? "newPurchase" : "register";
     const label = kind === "revenue" ? "New purchase" : "Register";
     const canvas = view.container.querySelector("[data-chart-canvas]");

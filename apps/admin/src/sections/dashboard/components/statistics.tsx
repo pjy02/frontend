@@ -1006,7 +1006,7 @@ export function BusinessTrends({
     <section
       className={
         kind
-          ? "h-full"
+          ? "min-w-0"
           : "dashboard-section grid items-stretch gap-4 xl:grid-cols-2"
       }
     >
@@ -1447,7 +1447,7 @@ function SystemHealthCard({
           </motion.div>
         </AnimatePresence>
       </CardHeader>
-      <CardContent className="space-y-5 p-5">
+      <CardContent className="p-5">
         {loading ? (
           <DashboardDataTransition transitionKey="health-loading">
             <Skeleton className="h-28 w-full" />
@@ -1456,54 +1456,56 @@ function SystemHealthCard({
           <DashboardDataTransition
             transitionKey={error ? "health-error" : "health-ready"}
           >
-            <div className="space-y-2">
-              <div className="flex items-end justify-between">
-                <div>
-                  {error ? (
-                    <span className="font-semibold text-2xl tabular-nums">
-                      —
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <div className="flex items-end justify-between">
+                  <div>
+                    {error ? (
+                      <span className="font-semibold text-2xl tabular-nums">
+                        —
+                      </span>
+                    ) : (
+                      <AnimatedNumber
+                        className="font-semibold text-2xl tabular-nums"
+                        format={(value) => `${Math.round(value)}%`}
+                        value={onlineRate}
+                      />
+                    )}
+                    <span className="ml-2 text-muted-foreground text-xs">
+                      {t("overview.availability", "availability")}
                     </span>
-                  ) : (
-                    <AnimatedNumber
-                      className="font-semibold text-2xl tabular-nums"
-                      format={(value) => `${Math.round(value)}%`}
-                      value={onlineRate}
-                    />
-                  )}
-                  <span className="ml-2 text-muted-foreground text-xs">
-                    {t("overview.availability", "availability")}
+                  </div>
+                  <span className="inline-flex text-muted-foreground text-xs tabular-nums">
+                    {error ? "—" : <AnimatedNumber value={online} />}
+                    <span aria-hidden="true">&nbsp;/&nbsp;</span>
+                    {error ? "—" : <AnimatedNumber value={total} />}
                   </span>
                 </div>
-                <span className="inline-flex text-muted-foreground text-xs tabular-nums">
-                  {error ? "—" : <AnimatedNumber value={online} />}
-                  <span aria-hidden="true">&nbsp;/&nbsp;</span>
-                  {error ? "—" : <AnimatedNumber value={total} />}
-                </span>
+                <Progress className="h-2" value={error ? 0 : onlineRate} />
               </div>
-              <Progress className="h-2" value={error ? 0 : onlineRate} />
+              <div className="grid grid-cols-2 gap-3">
+                <HealthValue
+                  label={t("online", "Online")}
+                  tone="success"
+                  value={error ? undefined : online}
+                />
+                <HealthValue
+                  label={t("offline", "Offline")}
+                  tone={offline ? "danger" : "neutral"}
+                  value={error ? undefined : offline}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {serverUpdatedAt
+                  ? t("overview.telemetryAt", "Telemetry {{time}}", {
+                      time: new Date(serverUpdatedAt).toLocaleTimeString(
+                        i18n.language,
+                        { hour: "2-digit", minute: "2-digit" }
+                      ),
+                    })
+                  : t("overview.waitingTelemetry", "Waiting for telemetry")}
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <HealthValue
-                label={t("online", "Online")}
-                tone="success"
-                value={error ? undefined : online}
-              />
-              <HealthValue
-                label={t("offline", "Offline")}
-                tone={offline ? "danger" : "neutral"}
-                value={error ? undefined : offline}
-              />
-            </div>
-            <p className="text-muted-foreground text-xs">
-              {serverUpdatedAt
-                ? t("overview.telemetryAt", "Telemetry {{time}}", {
-                    time: new Date(serverUpdatedAt).toLocaleTimeString(
-                      i18n.language,
-                      { hour: "2-digit", minute: "2-digit" }
-                    ),
-                  })
-                : t("overview.waitingTelemetry", "Waiting for telemetry")}
-            </p>
           </DashboardDataTransition>
         )}
       </CardContent>
