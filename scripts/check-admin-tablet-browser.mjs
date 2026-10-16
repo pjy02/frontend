@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { test } from "node:test";
@@ -12,7 +12,13 @@ const mock = process.env.MOCK_API_ORIGIN || "http://127.0.0.1:43124";
 for (const url of [origin, mock])
   assert(["127.0.0.1", "localhost", "[::1]"].includes(new URL(url).hostname));
 const artifacts = process.env.ACCEPTANCE_ARTIFACT_DIR;
-if (artifacts) mkdirSync(artifacts, { recursive: true });
+if (artifacts) {
+  assert(
+    !existsSync(path.join(artifacts, "report.json")),
+    "Preserve existing evidence"
+  );
+  mkdirSync(artifacts, { recursive: true });
+}
 const widths = process.env.ACCEPTANCE_WIDTHS?.split(",").map(Number) || [
   390, 430, 768, 834, 1024, 1194, 1280, 1440,
 ];
@@ -20,6 +26,10 @@ const browser = await chromium.launch({
   headless: true,
   channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL || undefined,
 });
+const report = {
+  backend: "Local mock only; reorder writes target the mock",
+  cases: [],
+};
 try {
   for (const width of widths) {
     for (const [language, theme] of [
@@ -27,6 +37,15 @@ try {
       ["zh-CN", "dark"],
     ]) {
       await test(`Tablet layouts ${width}px ${language} ${theme}`, async () => {
+        const result = {
+          width,
+          language,
+          theme,
+          passed: false,
+          errors: [],
+          failedRequests: [],
+        };
+        report.cases.push(result);
         const context = await browser.newContext({
           viewport: {
             width,
@@ -37,8 +56,9 @@ try {
           reducedMotion: theme === "dark" ? "reduce" : "no-preference",
         });
         let closing = false;
-        const errors = [];
+        const errors = result.errors;
         const sortRequests = [];
+        const pendingRequests = new Set();
         let listMode = "normal";
         let releaseList;
         try {
@@ -52,6 +72,18 @@ try {
           }, language);
           const page = await context.newPage();
           page.on("pageerror", (error) => errors.push(error.message));
+          await page.clock.setFixedTime(new Date("2026-10-16T06:00:00Z"));
+          page.on("request", (request) => pendingRequests.add(request));
+          page.on("requestfinished", (request) =>
+            pendingRequests.delete(request)
+          );
+          page.on("requestfailed", (request) => {
+            pendingRequests.delete(request);
+            result.failedRequests.push({
+              url: request.url(),
+              error: request.failure()?.errorText,
+            });
+          });
           await page.route("**/v1/**", async (route) => {
             try {
               if (closing) return await route.abort();
@@ -76,6 +108,10 @@ try {
                 {
                   method: route.request().method(),
                   data: route.request().postData() || undefined,
+                  timeout: 10_000,
+                  // A stale keep-alive connection can reset in the local fixture.
+                  // Only replay reads; never retry a reorder/business write.
+                  maxRetries: route.request().method() === "GET" ? 1 : 0,
                 }
               );
               // At least two records are necessary to prove real two-column geometry.
@@ -92,7 +128,8 @@ try {
               }
               await route.fulfill({ response });
             } catch (error) {
-              if (!closing) throw error;
+              if (!closing) errors.push(`Mock route: ${error}`);
+              await route.abort().catch(() => {});
             }
           });
           const screenshot = async (name) => {
@@ -336,7 +373,14 @@ try {
           }
           await screenshot("server-form");
           assert.deepEqual(errors, []);
+          result.passed = true;
+          result.sortRequests = sortRequests.length;
         } catch (error) {
+          result.failure = String(error);
+          result.url = context.pages()[0]?.url();
+          result.pendingRequests = Array.from(pendingRequests, (request) =>
+            request.url()
+          );
           if (artifacts)
             await context.pages()[0]?.screenshot({
               path: path.join(artifacts, `failure-${width}-${language}.png`),
@@ -353,4 +397,9 @@ try {
   }
 } finally {
   await browser.close();
+  if (artifacts)
+    writeFileSync(
+      path.join(artifacts, "report.json"),
+      `${JSON.stringify(report, null, 2)}\n`
+    );
 }

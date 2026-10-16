@@ -87,7 +87,10 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
             toast.success(t("created", "Created"));
           }
           await fetchServers();
-          listAction?.current?.refresh();
+          listAction?.current?.refresh({
+            reason: server ? "edit" : "create",
+            rowIds: server ? [server.id] : undefined,
+          });
           return true;
         } catch {
           return false;

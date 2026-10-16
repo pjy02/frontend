@@ -51,35 +51,32 @@
     sans-serif;
   --admin-font-mono:
     "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --admin-motion-instant: 80ms;
-  --admin-motion-fast: 120ms;
-  --admin-motion-normal: 200ms;
-  --admin-motion-slow: 300ms;
-  --admin-motion-easing: cubic-bezier(0.2, 0, 0, 1);
-  --admin-motion-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --admin-motion-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
-  --admin-motion-menu-enter: 160ms;
-  --admin-motion-menu-exit: 120ms;
-  --admin-motion-menu-level: 180ms;
-  --admin-motion-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
+  /* Compatibility aliases; numeric values come only from MotionProvider. */
+  --admin-motion-instant: var(--admin-motion-press-duration);
+  --admin-motion-fast: var(--admin-motion-state-duration);
+  --admin-motion-normal: var(--admin-motion-navigation-duration);
+  --admin-motion-slow: var(--admin-motion-expand-duration);
+  --admin-motion-easing: var(--admin-motion-state-ease);
+  --admin-motion-enter: var(--admin-motion-navigation-ease);
+  --admin-motion-exit: var(--admin-motion-dialog-exit-ease);
+  --admin-motion-menu-enter: var(--admin-motion-menu-enter-duration);
+  --admin-motion-menu-exit: var(--admin-motion-menu-exit-duration);
+  --admin-motion-menu-level: var(--admin-motion-menu-level-duration);
+  --admin-motion-spring: var(--admin-motion-selection-ease);
 
-@keyframes admin-page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(0.25rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  --admin-type-page: 1.5rem;
+  --admin-type-workspace: 1.125rem;
+  --admin-type-section: 1rem;
+  --admin-type-label: 0.875rem;
+  --admin-type-body: 0.875rem;
+  --admin-type-description: 0.8125rem;
+  --admin-type-meta: 0.75rem;
 }
 
 @keyframes admin-data-enter {
   from {
     opacity: 0;
-    transform: translateY(0.1875rem);
+    transform: translateY(var(--admin-motion-data-enter-distance));
   }
 
   to {
@@ -96,7 +93,7 @@
         var(--admin-floating-y, -0.25rem),
         0
       )
-      scale(0.985);
+      scale(var(--admin-motion-menu-enter-scale));
   }
 
   to {
@@ -113,15 +110,15 @@
 
   to {
     opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.99);
+    transform: translate3d(0, 0, 0) scale(var(--admin-motion-menu-exit-scale));
   }
 }
 
 @keyframes admin-dialog-enter {
   from {
     opacity: 0;
-    scale: 0.985;
-    translate: -50% calc(-50% + 0.5rem);
+    scale: var(--admin-motion-dialog-enter-scale);
+    translate: -50% calc(-50% + var(--admin-motion-dialog-enter-distance));
   }
 
   to {
@@ -140,8 +137,8 @@
 
   to {
     opacity: 0;
-    scale: 0.99;
-    translate: -50% calc(-50% + 0.25rem);
+    scale: var(--admin-motion-dialog-exit-scale);
+    translate: -50% calc(-50% + var(--admin-motion-dialog-exit-distance));
   }
 }
 
@@ -204,7 +201,7 @@
 @keyframes admin-tab-content-enter {
   from {
     opacity: 0;
-    transform: translateX(0.25rem);
+    transform: translateX(var(--admin-motion-tab-distance));
   }
 
   to {
@@ -216,7 +213,7 @@
 @keyframes admin-success-pop {
   0% {
     opacity: 0;
-    transform: scale(0.7);
+    transform: scale(var(--admin-motion-success-scale));
   }
 
   65% {
@@ -320,6 +317,48 @@ html.admin-console .font-mono {
   font-family: var(--admin-font-mono);
 }
 
+/* Admin-only type hierarchy; never change the shared User Web primitives. */
+html.admin-console :where(h2, h3, [data-slot="card-title"]) {
+  font-size: var(--admin-type-section);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+html.admin-console
+  :where([data-slot="dialog-title"], [data-slot="alert-dialog-title"]) {
+  font-size: var(--admin-type-workspace);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+html.admin-console :where([data-slot="form-label"], .admin-field-label) {
+  font-size: var(--admin-type-label);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+html.admin-console
+  :where(
+    [data-slot="form-description"],
+    [data-slot="dialog-description"],
+    [data-slot="card-description"],
+    .admin-helper-text
+  ) {
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-type-description);
+  line-height: 1.6;
+}
+
+html.admin-console .admin-meta-text {
+  font-size: var(--admin-type-meta);
+  line-height: 1.5;
+}
+
+html.admin-console [data-slot="form-message"] {
+  font-size: var(--admin-type-body);
+  line-height: 1.5;
+}
+
 html.admin-console [data-slot="button"],
 html.admin-console [data-slot="input"],
 html.admin-console [data-slot="select-trigger"],
@@ -361,7 +400,7 @@ html.admin-console
 }
 
 html.admin-console [data-slot="button"]:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--admin-motion-press-scale));
   transition-duration: var(--admin-motion-instant);
 }
 
@@ -383,7 +422,7 @@ html.admin-console
   justify-content: center;
   gap: inherit;
   opacity: 0;
-  transform: scale(0.97);
+  transform: scale(var(--admin-motion-data-exit-scale));
 }
 
 .admin-button-status {
@@ -409,12 +448,12 @@ html.admin-console
 html.admin-console
   [data-slot="button"][data-status="success"]
   .admin-button-status {
-  animation: admin-success-pop var(--admin-motion-slow)
-    var(--admin-motion-enter) both;
+  animation: admin-success-pop var(--admin-motion-success-duration)
+    var(--admin-motion-success-ease) both;
 }
 
 html.admin-console .animate-spin {
-  animation-duration: 720ms;
+  animation-duration: var(--admin-motion-loading-duration);
   animation-timing-function: linear;
 }
 
@@ -470,47 +509,54 @@ html.admin-console.dark .admin-action-menu-content {
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="root"][data-side="bottom"] {
   --admin-action-menu-x: 0;
-  --admin-action-menu-y: -0.25rem;
+  --admin-action-menu-y: calc(0px - var(--admin-motion-menu-enter-distance));
 }
 
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="root"][data-side="top"] {
   --admin-action-menu-x: 0;
-  --admin-action-menu-y: 0.25rem;
+  --admin-action-menu-y: var(--admin-motion-menu-enter-distance);
 }
 
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="root"][data-side="left"] {
-  --admin-action-menu-x: 0.25rem;
+  --admin-action-menu-x: var(--admin-motion-menu-enter-distance);
   --admin-action-menu-y: 0;
 }
 
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="root"][data-side="right"] {
-  --admin-action-menu-x: -0.25rem;
+  --admin-action-menu-x: calc(0px - var(--admin-motion-menu-enter-distance));
   --admin-action-menu-y: 0;
 }
 
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="sub"][data-side="left"] {
-  --admin-action-menu-x: 0.375rem;
+  --admin-action-menu-x: var(--admin-motion-submenu-distance);
   --admin-action-menu-y: 0;
 }
 
 html.admin-console
   .admin-action-menu-content[data-admin-action-menu-level="sub"][data-side="right"] {
-  --admin-action-menu-x: -0.375rem;
+  --admin-action-menu-x: calc(0px - var(--admin-motion-submenu-distance));
   --admin-action-menu-y: 0;
 }
 
 html.admin-console .admin-action-menu-content[data-state="open"] {
   animation: admin-action-menu-enter var(--admin-motion-menu-enter)
-    var(--admin-motion-enter) both;
+    var(--admin-motion-menu-enter-ease) both;
+}
+
+html.admin-console
+  .admin-action-menu-content[data-admin-action-menu-level="sub"][data-state="open"] {
+  --admin-action-menu-scale: var(--admin-motion-submenu-scale);
+  animation-duration: var(--admin-motion-submenu-duration);
+  animation-timing-function: var(--admin-motion-submenu-ease);
 }
 
 html.admin-console .admin-action-menu-content[data-state="closed"] {
   animation: admin-action-menu-exit var(--admin-motion-menu-exit)
-    var(--admin-motion-exit) both;
+    var(--admin-motion-menu-exit-ease) both;
 }
 
 @keyframes admin-action-menu-enter {
@@ -521,7 +567,9 @@ html.admin-console .admin-action-menu-content[data-state="closed"] {
         var(--admin-action-menu-y, -0.25rem),
         0
       )
-      scale(0.98);
+      scale(
+        var(--admin-action-menu-scale, var(--admin-motion-menu-enter-scale))
+      );
   }
 
   to {
@@ -538,7 +586,12 @@ html.admin-console .admin-action-menu-content[data-state="closed"] {
 
   to {
     opacity: 0;
-    transform: translate3d(0, -0.125rem, 0) scale(0.99);
+    transform: translate3d(
+        0,
+        calc(0px - var(--admin-motion-menu-exit-distance)),
+        0
+      )
+      scale(var(--admin-motion-menu-exit-scale));
   }
 }
 
@@ -584,8 +637,8 @@ html.admin-console
     [data-slot="hover-card-content"]
   )[data-state="open"] {
   animation-name: admin-floating-enter;
-  animation-duration: 160ms;
-  animation-timing-function: var(--admin-motion-enter);
+  animation-duration: var(--admin-motion-menu-enter-duration);
+  animation-timing-function: var(--admin-motion-menu-enter-ease);
   animation-fill-mode: both;
 }
 
@@ -601,7 +654,7 @@ html.admin-console
     [data-slot="hover-card-content"]
   )[data-side="bottom"] {
   --admin-floating-x: 0;
-  --admin-floating-y: -0.25rem;
+  --admin-floating-y: calc(0px - var(--admin-motion-menu-enter-distance));
 }
 
 html.admin-console
@@ -616,7 +669,7 @@ html.admin-console
     [data-slot="hover-card-content"]
   )[data-side="top"] {
   --admin-floating-x: 0;
-  --admin-floating-y: 0.25rem;
+  --admin-floating-y: var(--admin-motion-menu-enter-distance);
 }
 
 html.admin-console
@@ -630,7 +683,7 @@ html.admin-console
     [data-slot="tooltip-content"],
     [data-slot="hover-card-content"]
   )[data-side="left"] {
-  --admin-floating-x: 0.25rem;
+  --admin-floating-x: var(--admin-motion-menu-enter-distance);
   --admin-floating-y: 0;
 }
 
@@ -645,7 +698,7 @@ html.admin-console
     [data-slot="tooltip-content"],
     [data-slot="hover-card-content"]
   )[data-side="right"] {
-  --admin-floating-x: -0.25rem;
+  --admin-floating-x: calc(0px - var(--admin-motion-menu-enter-distance));
   --admin-floating-y: 0;
 }
 
@@ -655,8 +708,8 @@ html.admin-console
     [data-state="instant-open"]
   ) {
   animation-name: admin-floating-enter;
-  animation-duration: var(--admin-motion-fast);
-  animation-timing-function: var(--admin-motion-enter);
+  animation-duration: var(--admin-motion-tooltip-duration);
+  animation-timing-function: var(--admin-motion-tooltip-ease);
   animation-fill-mode: both;
 }
 
@@ -672,8 +725,8 @@ html.admin-console
     [data-slot="hover-card-content"]
   )[data-state="closed"] {
   animation-name: admin-floating-exit;
-  animation-duration: var(--admin-motion-fast);
-  animation-timing-function: var(--admin-motion-exit);
+  animation-duration: var(--admin-motion-menu-exit-duration);
+  animation-timing-function: var(--admin-motion-menu-exit-ease);
   animation-fill-mode: both;
 }
 
@@ -683,8 +736,8 @@ html.admin-console
     [data-slot="alert-dialog-overlay"]
   )[data-state="open"] {
   animation-name: admin-overlay-enter;
-  animation-duration: var(--admin-motion-normal);
-  animation-timing-function: var(--admin-motion-enter);
+  animation-duration: var(--admin-motion-overlay-enter-duration);
+  animation-timing-function: var(--admin-motion-overlay-enter-ease);
   animation-fill-mode: both;
 }
 
@@ -694,8 +747,8 @@ html.admin-console
     [data-slot="alert-dialog-overlay"]
   )[data-state="closed"] {
   animation-name: admin-overlay-exit;
-  animation-duration: var(--admin-motion-fast);
-  animation-timing-function: var(--admin-motion-exit);
+  animation-duration: var(--admin-motion-overlay-exit-duration);
+  animation-timing-function: var(--admin-motion-overlay-exit-ease);
   animation-fill-mode: both;
 }
 
@@ -705,8 +758,8 @@ html.admin-console
     [data-slot="alert-dialog-content"]
   )[data-state="open"] {
   animation-name: admin-dialog-enter;
-  animation-duration: var(--admin-motion-slow);
-  animation-timing-function: var(--admin-motion-enter);
+  animation-duration: var(--admin-motion-dialog-enter-duration);
+  animation-timing-function: var(--admin-motion-dialog-enter-ease);
   animation-fill-mode: both;
 }
 
@@ -716,8 +769,8 @@ html.admin-console
     [data-slot="alert-dialog-content"]
   )[data-state="closed"] {
   animation-name: admin-dialog-exit;
-  animation-duration: var(--admin-motion-normal);
-  animation-timing-function: var(--admin-motion-exit);
+  animation-duration: var(--admin-motion-dialog-exit-duration);
+  animation-timing-function: var(--admin-motion-dialog-exit-ease);
   animation-fill-mode: both;
 }
 
@@ -741,7 +794,7 @@ html.admin-console [data-slot="dialog-close"] {
 }
 
 html.admin-console [data-slot="dialog-close"]:active {
-  transform: scale(0.9);
+  transform: scale(var(--admin-motion-press-scale));
 }
 
 html.admin-console
@@ -769,7 +822,7 @@ html.admin-console
   grid-template-rows: 0fr;
   margin-top: -0.5rem;
   opacity: 0;
-  transform: translateY(-0.125rem);
+  transform: translateY(calc(0px - var(--admin-motion-data-enter-distance)));
   transition:
     grid-template-rows var(--admin-motion-normal) var(--admin-motion-enter),
     margin-top var(--admin-motion-normal) var(--admin-motion-enter),
@@ -782,6 +835,20 @@ html.admin-console
   margin-top: 0;
   opacity: 1;
   transform: translateY(0);
+}
+
+.admin-form-summary-region {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--admin-motion-expand-duration)
+    var(--admin-motion-expand-ease),
+    opacity var(--admin-motion-state-duration) var(--admin-motion-state-ease);
+}
+
+.admin-form-summary-region[data-state="visible"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
 }
 
 .admin-confirm-action {
@@ -804,7 +871,7 @@ html.admin-console
 .admin-confirm-action[data-status="loading"] .admin-confirm-action__label,
 .admin-confirm-action[data-status="success"] .admin-confirm-action__label {
   opacity: 0;
-  transform: scale(0.97);
+  transform: scale(var(--admin-motion-data-enter-scale));
 }
 
 .admin-confirm-action__status {
@@ -822,13 +889,13 @@ html.admin-console
 }
 
 .admin-confirm-action[data-status="success"] .admin-confirm-action__status {
-  animation: admin-success-pop var(--admin-motion-slow)
-    var(--admin-motion-enter) both;
+  animation: admin-success-pop var(--admin-motion-success-duration)
+    var(--admin-motion-success-ease) both;
 }
 
 html.admin-console [data-sonner-toast][data-type="success"] [data-icon] {
-  animation: admin-success-pop var(--admin-motion-slow)
-    var(--admin-motion-enter) both;
+  animation: admin-success-pop var(--admin-motion-success-duration)
+    var(--admin-motion-success-ease) both;
 }
 
 .admin-skip-link {
@@ -845,7 +912,7 @@ html.admin-console [data-sonner-toast][data-type="success"] [data-icon] {
   color: var(--foreground);
   background: var(--card);
   box-shadow: 0 8px 24px rgb(60 64 67 / 20%);
-  font-size: 0.875rem;
+  font-size: var(--admin-type-body);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -891,10 +958,7 @@ html.admin-console [data-sonner-toast][data-type="success"] [data-icon] {
   padding: 1.5rem;
 }
 
-.admin-page-transition {
-  animation: admin-page-enter var(--admin-motion-normal)
-    var(--admin-motion-enter) both;
-}
+/* Page opacity/translation has one owner: AdminPageTransition, not a keyed DOM. */
 
 html.admin-console [data-slot="sidebar-gap"],
 html.admin-console [data-slot="sidebar-container"] {
@@ -940,11 +1004,15 @@ html.admin-console [data-slot="sidebar-container"] {
   background: var(--sidebar-accent);
   pointer-events: none;
   transition:
-    transform var(--admin-motion-slow) var(--admin-motion-spring),
+    transform var(--admin-motion-selection-duration)
+    var(--admin-motion-selection-ease),
     width var(--admin-motion-normal) var(--admin-motion-easing),
     height var(--admin-motion-normal) var(--admin-motion-easing),
     opacity var(--admin-motion-fast) var(--admin-motion-easing);
-  will-change: transform, width, height;
+}
+
+.admin-sidebar-active-indicator[data-animated="false"] {
+  transition: none;
 }
 
 .admin-sidebar-scroll::-webkit-scrollbar {
@@ -995,9 +1063,10 @@ html.admin-console [data-slot="sidebar-container"] {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
-  transform: translateY(-0.2rem);
+  transform: translateY(calc(0px - var(--admin-motion-expand-distance)));
   transition:
-    grid-template-rows var(--admin-motion-slow) var(--admin-motion-spring),
+    grid-template-rows var(--admin-motion-expand-duration)
+    var(--admin-motion-expand-ease),
     opacity var(--admin-motion-normal) var(--admin-motion-easing),
     transform var(--admin-motion-normal) var(--admin-motion-easing);
 }
@@ -1036,7 +1105,7 @@ html.admin-console [data-slot="sidebar-container"] {
 .admin-page-header__eyebrow {
   margin-bottom: 0.35rem;
   color: var(--primary);
-  font-size: 0.75rem;
+  font-size: var(--admin-type-meta);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1045,7 +1114,7 @@ html.admin-console [data-slot="sidebar-container"] {
 .admin-page-header__title {
   margin: 0;
   color: var(--foreground);
-  font-size: clamp(1.35rem, 1.1rem + 0.5vw, 1.5rem);
+  font-size: var(--admin-type-page);
   font-weight: 600;
   line-height: 2rem;
   letter-spacing: -0.015em;
@@ -1056,7 +1125,7 @@ html.admin-console [data-slot="sidebar-container"] {
   max-width: 48rem;
   margin: 0.35rem 0 0;
   color: var(--admin-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--admin-type-body);
   line-height: 1.35rem;
   overflow-wrap: anywhere;
 }
@@ -1074,6 +1143,20 @@ html.admin-console [data-slot="sidebar-container"] {
   max-width: 100%;
 }
 
+/* External row shortcuts stay available without competing with page Create. */
+html.admin-console .admin-row-actions
+  [data-slot="button"][data-variant="default"] {
+  border-color: transparent;
+  background: transparent;
+  color: var(--foreground);
+}
+
+html.admin-console
+  .admin-row-actions
+  [data-slot="button"][data-variant="default"]:hover {
+  background: var(--admin-surface-hover);
+}
+
 .admin-status-chip {
   display: inline-flex;
   min-height: 1.5rem;
@@ -1085,7 +1168,7 @@ html.admin-console [data-slot="sidebar-container"] {
   padding: 0.125rem 0.5rem;
   color: var(--admin-text-secondary);
   background: var(--admin-surface-subtle);
-  font-size: 0.75rem;
+  font-size: var(--admin-type-meta);
   font-weight: 500;
   line-height: 1rem;
   white-space: nowrap;
@@ -1159,7 +1242,7 @@ html.admin-console [data-slot="sidebar-container"] {
 
 .admin-state__title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--admin-type-section);
   font-weight: 600;
 }
 
@@ -1167,7 +1250,7 @@ html.admin-console [data-slot="sidebar-container"] {
   max-width: 30rem;
   margin: 0;
   color: var(--admin-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--admin-type-body);
   line-height: 1.35rem;
   overflow-wrap: anywhere;
 }
@@ -1198,7 +1281,7 @@ html.admin-console [data-slot="table-head"] {
   height: 2.75rem;
   padding-inline: 0.875rem;
   color: var(--admin-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--admin-type-meta);
   font-weight: 600;
   letter-spacing: 0.015em;
 }
@@ -1263,7 +1346,8 @@ html.admin-console
 }
 
 .admin-pro-table[data-loading="true"] .admin-pro-table-progress::after {
-  animation: admin-progress-track 1.15s linear infinite;
+  animation: admin-progress-track var(--admin-motion-progress-duration) linear
+    infinite;
 }
 
 .admin-pro-table[data-refreshing="true"] [data-slot="table-body"],
@@ -1272,24 +1356,21 @@ html.admin-console
   transition: opacity var(--admin-motion-fast) var(--admin-motion-easing);
 }
 
-.admin-pro-table-row,
-.admin-pro-table-card {
-  will-change: transform, opacity;
-}
-
 .admin-pro-table-row[data-feedback="added"] > [data-slot="table-cell"],
 .admin-pro-table-card[data-feedback="added"] {
-  animation: admin-row-added 900ms var(--admin-motion-enter) both;
+  animation: admin-row-added var(--admin-motion-feedback-duration)
+    var(--admin-motion-feedback-ease) both;
 }
 
 .admin-pro-table-row[data-feedback="updated"] > [data-slot="table-cell"],
 .admin-pro-table-card[data-feedback="updated"] {
-  animation: admin-row-updated 900ms var(--admin-motion-enter) both;
+  animation: admin-row-updated var(--admin-motion-feedback-duration)
+    var(--admin-motion-feedback-ease) both;
 }
 
 .admin-pro-table-stale-alert {
-  animation: admin-data-enter var(--admin-motion-normal)
-    var(--admin-motion-enter) both;
+  animation: admin-data-enter var(--admin-motion-data-enter-duration)
+    var(--admin-motion-data-enter-ease) both;
 }
 
 .admin-mobile-record {
@@ -1306,7 +1387,7 @@ html.admin-console
   display: block;
   margin-bottom: 0.25rem;
   color: var(--admin-text-secondary);
-  font-size: 0.6875rem;
+  font-size: var(--admin-type-meta);
   font-weight: 600;
   letter-spacing: 0.035em;
   line-height: 1rem;
@@ -1336,7 +1417,7 @@ html.admin-console
   min-width: 0;
   margin: 0;
   color: var(--foreground);
-  font-size: 0.8125rem;
+  font-size: var(--admin-type-description);
   line-height: 1.25rem;
   overflow-wrap: anywhere;
 }
@@ -1394,7 +1475,7 @@ html.admin-console
   min-width: 0;
   margin-top: 0.1875rem;
   color: var(--admin-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--admin-type-meta);
   line-height: 1.1rem;
   overflow-wrap: anywhere;
 }
@@ -1419,7 +1500,7 @@ html.admin-console
 .admin-mobile-summary__value {
   min-width: 0;
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--admin-type-description);
   line-height: 1.25rem;
   overflow-wrap: anywhere;
 }
@@ -1472,54 +1553,31 @@ html.admin-console [data-slot="tabs-list"] {
 html.admin-console [data-slot="tabs-list"]::before {
   position: absolute;
   z-index: 0;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc((100% - 6px) / var(--admin-tabs-count, 1));
+  top: 0;
+  left: 0;
+  width: var(--admin-tabs-width, 0px);
+  height: var(--admin-tabs-height, 0px);
   border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   border-radius: 0.375rem;
   background: var(--card);
   box-shadow: 0 1px 2px rgb(60 64 67 / 12%);
   content: "";
-  transform: translateX(0);
+  opacity: 0;
+  transform: translate(var(--admin-tabs-x, 0px), var(--admin-tabs-y, 0px));
   transition:
-    transform var(--admin-motion-slow) var(--admin-motion-spring),
+    transform var(--admin-motion-selection-duration)
+    var(--admin-motion-selection-ease),
     width var(--admin-motion-normal) var(--admin-motion-easing);
 }
 
 html.admin-console
-  [data-slot="tabs-list"]:has(
-    > [data-slot="tabs-trigger"]:nth-child(2)[data-state="active"]
-  )::before {
-  transform: translateX(100%);
+  [data-slot="tabs-list"][data-indicator-ready="true"]::before {
+  opacity: 1;
 }
 
 html.admin-console
-  [data-slot="tabs-list"]:has(
-    > [data-slot="tabs-trigger"]:nth-child(3)[data-state="active"]
-  )::before {
-  transform: translateX(200%);
-}
-
-html.admin-console
-  [data-slot="tabs-list"]:has(
-    > [data-slot="tabs-trigger"]:nth-child(4)[data-state="active"]
-  )::before {
-  transform: translateX(300%);
-}
-
-html.admin-console
-  [data-slot="tabs-list"]:has(
-    > [data-slot="tabs-trigger"]:nth-child(5)[data-state="active"]
-  )::before {
-  transform: translateX(400%);
-}
-
-html.admin-console
-  [data-slot="tabs-list"]:has(
-    > [data-slot="tabs-trigger"]:nth-child(6)[data-state="active"]
-  )::before {
-  transform: translateX(500%);
+  [data-slot="tabs-list"][data-indicator-animated="false"]::before {
+  transition: none;
 }
 
 html.admin-console [data-slot="tabs-trigger"] {
@@ -1533,8 +1591,12 @@ html.admin-console [data-slot="tabs-trigger"] {
 }
 
 html.admin-console [data-slot="tabs-content"][data-state="active"] {
-  animation: admin-tab-content-enter var(--admin-motion-normal)
-    var(--admin-motion-enter) both;
+  animation: admin-tab-content-enter var(--admin-motion-tab-duration)
+    var(--admin-motion-tab-ease) both;
+}
+
+html.admin-console [data-slot="tabs-content"][hidden] {
+  display: none !important;
 }
 
 html.admin-console [data-slot="table-body"] [data-slot="table-row"]:hover {
@@ -1570,11 +1632,11 @@ html.admin-console .admin-user-sheet [data-slot="card-content"] {
 }
 
 .admin-workspace-dialog__header {
-  background: color-mix(in srgb, var(--card) 92%, var(--admin-info-surface));
+  background: var(--card);
 }
 
 .admin-workspace-dialog__header [data-slot="dialog-title"] {
-  font-size: 1.125rem;
+  font-size: var(--admin-type-workspace);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.5rem;
@@ -1604,12 +1666,14 @@ html.admin-console .admin-workspace-dialog [data-slot="tabs-trigger"] {
 .admin-workspace-dialog [data-slot="accordion-item"],
 .admin-workspace-dialog fieldset {
   border-color: var(--border);
-  background: color-mix(in srgb, var(--card) 94%, var(--muted));
+  background: transparent;
 }
 
 .admin-workspace-dialog [data-slot="form-item"]:has([role="switch"]) {
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--muted) 52%, transparent);
+  border-radius: 0;
+  border-width: 0 0 1px;
+  border-color: var(--border);
+  background: transparent;
   padding: 0.75rem 1rem;
 }
 
@@ -1641,7 +1705,7 @@ html.admin-console .admin-workspace-dialog [data-slot="tabs-trigger"] {
 
 .admin-time-value {
   color: var(--admin-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--admin-type-description);
   font-variant-numeric: tabular-nums;
   line-height: 1.25rem;
   white-space: nowrap;
@@ -1680,7 +1744,7 @@ html.admin-console .admin-mobile-summary__value .admin-time-value {
 
 .admin-settings-section__title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--admin-type-section);
   font-weight: 600;
   line-height: 1.35rem;
   overflow-wrap: anywhere;
@@ -1690,7 +1754,7 @@ html.admin-console .admin-mobile-summary__value .admin-time-value {
   max-width: 48rem;
   margin: 0.25rem 0 0;
   color: var(--admin-text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--admin-type-description);
   line-height: 1.25rem;
   overflow-wrap: anywhere;
 }
@@ -1774,9 +1838,45 @@ html.admin-console
   .admin-user-sheet
   [data-slot="form-item"]:has([role="switch"]) {
   min-height: 3.5rem;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--muted) 48%, transparent);
+  border-radius: 0;
+  border-width: 0 0 1px;
+  border-color: var(--border);
+  background: transparent;
   padding: 0.75rem 1rem;
+}
+
+.admin-form-section {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.admin-form-section > legend {
+  margin-left: 0;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  background: transparent;
+  font-size: var(--admin-type-label);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.admin-protocol-groups > :first-child .admin-form-section {
+  border-top: 0;
+}
+
+html.admin-console .admin-user-profile-section {
+  gap: 1rem;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.admin-console .admin-user-profile-section > [data-slot="card-header"],
+html.admin-console .admin-user-profile-section > [data-slot="card-content"] {
+  padding: 0;
 }
 
 @media (min-width: 1280px) {
@@ -1818,7 +1918,7 @@ html.admin-console
 
   .admin-server-shortcut p {
     overflow: hidden;
-    font-size: 0.8125rem;
+    font-size: var(--admin-type-description);
     line-height: 1.125rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1863,15 +1963,6 @@ html.admin-console
   html.admin-console [data-slot="tabs-trigger"] {
     flex: 0 0 auto;
     white-space: nowrap;
-  }
-
-  html.admin-console [data-slot="tabs-list"]::before {
-    display: none;
-  }
-
-  html.admin-console [data-slot="tabs-trigger"][data-state="active"] {
-    background: var(--card) !important;
-    box-shadow: 0 1px 2px rgb(60 64 67 / 12%) !important;
   }
 
   .admin-workspace-dialog__footer {
@@ -2040,7 +2131,7 @@ html.admin-console[data-motion="reduced"] .admin-pro-table-progress::after {
     .admin-pro-table[data-density="compact"]
     [data-slot="table-cell"] {
     padding-block: 0.375rem;
-    font-size: 0.8125rem;
+    font-size: var(--admin-type-description);
   }
   html.admin-console
     .admin-pro-table[data-density="compact"]

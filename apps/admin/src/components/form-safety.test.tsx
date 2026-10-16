@@ -24,6 +24,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@workspace/ui/components/form";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -115,12 +121,111 @@ function Harness({
     </WorkspaceDialog>
   );
 }
+
+function TabbedErrors() {
+  const form = useForm({ defaultValues: { name: "", notes: "" } });
+  const safety = useFormSafety({ form, open: true, onOpenChange: vi.fn() });
+  return (
+    <Form {...form}>
+      <form onSubmit={safety.handleSubmit(vi.fn())}>
+        {safety.summary}
+        <Tabs defaultValue="basic" preserveContent>
+          <TabsList>
+            <TabsTrigger data-form-path="name" value="basic">
+              Basic
+            </TabsTrigger>
+            <TabsTrigger data-form-path="notes" value="notes">
+              Notes
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="basic">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+          <TabsContent value="notes">
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes field</FormLabel>
+                  <FormControl>
+                    <input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+        </Tabs>
+        <Button
+          onClick={() => form.setError("notes", { message: "Fix notes" })}
+          type="button"
+        >
+          Set hidden error
+        </Button>
+        <Button onClick={() => form.clearErrors()} type="button">
+          Clear errors
+        </Button>
+      </form>
+    </Form>
+  );
+}
 const edit = () =>
   fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
     target: { value: "Changed" },
   });
 
 describe("complex form safety", () => {
+  it("reveals a previously mounted hidden tab before focusing its error and retains the summary region", async () => {
+    render(<TabbedErrors />);
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Notes" }), {
+      button: 0,
+    });
+    const notes = screen.getByRole("textbox", { name: "Notes field" });
+    fireEvent.change(notes, { target: { value: "Unsaved notes" } });
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Basic" }), {
+      button: 0,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set hidden error" }));
+    const region = document.querySelector(".admin-form-summary-region");
+    expect(region?.getAttribute("data-state")).toBe("visible");
+    fireEvent.click(
+      within(screen.getByRole("alert")).getByRole("button", {
+        name: "Notes field: Fix notes",
+      })
+    );
+    await waitFor(() => expect(document.activeElement).toBe(notes));
+    expect((notes as HTMLInputElement).value).toBe("Unsaved notes");
+    fireEvent.click(screen.getByRole("button", { name: "Clear errors" }));
+    expect(document.querySelector(".admin-form-summary-region")).toBe(region);
+    expect(region?.getAttribute("data-state")).toBe("hidden");
+    expect(region?.hasAttribute("inert")).toBe(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("returns focus to the close control when keeping unsaved edits", async () => {
+    render(<Harness />);
+    edit();
+    const close = screen.getByRole("button", { name: "Close editor" });
+    close.focus();
+    fireEvent.click(close);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Keep editing" })
+    );
+    await waitFor(() => expect(document.activeElement).toBe(close));
+  });
   it("compares nested fields and arrays without returning their values", () => {
     expect(
       changedFormFields(

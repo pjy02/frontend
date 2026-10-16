@@ -306,7 +306,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
           <Form {...form}>
             <form className="pt-4" onSubmit={safety.handleSubmit(handleSubmit)}>
               {safety.summary}
-              <Tabs className="w-full" defaultValue="basic">
+              <Tabs className="w-full" defaultValue="basic" preserveContent>
                 <TabsList className="mb-6 grid w-full grid-cols-3">
                   <TabsTrigger
                     className="flex items-center gap-2"

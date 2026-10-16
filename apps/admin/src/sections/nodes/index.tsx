@@ -110,7 +110,7 @@ export default function Nodes() {
                 } as any;
                 await updateNode(body);
                 toast.success(t("updated", "Updated"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                 fetchNodes();
                 fetchTags();
                 setLoading(false);
@@ -126,8 +126,8 @@ export default function Nodes() {
           <NodeRowActions
             key="more"
             node={row}
-            onChanged={() => {
-              ref.current?.refresh();
+            onChanged={(options) => {
+              ref.current?.refresh(options);
               fetchNodes();
               fetchTags();
             }}
@@ -148,7 +148,10 @@ export default function Nodes() {
                   rows.map((r) => deleteNode({ id: r.id } as any))
                 );
                 toast.success(t("deleted", "Deleted"));
-                ref.current?.refresh();
+                ref.current?.refresh({
+                  reason: "delete",
+                  rowIds: rows.map((row) => row.id),
+                });
                 fetchNodes();
                 fetchTags();
               }}
@@ -175,7 +178,10 @@ export default function Nodes() {
                       ? t("enabled_on", "Enabled")
                       : t("enabled_off", "Disabled")
                   );
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                   fetchNodes();
                   fetchTags();
                 }}
@@ -247,7 +253,7 @@ export default function Nodes() {
                 };
                 await createNode(body);
                 toast.success(t("created", "Created"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 fetchNodes();
                 fetchTags();
                 setLoading(false);
@@ -289,7 +295,7 @@ export default function Nodes() {
                         ? t("enabled_on", "Enabled")
                         : t("enabled_off", "Disabled")
                     );
-                    ref.current?.refresh();
+                    ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                     fetchNodes();
                     fetchTags();
                   }}
@@ -406,7 +412,7 @@ function NodeRowActions({
   onChanged,
 }: {
   node: API.Node;
-  onChanged: () => void;
+  onChanged: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
 }) {
   const { t } = useTranslation("nodes");
   const deleteRef = useRef<HTMLButtonElement>(null);
@@ -456,7 +462,7 @@ function NodeRowActions({
               await createNode({ ...rest, enabled: false });
               toast.success(t("copied", "Copied"));
               setOpen(false);
-              onChanged();
+              onChanged({ reason: "create" });
             } catch {
               toast.error(t("copyFailed", "Unable to copy node"));
             } finally {
@@ -480,7 +486,7 @@ function NodeRowActions({
         onConfirm={async () => {
           await deleteNode({ id: node.id } as any);
           toast.success(t("deleted", "Deleted"));
-          onChanged();
+          onChanged({ reason: "delete", rowIds: [node.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmDeleteTitle", "Delete this node?")}

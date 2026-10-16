@@ -33,12 +33,31 @@ html.admin-console .dashboard-range-tabs__trigger {
   background: var(--card);
 }
 
-.dashboard-data-transition,
-.dashboard-chart-tooltip-transition,
-.dashboard-traffic-tooltip__data {
-  will-change: opacity, transform;
+.dashboard-chart-tooltip-transition {
+  animation: dashboard-tooltip-enter var(--admin-motion-tooltip-duration)
+    var(--admin-motion-tooltip-ease) both;
 }
 
+/* Radix marks pointer-to-pointer continuation as instant-open. Only the first
+   tooltip fades in; replacing a name/value never creates another animation. */
+html.admin-console .dashboard-traffic-tooltip[data-state="delayed-open"] {
+  animation-name: dashboard-tooltip-enter;
+}
+html.admin-console .dashboard-traffic-tooltip[data-state="instant-open"] {
+  animation: none;
+}
+html.admin-console .dashboard-traffic-tooltip[data-state="closed"] {
+  animation: none;
+}
+
+@keyframes dashboard-tooltip-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .dashboard-fade-through-stage {
   display: grid;
   min-width: 0;
@@ -49,7 +68,6 @@ html.admin-console .dashboard-range-tabs__trigger {
   grid-area: 1 / 1;
   min-width: 0;
   transform-origin: center top;
-  will-change: opacity, transform;
 }
 
 .dashboard-system-health {
@@ -130,7 +148,6 @@ html.admin-console
 }
 
 .dashboard-traffic-row {
-  will-change: transform;
   transition: background-color var(--admin-motion-fast)
     var(--admin-motion-easing);
 }
@@ -145,15 +162,6 @@ html.admin-console
   width: var(--traffic-share);
   transform-origin: left center;
   transition: width var(--admin-motion-slow) var(--admin-motion-enter);
-}
-
-.dashboard-traffic-bar {
-  animation: dashboard-traffic-bar-reveal 280ms var(--admin-motion-enter) both;
-  animation-delay: var(--traffic-row-delay, 0ms);
-}
-
-.dashboard-traffic-tooltip-bar {
-  animation: dashboard-traffic-grow 360ms var(--admin-motion-enter) both;
 }
 
 .dashboard-traffic-bar > span,
@@ -221,28 +229,6 @@ html.admin-console .dashboard-traffic-detail {
 
 .dashboard-traffic-tooltip__value--download {
   color: var(--dashboard-traffic-tooltip-download);
-}
-
-@keyframes dashboard-traffic-grow {
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes dashboard-traffic-bar-reveal {
-  from {
-    opacity: 0.72;
-    transform: scaleX(0.78);
-  }
-
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
 }
 
 @media (max-width: 639px) {

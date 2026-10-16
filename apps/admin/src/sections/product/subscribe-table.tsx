@@ -61,8 +61,8 @@ export default function SubscribeTable({
           </Button>,
           <ProductRowActions
             key="more"
-            onChanged={() => {
-              ref.current?.refresh();
+            onChanged={(options) => {
+              ref.current?.refresh(options);
               fetchSubscribes();
             }}
             product={row}
@@ -101,7 +101,10 @@ export default function SubscribeTable({
                     ...row.original,
                     show: checked,
                   } as API.UpdateSubscribeRequest);
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                   fetchSubscribes();
                 }}
               />
@@ -125,7 +128,10 @@ export default function SubscribeTable({
                     ...row.original,
                     sell: checked,
                   } as API.UpdateSubscribeRequest);
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                   fetchSubscribes();
                 }}
               />
@@ -231,7 +237,7 @@ export default function SubscribeTable({
                   sell: false,
                 });
                 toast.success(t("createSuccess"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 fetchSubscribes();
                 setLoading(false);
 
@@ -318,7 +324,10 @@ export default function SubscribeTable({
                         ...row,
                         show: checked,
                       } as API.UpdateSubscribeRequest);
-                      ref.current?.refresh();
+                      ref.current?.refresh({
+                        reason: "edit",
+                        rowIds: [row.id],
+                      });
                       fetchSubscribes();
                     }}
                   />
@@ -333,7 +342,10 @@ export default function SubscribeTable({
                         ...row,
                         sell: checked,
                       } as API.UpdateSubscribeRequest);
-                      ref.current?.refresh();
+                      ref.current?.refresh({
+                        reason: "edit",
+                        rowIds: [row.id],
+                      });
                       fetchSubscribes();
                     }}
                   />
@@ -401,7 +413,7 @@ function ProductRowActions({
   onChanged,
   product,
 }: {
-  onChanged: () => void;
+  onChanged: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
   product: API.SubscribeItem;
 }) {
   const { t } = useTranslation("product");
@@ -456,7 +468,7 @@ function ProductRowActions({
               } as API.CreateSubscribeRequest);
               toast.success(t("copySuccess", "Copied successfully"));
               setOpen(false);
-              onChanged();
+              onChanged({ reason: "create" });
             } catch {
               toast.error(t("copyFailed", "Unable to copy product"));
             } finally {
@@ -480,7 +492,7 @@ function ProductRowActions({
         onConfirm={async () => {
           await deleteSubscribe({ id: product.id! });
           toast.success(t("deleteSuccess"));
-          onChanged();
+          onChanged({ reason: "delete", rowIds: [product.id!] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmDelete")}

@@ -3,12 +3,14 @@
 import {
   cleanup,
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
 } from "@testing-library/react";
 import { Button } from "@workspace/ui/components/button";
 import { FileText, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AdminActionMenu,
@@ -17,6 +19,16 @@ import {
   AdminActionMenuItem,
   AdminActionMenuSub,
 } from "./admin-action-menu";
+import { MotionProvider } from "./motion-provider";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (_key: string, fallback: string) => fallback }),
+}));
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
+
+function render(children: ReactNode) {
+  return renderView(<MotionProvider>{children}</MotionProvider>);
+}
 
 function mockViewport(width: number) {
   Object.defineProperty(window, "innerWidth", {
@@ -76,6 +88,71 @@ afterEach(() => {
 });
 
 describe("AdminActionMenu", () => {
+  it.each([
+    390, 1440,
+  ])("locks pending actions and restores retry after rejection at %ipx", async (width) => {
+    mockViewport(width);
+    let reject: ((error: Error) => void) | undefined;
+    const action = vi.fn(
+      () =>
+        new Promise<void>((_resolve, fail) => {
+          reject = fail;
+        })
+    );
+    render(
+      <AdminActionMenu title="Tasks" trigger={<Button>Open tasks</Button>}>
+        <AdminActionMenuItem closeOnSelect={false} onAction={action}>
+          Copy configuration
+        </AdminActionMenuItem>
+      </AdminActionMenu>
+    );
+    const trigger = screen.getByRole("button", { name: "Open tasks" });
+    if (width < 1024) fireEvent.click(trigger);
+    else fireEvent.keyDown(trigger, { key: "Enter" });
+    const item = await screen.findByRole(width < 1024 ? "button" : "menuitem", {
+      name: "Copy configuration",
+    });
+    fireEvent.click(item);
+    fireEvent.click(item);
+    expect(action).toHaveBeenCalledOnce();
+    expect(item.getAttribute("aria-busy")).toBe("true");
+    reject?.(new Error("Fixture failure"));
+    await waitFor(() => expect(item.getAttribute("aria-busy")).toBeNull());
+    expect(toast.error).toHaveBeenCalled();
+    fireEvent.click(item);
+    expect(action).toHaveBeenCalledTimes(2);
+    reject?.(new Error("Fixture failure"));
+    await waitFor(() => expect(item.getAttribute("aria-busy")).toBeNull());
+  });
+
+  it("closes mobile levels one at a time with Escape and restores the category trigger", async () => {
+    mockViewport(390);
+    render(<MenuProbe />);
+    fireEvent.click(screen.getByRole("button", { name: "Open actions" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Logs" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Audit" }));
+    const back = await screen.findByRole("button", { name: "Back" });
+    fireEvent.keyDown(back, { key: "Escape" });
+    const audit = await screen.findByRole("button", { name: "Audit" });
+    await waitFor(() => expect(document.activeElement).toBe(audit));
+    fireEvent.keyDown(audit, { key: "Escape" });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Logs" })
+      )
+    );
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Logs" }), {
+      key: "Escape",
+    });
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector('[data-slot="admin-mobile-action-panel"]')
+          ?.getAttribute("data-state")
+      ).toBe("closed")
+    );
+  });
   it("uses a compact adaptive desktop menu and exposes nested actions", async () => {
     mockViewport(1280);
     render(<MenuProbe />);
@@ -255,7 +332,11 @@ describe("AdminActionMenu", () => {
     fireEvent.keyDown(back, { key: "ArrowLeft" });
     await waitFor(() => expect(screen.queryByText("Login logs")).toBeNull());
     const restoredOrders = screen.getByRole("button", { name: "Orders" });
-    await waitFor(() => expect(document.activeElement).toBe(restoredOrders));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Logs" })
+      )
+    );
     fireEvent.touchStart(restoredOrders, {
       changedTouches: [{ clientX: 20, clientY: 20 }],
       touches: [{ clientX: 20, clientY: 20 }],

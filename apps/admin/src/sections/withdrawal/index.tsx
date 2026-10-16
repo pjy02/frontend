@@ -229,7 +229,12 @@ export default function WithdrawalPage() {
             return [
               <ReviewActions
                 key={withdrawal.id}
-                onReviewed={() => tableRef.current?.refresh()}
+                onReviewed={() =>
+                  tableRef.current?.refresh({
+                    reason: "edit",
+                    rowIds: [withdrawal.id],
+                  })
+                }
                 withdrawal={withdrawal}
               />,
             ];

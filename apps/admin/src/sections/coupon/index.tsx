@@ -50,7 +50,7 @@ export default function Coupon() {
               try {
                 await updateCoupon({ ...row, ...values });
                 toast.success(t("updateSuccess", "Update Success"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                 setLoading(false);
                 return true;
               } catch (_error) {
@@ -64,7 +64,9 @@ export default function Coupon() {
           <CouponRowActions
             coupon={row}
             key="more"
-            onDeleted={() => ref.current?.refresh()}
+            onDeleted={() =>
+              ref.current?.refresh({ reason: "delete", rowIds: [row.id] })
+            }
           />,
         ],
         batchRender: (rows) => [
@@ -79,7 +81,10 @@ export default function Coupon() {
             onConfirm={async () => {
               await batchDeleteCoupon({ ids: rows.map((item) => item.id) });
               toast.success(t("deleteSuccess", "Delete Success"));
-              ref.current?.reset();
+              ref.current?.refresh({
+                reason: "delete",
+                rowIds: rows.map((row) => row.id),
+              });
             }}
             title={t("confirmDelete", "Are you sure you want to delete?")}
             trigger={
@@ -101,7 +106,10 @@ export default function Coupon() {
                     ...row.original,
                     enable: checked,
                   } as API.UpdateCouponRequest);
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                 }}
               />
               <EnabledStatusChip
@@ -203,7 +211,7 @@ export default function Coupon() {
                   enable: false,
                 });
                 toast.success(t("createSuccess", "Create Success"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 setLoading(false);
                 return true;
               } catch (_error) {
@@ -294,7 +302,10 @@ export default function Coupon() {
                         ...row,
                         enable: checked,
                       } as API.UpdateCouponRequest);
-                      ref.current?.refresh();
+                      ref.current?.refresh({
+                        reason: "edit",
+                        rowIds: [row.id],
+                      });
                     }}
                   />
                 </div>

@@ -7,6 +7,7 @@ import { TablePreferencesProvider } from "@workspace/ui/composed/pro-table/view-
 import { getCookie } from "@workspace/ui/lib/cookies";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AdminPageTransition } from "@/components/page-transition";
 import { Header } from "@/layout/header";
 import { useGlobalStore } from "@/stores/global";
 import { SidebarLeft } from "./sidebar-left";
@@ -16,28 +17,30 @@ export default function DashboardLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const accountId = useGlobalStore((state) => state.user?.id);
   const mainRef = useRef<HTMLElement>(null);
-  const previousPathname = useRef(pathname);
   const routeWorkspaceRoot = ["/dashboard/servers", "/dashboard/product"].find(
     (root) => pathname === root || pathname.startsWith(`${root}/`)
   );
   const pageTransitionKey = routeWorkspaceRoot ?? pathname;
+  const previousPage = useRef(pageTransitionKey);
   const [open, setOpen] = useState(() => {
     const sidebarState = getCookie("sidebar_state");
     return sidebarState === undefined ? true : sidebarState === "true";
   });
 
   useEffect(() => {
-    if (previousPathname.current === pathname) {
+    if (previousPage.current === pageTransitionKey) {
       return;
     }
-    previousPathname.current = pathname;
+    previousPage.current = pageTransitionKey;
     const frame = requestAnimationFrame(() => {
+      // A route-owned workspace manages its own focus; do not steal it.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
       mainRef.current?.focus({
         preventScroll: true,
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [pathname]);
+  }, [pageTransitionKey]);
 
   return (
     <TablePreferencesProvider
@@ -80,12 +83,9 @@ export default function DashboardLayout() {
             ref={mainRef}
             tabIndex={-1}
           >
-            <div
-              className="admin-content__inner admin-page-transition"
-              key={pageTransitionKey}
-            >
+            <AdminPageTransition transitionKey={pageTransitionKey}>
               <Outlet />
-            </div>
+            </AdminPageTransition>
           </main>
         </SidebarInset>
       </SidebarProvider>

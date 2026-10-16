@@ -137,7 +137,7 @@ export function BasicInfoForm({
       <form onSubmit={safety.handleSubmit(onSubmit)}>
         {safety.summary}
         <fieldset className="min-w-0" disabled={form.formState.isSubmitting}>
-          <Card>
+          <Card className="admin-user-profile-section">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t("basicInfoTitle", "Basic Info")}</CardTitle>
               <Button

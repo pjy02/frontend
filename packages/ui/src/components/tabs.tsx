@@ -2,18 +2,47 @@
 
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@workspace/ui/lib/utils";
-import { Children, type ComponentProps, type CSSProperties } from "react";
+import {
+  Children,
+  type ComponentProps,
+  type CSSProperties,
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { useMotionProfile } from "./motion-profile";
+
+const TabsStateContext = createContext<{
+  value?: string;
+  preserveContent: boolean;
+}>({ preserveContent: false });
 
 function Tabs({
   className,
+  value,
+  defaultValue,
+  onValueChange,
+  preserveContent = false,
   ...props
-}: ComponentProps<typeof TabsPrimitive.Root>) {
+}: ComponentProps<typeof TabsPrimitive.Root> & { preserveContent?: boolean }) {
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const activeValue = value ?? internalValue;
   return (
-    <TabsPrimitive.Root
-      className={cn("flex flex-col gap-2", className)}
-      data-slot="tabs"
-      {...props}
-    />
+    <TabsStateContext.Provider value={{ value: activeValue, preserveContent }}>
+      <TabsPrimitive.Root
+        className={cn("flex flex-col gap-2", className)}
+        data-slot="tabs"
+        defaultValue={defaultValue}
+        onValueChange={(next) => {
+          setInternalValue(next);
+          onValueChange?.(next);
+        }}
+        value={value}
+        {...props}
+      />
+    </TabsStateContext.Provider>
   );
 }
 
@@ -21,9 +50,59 @@ function TabsList({
   className,
   children,
   style,
+  ref,
   ...props
 }: ComponentProps<typeof TabsPrimitive.List>) {
   const tabCount = Math.max(Children.count(children), 1);
+  const profile = useMotionProfile();
+  const listRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!(list && profile)) return;
+    let positioned = false;
+    const update = () => {
+      const active = list.querySelector<HTMLElement>(
+        ':scope > [data-slot="tabs-trigger"][data-state="active"]'
+      );
+      if (!(active?.offsetWidth && list.offsetWidth)) {
+        list.dataset.indicatorReady = "false";
+        positioned = false;
+        return;
+      }
+      // Offset geometry is independent of an opening Dialog's scale/translate.
+      list.style.setProperty("--admin-tabs-x", `${active.offsetLeft}px`);
+      list.style.setProperty("--admin-tabs-y", `${active.offsetTop}px`);
+      list.style.setProperty("--admin-tabs-width", `${active.offsetWidth}px`);
+      list.style.setProperty("--admin-tabs-height", `${active.offsetHeight}px`);
+      list.dataset.indicatorReady = "true";
+      list.dataset.indicatorAnimated = String(positioned);
+      positioned = true;
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(list, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-state", "disabled", "hidden"],
+      childList: true,
+      characterData: true,
+    });
+    const resize =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    resize?.observe(list);
+    for (const trigger of list.querySelectorAll('[data-slot="tabs-trigger"]'))
+      resize?.observe(trigger);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      resize?.disconnect();
+      window.removeEventListener("resize", update);
+      delete list.dataset.indicatorReady;
+      delete list.dataset.indicatorAnimated;
+      for (const name of ["x", "y", "width", "height"])
+        list.style.removeProperty(`--admin-tabs-${name}`);
+    };
+  }, [Boolean(profile)]);
 
   return (
     <TabsPrimitive.List
@@ -32,6 +111,11 @@ function TabsList({
         className
       )}
       data-slot="tabs-list"
+      ref={(element) => {
+        listRef.current = element;
+        if (typeof ref === "function") return ref(element);
+        if (ref) ref.current = element;
+      }}
       style={
         {
           "--admin-tabs-count": tabCount,
@@ -63,12 +147,23 @@ function TabsTrigger({
 
 function TabsContent({
   className,
+  value,
+  forceMount,
   ...props
 }: ComponentProps<typeof TabsPrimitive.Content>) {
+  const context = useContext(TabsStateContext);
+  const visited = useRef(false);
+  const active = context.value === value;
+  if (active) visited.current = true;
+  // Explicit form-only opt-in: do not keep ordinary data tabs querying in the background.
+  const retained = context.preserveContent && visited.current;
   return (
     <TabsPrimitive.Content
       className={cn("flex-1 outline-none", className)}
       data-slot="tabs-content"
+      forceMount={forceMount || retained || undefined}
+      hidden={retained ? !active : undefined}
+      value={value}
       {...props}
     />
   );

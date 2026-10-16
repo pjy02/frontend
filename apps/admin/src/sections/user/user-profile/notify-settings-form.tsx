@@ -60,7 +60,7 @@ export function NotifySettingsForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
+        <Card className="admin-user-profile-section">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{t("notifySettingsTitle", "Notify Settings")}</CardTitle>
             <Button size="sm" type="submit">

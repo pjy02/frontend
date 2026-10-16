@@ -23,8 +23,18 @@ describe("protected Admin UI contract", () => {
     expect(theme).toContain("--admin-surface:");
     expect(theme).toContain("--admin-motion-easing:");
     expect(theme).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(motionProvider).toContain("useReducedMotion()");
-    expect(motionProvider).toContain("<MotionConfig");
+    const sharedMotionProvider = readProjectFile(
+      "packages/ui/src/components/motion-profile.tsx"
+    );
+    expect(motionProvider).toContain(
+      "<MotionProfileProvider profile={profile}>"
+    );
+    expect(motionProvider).toContain("motionCssVariables(");
+    expect(sharedMotionProvider).toContain("useReducedMotion()");
+    expect(sharedMotionProvider).toContain("<MotionConfig");
+    expect(sharedMotionProvider).toContain(
+      "createContext<MotionSettings | null>(null)"
+    );
   });
 
   it("keeps the local Header, Sidebar, page container, and content-only route transition", () => {
@@ -36,13 +46,23 @@ describe("protected Admin UI contract", () => {
     expect(layout).toContain("<Header />");
     expect(layout).toContain('className="admin-shell"');
     expect(layout).toContain(
+      "<AdminPageTransition transitionKey={pageTransitionKey}>"
+    );
+    expect(layout).not.toContain("key={pageTransitionKey}");
+    const transition = readProjectFile(
+      "apps/admin/src/components/page-transition.tsx"
+    );
+    expect(transition).toContain(
       'className="admin-content__inner admin-page-transition"'
     );
-    expect(layout).toContain("key={pageTransitionKey}");
     expect(header).toContain('className="admin-header"');
     expect(sidebar).toContain('className="admin-sidebar"');
     expect(sidebar).toContain('className="admin-sidebar-active-indicator"');
     expect(sidebar).toContain('className="admin-sidebar-group-motion"');
+    // asChild HoverCard/Tooltip triggers replace data-slot on collapsed items.
+    expect(sidebar).toContain(
+      '[data-sidebar="menu-button"][data-active="true"]'
+    );
   });
 
   it("keeps the customized Dashboard layout, ranking, and motion", () => {

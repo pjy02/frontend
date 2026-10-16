@@ -87,7 +87,7 @@ export function AuthMethodsForm({
   };
 
   return (
-    <Card>
+    <Card className="admin-user-profile-section">
       <CardHeader>
         <CardTitle>{t("authMethodsTitle", "Auth Methods")}</CardTitle>
       </CardHeader>
@@ -151,9 +151,10 @@ export function AuthMethodsForm({
                     </div>
                   </div>
                   <Button
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => handleRemoveAuth(method.auth_type)}
                     size="sm"
-                    variant="destructive"
+                    variant="outline"
                   >
                     {t("remove", "Remove")}
                   </Button>

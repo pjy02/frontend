@@ -11,10 +11,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
+import { useMotionProfile } from "@workspace/ui/components/motion-profile";
 import { Check, LoaderCircle } from "lucide-react";
 import type React from "react";
 import type { ReactNode, RefObject } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ConfirmationButtonProps {
@@ -37,28 +38,48 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
   restoreFocusRef,
 }) => {
   const { t } = useTranslation("components");
+  const successHold = useMotionProfile()?.presets.successHold.durationMs ?? 420;
+  const mounted = useRef(false);
+  const running = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+  useEffect(() => {
+    if (!open || status !== "success") return;
+    const finish = () => {
+      setOpen(false);
+      setStatus("idle");
+    };
+    if (!successHold) return finish();
+    const timer = setTimeout(finish, successHold);
+    return () => clearTimeout(timer);
+  }, [open, status, successHold]);
 
   const handleConfirm = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
+    if (running.current || status !== "idle") return;
+    running.current = true;
     setStatus("loading");
     try {
       await onConfirm();
+      if (!mounted.current) return;
       setStatus("success");
-      window.setTimeout(() => {
-        setOpen(false);
-        setStatus("idle");
-      }, 420);
     } catch {
-      setStatus("idle");
+      if (mounted.current) setStatus("idle");
+    } finally {
+      running.current = false;
     }
   };
 
   return (
     <AlertDialog
       onOpenChange={(nextOpen) => {
-        if (status === "loading") return;
+        if (running.current || status === "loading") return;
         setOpen(nextOpen);
         if (!nextOpen) setStatus("idle");
       }}

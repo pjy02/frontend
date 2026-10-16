@@ -1,48 +1,60 @@
-import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
-import { MotionConfig } from "motion/react";
 import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+  MotionProfileProvider,
+  useMotionProfile,
+} from "@workspace/ui/components/motion-profile";
+import {
+  type MotionProfile,
+  motionCssVariables,
+} from "@workspace/ui/lib/motion-profile";
+import { type ReactNode, useLayoutEffect } from "react";
+import { adminMotionProfile } from "./motion-tokens";
 
-type AdminMotionContextValue = {
-  reducedMotion: boolean;
-};
-
-const AdminMotionContext = createContext<AdminMotionContextValue | null>(null);
-
-export function MotionProvider({ children }: { children: ReactNode }) {
-  const reducedMotion = useReducedMotion();
-  const value = useMemo(() => ({ reducedMotion }), [reducedMotion]);
-
-  useEffect(() => {
+function MotionStyles({ profile }: { profile: MotionProfile }) {
+  const { reducedMotion } = useAdminMotion();
+  useLayoutEffect(() => {
     const root = document.documentElement;
+    const previousMode = root.dataset.motion;
+    const variables = motionCssVariables(
+      profile,
+      reducedMotion,
+      "--admin-motion"
+    );
+    const previous = Object.keys(variables).map((name): [string, string] => [
+      name,
+      root.style.getPropertyValue(name),
+    ]);
+    for (const [name, value] of Object.entries(variables))
+      root.style.setProperty(name, value);
     root.dataset.motion = reducedMotion ? "reduced" : "full";
     return () => {
-      delete root.dataset.motion;
+      for (const [name, value] of previous) {
+        if (value) root.style.setProperty(name, value);
+        else root.style.removeProperty(name);
+      }
+      if (previousMode) root.dataset.motion = previousMode;
+      else delete root.dataset.motion;
     };
-  }, [reducedMotion]);
+  }, [profile, reducedMotion]);
+  return null;
+}
 
+export function MotionProvider({
+  children,
+  profile = adminMotionProfile,
+}: {
+  children: ReactNode;
+  profile?: MotionProfile;
+}) {
   return (
-    <AdminMotionContext.Provider value={value}>
-      <MotionConfig
-        reducedMotion={reducedMotion ? "always" : "never"}
-        transition={{
-          duration: reducedMotion ? 0 : 0.2,
-          ease: [0.2, 0, 0, 1],
-        }}
-      >
-        {children}
-      </MotionConfig>
-    </AdminMotionContext.Provider>
+    <MotionProfileProvider profile={profile}>
+      <MotionStyles profile={profile} />
+      {children}
+    </MotionProfileProvider>
   );
 }
 
 export function useAdminMotion() {
-  const context = useContext(AdminMotionContext);
+  const context = useMotionProfile();
   if (!context) {
     throw new Error("useAdminMotion must be used within MotionProvider.");
   }

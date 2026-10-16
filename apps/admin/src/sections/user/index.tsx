@@ -106,7 +106,7 @@ export default function User() {
               try {
                 await createUser(values);
                 toast.success(t("createSuccess", "Created successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 return true;
               } catch {
                 return false;
@@ -137,13 +137,17 @@ export default function User() {
           render: (row) => [
             <ProfileSheet
               key="profile"
-              onUpdated={() => ref.current?.refresh()}
+              onUpdated={() =>
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] })
+              }
               userId={row.id}
             />,
             <SubscriptionSheet key="subscription" userId={row.id} />,
             <UserMoreActions
               key="more"
-              onDeleted={() => ref.current?.refresh()}
+              onDeleted={() =>
+                ref.current?.refresh({ reason: "delete", rowIds: [row.id] })
+              }
               userId={row.id}
             />,
           ],
@@ -158,7 +162,10 @@ export default function User() {
                 onCheckedChange={async (checked) => {
                   await updateUserEnabled(row.original, checked);
                   toast.success(t("updateSuccess", "Updated successfully"));
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                 }}
               />
             ),
@@ -206,7 +213,7 @@ export default function User() {
                       </span>
                       {method?.verified ? (
                         <StatusChip
-                          className="min-h-4 px-1.5 text-[10px]"
+                          className="min-h-4 px-1.5 text-xs"
                           dot={false}
                           tone="success"
                         >
@@ -264,7 +271,9 @@ export default function User() {
             row.auth_methods?.[0]?.auth_identifier || `User ${row.id}`,
           render: (row) => (
             <UserMobileCard
-              onUpdated={() => ref.current?.refresh()}
+              onUpdated={() =>
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] })
+              }
               user={row}
             />
           ),
@@ -366,13 +375,13 @@ function UserMobileCard({
               ID {user.id}
             </span>
             {method?.auth_type ? (
-              <StatusChip className="min-h-5 px-2 text-[10px]" dot={false}>
+              <StatusChip className="min-h-5 px-2 text-xs" dot={false}>
                 {method.auth_type.toUpperCase()}
               </StatusChip>
             ) : null}
             {method?.verified ? (
               <StatusChip
-                className="min-h-5 px-2 text-[10px]"
+                className="min-h-5 px-2 text-xs"
                 dot={false}
                 tone="success"
               >
@@ -431,9 +440,7 @@ function MobileValue({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="mb-1 text-[11px] text-muted-foreground leading-4">
-        {label}
-      </dt>
+      <dt className="mb-1 text-muted-foreground text-xs leading-4">{label}</dt>
       <dd className="min-w-0 font-medium text-sm tabular-nums">{children}</dd>
     </div>
   );

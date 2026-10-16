@@ -68,7 +68,7 @@ export default function UserSubscription({ userId }: { userId: number }) {
                 ...values,
               });
               toast.success(t("updateSuccess", "Updated successfully"));
-              ref.current?.refresh();
+              ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
               setLoading(false);
               return true;
             }}
@@ -77,7 +77,7 @@ export default function UserSubscription({ userId }: { userId: number }) {
           />,
           <RowMoreActions
             key="more"
-            refresh={() => ref.current?.refresh()}
+            refresh={(options) => ref.current?.refresh(options)}
             row={row}
             token={row.token}
             userId={userId}
@@ -222,7 +222,7 @@ export default function UserSubscription({ userId }: { userId: number }) {
                 ...values,
               });
               toast.success(t("createSuccess", "Created successfully"));
-              ref.current?.refresh();
+              ref.current?.refresh({ reason: "create" });
               setLoading(false);
               return true;
             }}
@@ -259,7 +259,7 @@ function RowMoreActions({
   userId: number;
   row: API.UserSubscribe;
   token: string;
-  refresh: () => void;
+  refresh: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const resetTokenRef = useRef<HTMLButtonElement>(null);
@@ -404,7 +404,7 @@ function RowMoreActions({
           toast.success(
             t("resetTokenSuccess", "Subscription address reset successfully")
           );
-          refresh();
+          refresh({ reason: "edit", rowIds: [row.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmResetToken", "Confirm Reset Subscription Address")}
@@ -434,7 +434,7 @@ function RowMoreActions({
               ? t("resumeSubscribeSuccess", "Subscription resumed successfully")
               : t("stopSubscribeSuccess", "Subscription stopped successfully")
           );
-          refresh();
+          refresh({ reason: "edit", rowIds: [row.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={
@@ -455,7 +455,7 @@ function RowMoreActions({
         onConfirm={async () => {
           await deleteUserSubscribe({ user_subscribe_id: row.id });
           toast.success(t("deleteSuccess", "Deleted successfully"));
-          refresh();
+          refresh({ reason: "delete", rowIds: [row.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmDelete", "Confirm Delete")}

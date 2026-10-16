@@ -221,7 +221,10 @@ export default function Order() {
                       id: order.id,
                       status: value,
                     });
-                    ref.current?.refresh();
+                    ref.current?.refresh({
+                      reason: "edit",
+                      rowIds: [order.id],
+                    });
                   }}
                   options={statusOptions.map((item) => ({
                     ...item,
@@ -266,7 +269,7 @@ export default function Order() {
             <Combobox<number, false>
               onChange={async (value) => {
                 await updateOrderStatus({ id: row.id, status: value });
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
               }}
               options={statusOptions.map((item) => ({
                 ...item,

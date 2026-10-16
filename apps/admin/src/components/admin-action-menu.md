@@ -19,6 +19,11 @@ must agree on a single overflow owner.
 
 ## Motion contract
 
+These are the current defaults, not per-component constants. Admin installs
+`motion-tokens.ts` through `MotionProvider`; CSS and mobile Motion transitions
+read the same semantic profile. Desktop submenus use an independent Portal so
+the root menu's scroll/overflow boundary cannot clip them.
+
 - Root menu enter: 160 ms, 4 px toward the trigger, opacity 0 to 1, scale 0.98
   to 1.
 - Submenu enter: 160 ms, 6 px from its parent edge with the same fade and
@@ -51,3 +56,8 @@ must agree on a single overflow owner.
 
 Use `asChild` for a router `Link`. Use `loading` and `disabled` on the menu item
 instead of replacing it, which preserves its position and accessible state.
+## 第六、七步补充
+
+- 手机层级只动画位移/透明度，容器按实测高度过渡，不缩放正文；退出层级和关闭面板 inert。
+- Esc 逐级返回，返回聚焦原分类入口；关闭后不提前重置层级，下一次打开才回到首层。
+- `onAction` 内部增加 pending/ref 防重；Promise 拒绝恢复操作并提供错误反馈。调用者自己捕获并反馈的错误不会重复进入内部 catch。

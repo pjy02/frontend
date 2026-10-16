@@ -47,7 +47,7 @@ export function UserSubscribeDetail({
     <div className="space-y-4 text-sm">
       <div>
         <h3 className="mb-2 font-medium text-sm">{t("subscriptionInfo")}</h3>
-        <div className="rounded-xl border bg-muted/20 p-4">
+        <div className="border-t pt-4">
           <ul className="grid gap-3">
             <li className="flex items-center justify-between font-semibold">
               <span className="text-muted-foreground">

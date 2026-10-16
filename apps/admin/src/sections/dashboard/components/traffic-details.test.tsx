@@ -17,9 +17,12 @@ vi.mock("react-i18next", () => ({
     i18n: { language: "en-US" },
   }),
 }));
-vi.mock("@/components/motion-provider", () => ({
-  useAdminMotion: () => ({ reducedMotion: true }),
-}));
+vi.mock("@/components/motion-provider", async () => {
+  const { resolveMotion } = await import("@workspace/ui/lib/motion-profile");
+  const { adminMotionProfile } = await import("@/components/motion-tokens");
+  const presets = resolveMotion(adminMotionProfile, true);
+  return { useAdminMotion: () => ({ reducedMotion: true, presets }) };
+});
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, search, children, ...props }: any) => (
     <a href={`${to}?${new URLSearchParams(search)}`} {...props}>
@@ -63,6 +66,41 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("touch traffic details", () => {
+  it("keeps an open detail and its comparison bars when email and period data update", async () => {
+    media(true);
+    const row = (email?: string, total = 300) => (
+      <TooltipProvider>
+        <ol>
+          <TrafficRankingRow
+            currentLabel="Today"
+            index={0}
+            item={{ ...item, total }}
+            leaderTotal={total}
+            previousLabel="Yesterday"
+            reducedMotion
+            selectedDate="2026-10-15"
+            trafficType="users"
+            userEmail={email}
+            userEmailLoading={!email}
+          />
+        </ol>
+      </TooltipProvider>
+    );
+    const view = render(row());
+    fireEvent.click(
+      screen.getByRole("button", { name: "Traffic details for Node 4" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    const detail = dialog.querySelector("[data-tooltip-key]");
+    const bar = dialog.querySelector(".dashboard-traffic-tooltip-bar");
+    view.rerender(row("new@example.com", 600));
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(dialog.querySelector("[data-tooltip-key]")).toBe(detail);
+    expect(dialog.querySelector(".dashboard-traffic-tooltip-bar")).toBe(bar);
+    expect(dialog.textContent).toContain("new@example.com");
+    expect(dialog.textContent).toContain("UID 7");
+    expect(dialog.querySelectorAll("[data-tooltip-key]")).toHaveLength(1);
+  });
   it.each([
     "nodes",
     "users",

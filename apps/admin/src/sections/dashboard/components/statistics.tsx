@@ -13,7 +13,6 @@ import {
 import {
   ChartContainer,
   ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@workspace/ui/components/chart";
@@ -31,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { usePreferenceScope } from "@workspace/ui/composed/pro-table/view-preferences";
@@ -64,7 +64,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Area,
@@ -76,6 +76,7 @@ import {
   YAxis,
 } from "recharts";
 import { useAdminMotion } from "@/components/motion-provider";
+import { adminChartEasing } from "@/components/motion-tokens";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
 import { StatusChip, type StatusChipTone } from "@/components/status-chip";
@@ -94,8 +95,11 @@ import { useTableSearchWriter } from "@/utils/use-table-search-params";
 import { DashboardComponentsMenu } from "./dashboard-components-menu";
 import {
   AnimatedNumber,
+  DashboardCategoryMotion,
   DashboardDataTransition,
   DashboardFadeThrough,
+  DashboardHeightRegion,
+  useDashboardCategory,
 } from "./dashboard-motion";
 import {
   type DashboardModuleId,
@@ -185,25 +189,18 @@ function AnimatedCurrency({
 function DashboardChartTooltipContent(
   props: React.ComponentProps<typeof ChartTooltipContent>
 ) {
-  const { reducedMotion } = useAdminMotion();
   const tooltipKey = String(
     props.label ?? props.payload?.[0]?.payload?.date ?? "dashboard-tooltip"
   );
 
+  if (!props.active) return null;
   return (
-    <AnimatePresence initial={false} mode="wait">
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="dashboard-chart-tooltip-transition"
-        data-tooltip-key={tooltipKey}
-        exit={reducedMotion ? undefined : { opacity: 0, y: -2 }}
-        initial={reducedMotion ? false : { opacity: 0, y: 2 }}
-        key={tooltipKey}
-        transition={{ duration: reducedMotion ? 0 : 0.1 }}
-      >
-        <ChartTooltipContent {...props} />
-      </motion.div>
-    </AnimatePresence>
+    <div
+      className="dashboard-chart-tooltip-transition"
+      data-tooltip-key={tooltipKey}
+    >
+      <ChartTooltipContent {...props} />
+    </div>
   );
 }
 
@@ -873,7 +870,7 @@ export default function Statistics() {
   );
 }
 
-function BusinessTrends({
+export function BusinessTrends({
   kind,
   range,
   revenue,
@@ -909,28 +906,45 @@ function BusinessTrends({
         : { year: "2-digit", month: "short" }
     );
   };
-  const revenueData =
-    revenueRange?.list?.map((item) => ({
-      date: item.date || "",
-      newPurchase: unitConversion("centsToDollars", item.new_order_amount),
-      renewal: unitConversion("centsToDollars", item.renewal_order_amount),
-    })) || [];
-  const userData =
-    userRange?.list?.map((item) => ({
-      date: item.date || "",
-      register: item.register,
-      paid: item.new_order_users,
-    })) || [];
+  const [hiddenRevenue, setHiddenRevenue] = useState<string[]>([]);
+  const [hiddenUsers, setHiddenUsers] = useState<string[]>([]);
+  const toggle = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    key: string
+  ) =>
+    setter((hidden) =>
+      hidden.includes(key)
+        ? hidden.filter((item) => item !== key)
+        : [...hidden, key]
+    );
+  const revenueData = useMemo(
+    () =>
+      revenueRange?.list?.map((item) => ({
+        date: item.date || "",
+        newPurchase: unitConversion("centsToDollars", item.new_order_amount),
+        renewal: unitConversion("centsToDollars", item.renewal_order_amount),
+      })) || [],
+    [revenueRange?.list]
+  );
+  const userData = useMemo(
+    () =>
+      userRange?.list?.map((item) => ({
+        date: item.date || "",
+        register: item.register,
+        paid: item.new_order_users,
+      })) || [],
+    [userRange?.list]
+  );
   const renderRevenueChart = (expanded = false) => {
     const transitionKey = `revenue-${range}-${expanded ? "expanded" : "inline"}-${revenueLoading ? "loading" : revenueError || revenueData.length === 0 ? "unavailable" : "ready"}`;
-    if (revenueLoading) {
+    if (revenueLoading && revenueData.length === 0) {
       return (
         <DashboardDataTransition transitionKey={transitionKey}>
           <Skeleton className="h-full w-full rounded-lg" />
         </DashboardDataTransition>
       );
     }
-    if (revenueError || revenueData.length === 0) {
+    if (revenueData.length === 0) {
       return (
         <DashboardDataTransition transitionKey={transitionKey}>
           <DataUnavailable
@@ -945,6 +959,10 @@ function BusinessTrends({
           data={revenueData}
           dateFormatter={dateFormatter}
           expanded={expanded}
+          legend={{
+            hidden: hiddenRevenue,
+            onToggle: (key) => toggle(setHiddenRevenue, key),
+          }}
           reducedMotion={reducedMotion}
         />
       </DashboardDataTransition>
@@ -952,14 +970,14 @@ function BusinessTrends({
   };
   const renderUserChart = (expanded = false) => {
     const transitionKey = `users-${range}-${expanded ? "expanded" : "inline"}-${usersLoading ? "loading" : usersError || userData.length === 0 ? "unavailable" : "ready"}`;
-    if (usersLoading) {
+    if (usersLoading && userData.length === 0) {
       return (
         <DashboardDataTransition transitionKey={transitionKey}>
           <Skeleton className="h-full w-full rounded-lg" />
         </DashboardDataTransition>
       );
     }
-    if (usersError || userData.length === 0) {
+    if (userData.length === 0) {
       return (
         <DashboardDataTransition transitionKey={transitionKey}>
           <DataUnavailable
@@ -973,6 +991,11 @@ function BusinessTrends({
         <UserTrendChart
           data={userData}
           dateFormatter={dateFormatter}
+          expanded={expanded}
+          legend={{
+            hidden: hiddenUsers,
+            onToggle: (key) => toggle(setHiddenUsers, key),
+          }}
           reducedMotion={reducedMotion}
         />
       </DashboardDataTransition>
@@ -1003,7 +1026,11 @@ function BusinessTrends({
                   {t("totalIncome", "Total income")}
                 </div>
                 <div className="font-semibold tabular-nums">
-                  <AnimatedCurrency value={revenueRange?.amount_total} />
+                  {revenueRange?.amount_total == null ? (
+                    "—"
+                  ) : (
+                    <AnimatedCurrency value={revenueRange.amount_total} />
+                  )}
                 </div>
               </div>
               <ChartExpandDialog
@@ -1011,9 +1038,7 @@ function BusinessTrends({
                   "overview.revenueTrendHint",
                   "New purchases and renewals over time"
                 )}
-                disabled={
-                  revenueLoading || revenueError || revenueData.length === 0
-                }
+                disabled={revenueData.length === 0}
                 title={t("overview.revenueTrend", "Revenue trend")}
               >
                 {renderRevenueChart(true)}
@@ -1054,7 +1079,7 @@ function BusinessTrends({
                   "overview.userTrendHint",
                   "Registrations and first-time purchasers"
                 )}
-                disabled={usersLoading || usersError || userData.length === 0}
+                disabled={userData.length === 0}
                 title={t("overview.userTrend", "New user trend")}
               >
                 {renderUserChart(true)}
@@ -1115,14 +1140,26 @@ function RevenueTrendChart({
   dateFormatter,
   expanded = false,
   reducedMotion,
+  legend,
 }: {
   data: Array<{ date: string; newPurchase: number; renewal: number }>;
   dateFormatter: (value: string) => string;
   expanded?: boolean;
   reducedMotion: boolean;
+  legend: ChartLegendState;
 }) {
   const { t } = useTranslation("dashboard");
   const gradientId = expanded ? "revenueBlueExpanded" : "revenueBlue";
+  const { presets } = useAdminMotion();
+  const firstDraw = useRef(!(expanded || reducedMotion));
+  const previousData = useRef(data);
+  if (previousData.current !== data) {
+    firstDraw.current = false;
+    previousData.current = data;
+  }
+  const chartDuration = firstDraw.current
+    ? presets.chart.durationMs
+    : presets.dataLayout.durationMs;
   return (
     <ChartContainer
       className="h-full max-h-none w-full"
@@ -1164,28 +1201,44 @@ function RevenueTrendChart({
         <ChartTooltip
           content={<DashboardChartTooltipContent />}
           cursor={false}
+          isAnimationActive={false}
         />
         <Area
-          animationDuration={650}
-          animationEasing="ease-out"
+          animationDuration={chartDuration}
+          animationEasing={adminChartEasing}
           dataKey="newPurchase"
           fill={`url(#${gradientId})`}
-          isAnimationActive={!reducedMotion}
+          hide={legend.hidden.includes("newPurchase")}
+          isAnimationActive={!(reducedMotion || expanded)}
+          onAnimationEnd={() => {
+            firstDraw.current = false;
+          }}
           stroke="var(--color-newPurchase)"
           strokeWidth={2}
           type="monotone"
         />
         <Area
-          animationDuration={650}
-          animationEasing="ease-out"
+          animationDuration={chartDuration}
+          animationEasing={adminChartEasing}
           dataKey="renewal"
           fill="transparent"
-          isAnimationActive={!reducedMotion}
+          hide={legend.hidden.includes("renewal")}
+          isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-renewal)"
           strokeWidth={2}
           type="monotone"
         />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={
+            <DashboardChartLegend
+              {...legend}
+              items={[
+                { key: "newPurchase", label: t("newPurchase", "New purchase") },
+                { key: "renewal", label: t("repurchase", "Renewal") },
+              ]}
+            />
+          }
+        />
       </AreaChart>
     </ChartContainer>
   );
@@ -1195,12 +1248,26 @@ function UserTrendChart({
   data,
   dateFormatter,
   reducedMotion,
+  expanded = false,
+  legend,
 }: {
   data: Array<{ date: string; paid: number; register: number }>;
   dateFormatter: (value: string) => string;
   reducedMotion: boolean;
+  expanded?: boolean;
+  legend: ChartLegendState;
 }) {
   const { t } = useTranslation("dashboard");
+  const { presets } = useAdminMotion();
+  const firstDraw = useRef(!(expanded || reducedMotion));
+  const previousData = useRef(data);
+  if (previousData.current !== data) {
+    firstDraw.current = false;
+    previousData.current = data;
+  }
+  const chartDuration = firstDraw.current
+    ? presets.chart.durationMs
+    : presets.dataLayout.durationMs;
   return (
     <ChartContainer
       className="h-full max-h-none w-full"
@@ -1234,30 +1301,89 @@ function UserTrendChart({
         <ChartTooltip
           content={<DashboardChartTooltipContent />}
           cursor={false}
+          isAnimationActive={false}
         />
         <Line
-          animationDuration={650}
-          animationEasing="ease-out"
+          animationDuration={chartDuration}
+          animationEasing={adminChartEasing}
           dataKey="register"
           dot={false}
-          isAnimationActive={!reducedMotion}
+          hide={legend.hidden.includes("register")}
+          isAnimationActive={!(reducedMotion || expanded)}
+          onAnimationEnd={() => {
+            firstDraw.current = false;
+          }}
           stroke="var(--color-register)"
           strokeWidth={2}
           type="monotone"
         />
         <Line
-          animationDuration={650}
-          animationEasing="ease-out"
+          animationDuration={chartDuration}
+          animationEasing={adminChartEasing}
           dataKey="paid"
           dot={false}
-          isAnimationActive={!reducedMotion}
+          hide={legend.hidden.includes("paid")}
+          isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-paid)"
           strokeWidth={2}
           type="monotone"
         />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={
+            <DashboardChartLegend
+              {...legend}
+              items={[
+                { key: "register", label: t("register", "Register") },
+                {
+                  key: "paid",
+                  label: t("overview.firstPurchaseUsers", "First purchase"),
+                },
+              ]}
+            />
+          }
+        />
       </LineChart>
     </ChartContainer>
+  );
+}
+
+type ChartLegendState = { hidden: string[]; onToggle: (key: string) => void };
+
+function DashboardChartLegend({
+  hidden,
+  onToggle,
+  items,
+}: ChartLegendState & {
+  items: { key: string; label: string }[];
+}) {
+  return (
+    <div
+      className="flex flex-wrap items-center justify-center gap-2 pt-3"
+      data-dashboard-chart-legend
+    >
+      {items.map(({ key, label }) => (
+        <Button
+          aria-pressed={!hidden.includes(key)}
+          className={cn(
+            "h-11 gap-2 px-2 text-xs sm:h-9",
+            hidden.includes(key) && "text-muted-foreground line-through"
+          )}
+          key={key}
+          onClick={() => onToggle(key)}
+          size="sm"
+          variant="ghost"
+        >
+          <span
+            className="size-2 rounded-sm"
+            style={{
+              background: `var(--color-${key})`,
+              opacity: hidden.includes(key) ? 0.35 : 1,
+            }}
+          />
+          {label}
+        </Button>
+      ))}
+    </div>
   );
 }
 
@@ -1279,7 +1405,7 @@ function SystemHealthCard({
   total: number;
 }) {
   const { t, i18n } = useTranslation("dashboard");
-  const { reducedMotion } = useAdminMotion();
+  const { reducedMotion, presets } = useAdminMotion();
   const tone: StatusChipTone = loading
     ? "neutral"
     : error
@@ -1312,10 +1438,10 @@ function SystemHealthCard({
           <motion.div
             animate={{ opacity: 1, scale: 1 }}
             className="dashboard-system-health__status"
-            exit={reducedMotion ? undefined : { opacity: 0, scale: 0.96 }}
-            initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
+            exit={reducedMotion ? undefined : { opacity: 0 }}
+            initial={reducedMotion ? false : { opacity: 0 }}
             key={tone}
-            transition={{ duration: reducedMotion ? 0 : 0.16 }}
+            transition={presets.state.transition}
           >
             <StatusChip tone={tone}>{label}</StatusChip>
           </motion.div>
@@ -1635,18 +1761,18 @@ function PendingRow({
 }
 
 function TrafficRanking({
-  activeDate,
-  data,
+  activeDate: requestedDate,
+  data: requestedData,
   limit,
   loading,
   onLimitChange,
   onPeriodChange,
   onTypeChange,
   pendingUserIds,
-  period,
+  period: requestedPeriod,
   serverError,
   systemTotal,
-  trafficType,
+  trafficType: requestedType,
   userEmailById,
 }: {
   activeDate: string;
@@ -1664,7 +1790,14 @@ function TrafficRanking({
   userEmailById: Map<number, string | undefined>;
 }) {
   const { t } = useTranslation("dashboard");
-  const { reducedMotion } = useAdminMotion();
+  const { reducedMotion, presets } = useAdminMotion();
+  const category = useDashboardCategory(requestedType, {
+    data: requestedData,
+    trafficType: requestedType,
+    period: requestedPeriod,
+    activeDate: requestedDate,
+  });
+  const { data, trafficType, period, activeDate } = category.value;
   const visibleData = data.items.slice(0, limit);
   const leaderTotal = visibleData.reduce(
     (maximum, item) => Math.max(maximum, item.total),
@@ -1700,7 +1833,7 @@ function TrafficRanking({
             <Tabs
               className="dashboard-traffic-controls__tabs"
               onValueChange={(value) => onTypeChange(value as TrafficType)}
-              value={trafficType}
+              value={requestedType}
             >
               <LayoutGroup id="dashboard-traffic-type-switcher">
                 <TabsList className="dashboard-traffic-controls__tabs-list dashboard-traffic-type-tabs-list">
@@ -1708,15 +1841,12 @@ function TrafficRanking({
                     className="dashboard-traffic-type-trigger"
                     value="nodes"
                   >
-                    {trafficType === "nodes" ? (
+                    {requestedType === "nodes" ? (
                       <motion.span
                         aria-hidden="true"
                         className="dashboard-traffic-type-indicator"
                         layoutId="dashboard-traffic-type-indicator"
-                        transition={{
-                          duration: reducedMotion ? 0 : 0.22,
-                          ease: [0.2, 0, 0, 1],
-                        }}
+                        transition={presets.selection.transition}
                       />
                     ) : null}
                     <span className="dashboard-traffic-type-label">
@@ -1727,15 +1857,12 @@ function TrafficRanking({
                     className="dashboard-traffic-type-trigger"
                     value="users"
                   >
-                    {trafficType === "users" ? (
+                    {requestedType === "users" ? (
                       <motion.span
                         aria-hidden="true"
                         className="dashboard-traffic-type-indicator"
                         layoutId="dashboard-traffic-type-indicator"
-                        transition={{
-                          duration: reducedMotion ? 0 : 0.22,
-                          ease: [0.2, 0, 0, 1],
-                        }}
+                        transition={presets.selection.transition}
                       />
                     ) : null}
                     <span className="dashboard-traffic-type-label">
@@ -1748,7 +1875,7 @@ function TrafficRanking({
             <Tabs
               className="dashboard-traffic-controls__tabs"
               onValueChange={(value) => onPeriodChange(value as TrafficPeriod)}
-              value={period}
+              value={requestedPeriod}
             >
               <TabsList className="dashboard-traffic-controls__tabs-list">
                 <TabsTrigger value="today">{t("today", "Today")}</TabsTrigger>
@@ -1786,9 +1913,9 @@ function TrafficRanking({
               variant="outline"
             >
               <Link
-                search={{ date: activeDate }}
+                search={{ date: requestedDate }}
                 to={
-                  trafficType === "nodes"
+                  requestedType === "nodes"
                     ? "/dashboard/log/server-traffic"
                     : "/dashboard/log/subscribe-traffic"
                 }
@@ -1800,137 +1927,153 @@ function TrafficRanking({
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="space-y-3 p-5">
-              <Skeleton className="h-20 w-full rounded-lg" />
-              {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton
-                  className="h-20 w-full rounded-lg"
-                  key={`traffic-skeleton-${index}`}
-                />
-              ))}
-            </div>
-          ) : serverError || data.items.length === 0 ? (
-            <div className="p-5">
-              <DataUnavailable
-                text={t("overview.unavailable", "Data unavailable")}
-              />
-            </div>
-          ) : (
-            <>
-              <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
-                <TrafficSummaryValue
-                  format={formatBytes}
-                  hint={
-                    systemTotal === undefined
-                      ? t(
-                          "overview.systemTotalHistoricalHint",
-                          "Historical system total is not provided by the current API"
-                        )
-                      : t("overview.systemTotalHint", "All traffic today")
-                  }
-                  label={t("overview.systemTotal", "System total")}
-                  value={systemTotal}
-                />
-                <TrafficSummaryValue
-                  className="border-l"
-                  format={formatBytes}
-                  hint={t(
-                    "overview.rankingDatasetHint",
-                    "{{count}} records returned by the ranking source",
-                    { count: data.items.length }
-                  )}
-                  label={t("overview.rankingDatasetTotal", "Ranking total")}
-                  transitionKey={trafficType}
-                  value={data.currentTotal}
-                />
-                <TrafficSummaryValue
-                  className="border-t xl:border-t-0 xl:border-l"
-                  format={formatBytes}
-                  hint={t("overview.topShare", "{{share}}% of {{scope}}", {
-                    share: visibleShare.toFixed(1),
-                    scope:
-                      systemTotal === undefined
-                        ? t("overview.rankingDataset", "ranking data")
-                        : t("overview.systemTraffic", "system traffic"),
-                  })}
-                  label={t("overview.topLabel", "Top {{count}}", {
-                    count: limit,
-                  })}
-                  transitionKey={trafficType}
-                  value={visibleTotal}
-                />
-                <div className="border-t border-l px-5 py-4 xl:border-t-0">
-                  <DashboardFadeThrough transitionKey={trafficType}>
-                    <div className="text-muted-foreground text-xs">
-                      {t("overview.transferSplit", "Upload / Download")}
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-medium text-sm tabular-nums">
-                      <span className="inline-flex items-center gap-1 text-chart-1">
-                        <ArrowUp className="size-3.5" /> {formatBytes(upload)}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-chart-4">
-                        <ArrowDown className="size-3.5" />{" "}
-                        {formatBytes(download)}
-                      </span>
-                    </div>
-                  </DashboardFadeThrough>
-                </div>
-                <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
-                  <DashboardFadeThrough transitionKey={trafficType}>
-                    <div className="text-muted-foreground text-xs">
-                      {t("overview.periodComparison", "{{date}} / change", {
-                        date: previousLabel,
-                      })}
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <AnimatedNumber
-                        animateOnMount={false}
-                        className="font-semibold text-base tabular-nums"
-                        format={formatBytes}
-                        value={data.previousTotal}
-                      />
-                      <GrowthChip value={growth} />
-                    </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
-                      {t("overview.currentPeriod", "Current period: {{date}}", {
-                        date: currentLabel,
-                      })}
-                    </div>
-                  </DashboardFadeThrough>
-                </div>
+          <DashboardHeightRegion>
+            {loading && data.items.length === 0 ? (
+              <div className="space-y-3 p-5">
+                <Skeleton className="h-20 w-full rounded-lg" />
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton
+                    className="h-20 w-full rounded-lg"
+                    key={`traffic-skeleton-${index}`}
+                  />
+                ))}
               </div>
-              <DashboardFadeThrough transitionKey={trafficType}>
-                <LayoutGroup id={`traffic-ranking-${trafficType}`}>
-                  <ol className="dashboard-traffic-list divide-y">
-                    {visibleData.map((item, index) => (
-                      <TrafficRankingRow
-                        currentLabel={currentLabel}
-                        index={index}
-                        item={item}
-                        key={`${trafficType}-${item.id}`}
-                        leaderTotal={leaderTotal}
-                        previousLabel={previousLabel}
-                        reducedMotion={reducedMotion}
-                        selectedDate={activeDate}
-                        trafficType={trafficType}
-                        userEmail={
-                          item.uid === undefined
-                            ? undefined
-                            : userEmailById.get(item.uid)
-                        }
-                        userEmailLoading={
-                          item.uid === undefined
-                            ? false
-                            : pendingUserIds.has(item.uid)
-                        }
-                      />
-                    ))}
-                  </ol>
-                </LayoutGroup>
-              </DashboardFadeThrough>
-            </>
-          )}
+            ) : serverError && data.items.length === 0 ? (
+              <div className="p-5">
+                <DataUnavailable
+                  text={t("overview.unavailable", "Data unavailable")}
+                />
+              </div>
+            ) : (
+              <DashboardCategoryMotion.Provider value={category.opacity}>
+                <TooltipProvider delayDuration={100}>
+                  <div className="dashboard-traffic-summary grid grid-cols-2 border-b xl:grid-cols-5">
+                    <TrafficSummaryValue
+                      format={formatBytes}
+                      hint={
+                        systemTotal === undefined
+                          ? t(
+                              "overview.systemTotalHistoricalHint",
+                              "Historical system total is not provided by the current API"
+                            )
+                          : t("overview.systemTotalHint", "All traffic today")
+                      }
+                      label={t("overview.systemTotal", "System total")}
+                      value={systemTotal}
+                    />
+                    <TrafficSummaryValue
+                      className="border-l"
+                      format={formatBytes}
+                      hint={t(
+                        "overview.rankingDatasetHint",
+                        "{{count}} records returned by the ranking source",
+                        { count: data.items.length }
+                      )}
+                      label={t("overview.rankingDatasetTotal", "Ranking total")}
+                      transitionKey={trafficType}
+                      value={data.currentTotal}
+                    />
+                    <TrafficSummaryValue
+                      className="border-t xl:border-t-0 xl:border-l"
+                      format={formatBytes}
+                      hint={t("overview.topShare", "{{share}}% of {{scope}}", {
+                        share: visibleShare.toFixed(1),
+                        scope:
+                          systemTotal === undefined
+                            ? t("overview.rankingDataset", "ranking data")
+                            : t("overview.systemTraffic", "system traffic"),
+                      })}
+                      label={t("overview.topLabel", "Top {{count}}", {
+                        count: limit,
+                      })}
+                      transitionKey={trafficType}
+                      value={visibleTotal}
+                    />
+                    <div className="border-t border-l px-5 py-4 xl:border-t-0">
+                      <DashboardFadeThrough transitionKey={trafficType}>
+                        <div className="text-muted-foreground text-xs">
+                          {t("overview.transferSplit", "Upload / Download")}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-medium text-sm tabular-nums">
+                          <span className="inline-flex items-center gap-1 text-chart-1">
+                            <ArrowUp className="size-3.5" />{" "}
+                            {formatBytes(upload)}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-chart-4">
+                            <ArrowDown className="size-3.5" />{" "}
+                            {formatBytes(download)}
+                          </span>
+                        </div>
+                      </DashboardFadeThrough>
+                    </div>
+                    <div className="col-span-2 border-t px-5 py-4 xl:col-span-1 xl:border-t-0 xl:border-l">
+                      <DashboardFadeThrough transitionKey={trafficType}>
+                        <div className="text-muted-foreground text-xs">
+                          {t("overview.periodComparison", "{{date}} / change", {
+                            date: previousLabel,
+                          })}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <AnimatedNumber
+                            animateOnMount={false}
+                            className="font-semibold text-base tabular-nums"
+                            format={formatBytes}
+                            value={data.previousTotal}
+                          />
+                          <GrowthChip value={growth} />
+                        </div>
+                        <div className="mt-1 text-muted-foreground text-xs">
+                          {t(
+                            "overview.currentPeriod",
+                            "Current period: {{date}}",
+                            {
+                              date: currentLabel,
+                            }
+                          )}
+                        </div>
+                      </DashboardFadeThrough>
+                    </div>
+                  </div>
+                  <DashboardFadeThrough transitionKey={trafficType}>
+                    <LayoutGroup id={`traffic-ranking-${trafficType}`}>
+                      <ol className="dashboard-traffic-list min-h-52 divide-y">
+                        {visibleData.map((item, index) => (
+                          <TrafficRankingRow
+                            currentLabel={currentLabel}
+                            index={index}
+                            item={item}
+                            key={`${trafficType}-${item.id}`}
+                            leaderTotal={leaderTotal}
+                            previousLabel={previousLabel}
+                            reducedMotion={reducedMotion}
+                            selectedDate={activeDate}
+                            trafficType={trafficType}
+                            userEmail={
+                              item.uid === undefined
+                                ? undefined
+                                : userEmailById.get(item.uid)
+                            }
+                            userEmailLoading={
+                              item.uid === undefined
+                                ? false
+                                : pendingUserIds.has(item.uid)
+                            }
+                          />
+                        ))}
+                      </ol>
+                      {data.items.length === 0 && (
+                        <div className="p-5">
+                          <DataUnavailable
+                            text={t("freshness.empty", "No data received")}
+                          />
+                        </div>
+                      )}
+                    </LayoutGroup>
+                  </DashboardFadeThrough>
+                </TooltipProvider>
+              </DashboardCategoryMotion.Provider>
+            )}
+          </DashboardHeightRegion>
         </CardContent>
       </Card>
     </section>
@@ -1965,7 +2108,7 @@ function TrafficSummaryValue({
         />
       )}
       {hint ? (
-        <div className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+        <div className="mt-1 line-clamp-2 text-muted-foreground text-xs">
           {hint}
         </div>
       ) : null}
@@ -1988,12 +2131,14 @@ function TrafficSummaryValue({
 
 function GrowthChip({ value }: { value: number }) {
   const { t } = useTranslation("dashboard");
-  const tone: StatusChipTone =
-    value > 0 ? "success" : value < 0 ? "danger" : "neutral";
+  // More/less traffic is a trend, not a service success/failure signal.
+  const tone: StatusChipTone = value > 0 ? "info" : "neutral";
+  const TrendIcon = value > 0 ? ArrowUp : value < 0 ? ArrowDown : null;
   const label = `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
   return (
     <StatusChip dot={false} tone={tone}>
       <span className="sr-only">{t("overview.growth", "Growth")}: </span>
+      {TrendIcon ? <TrendIcon aria-hidden="true" className="size-3" /> : null}
       {label}
     </StatusChip>
   );
@@ -2021,7 +2166,7 @@ function RankChangeChip({ item }: { item: TrafficRankingItem }) {
     <span
       className={cn(
         "inline-flex items-center gap-0.5 font-medium",
-        improved ? "text-[var(--admin-success)]" : "text-destructive"
+        improved ? "text-[var(--admin-info)]" : "text-muted-foreground"
       )}
     >
       <RankIcon className="size-3" />
@@ -2059,6 +2204,7 @@ export function TrafficRankingRow({
   userEmailLoading: boolean;
 }) {
   const { t } = useTranslation("dashboard");
+  const { presets } = useAdminMotion();
   const uploadShare = item.total ? (item.upload / item.total) * 100 : 0;
   const downloadShare = 100 - uploadShare;
   const previousUploadShare = item.previousTotal
@@ -2078,7 +2224,7 @@ export function TrafficRankingRow({
   const changeLabel = `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
     Math.abs(item.absoluteChange)
   )}`;
-  const tooltipDataKey = `${trafficType}-${currentLabel}-${item.id}-${item.total}-${item.previousTotal}-${userEmail || "pending"}`;
+  const tooltipDataKey = `${trafficType}-${item.id}`;
 
   const [detailOpen, setDetailOpen] = useState(false);
   const detailTrigger = useRef<HTMLButtonElement>(null);
@@ -2088,128 +2234,118 @@ export function TrafficRankingRow({
     (typeof window !== "undefined" &&
       window.matchMedia("(pointer: coarse)").matches);
   const detailContent = (
-    <AnimatePresence initial={false} mode="wait">
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="dashboard-traffic-tooltip__data space-y-3"
-        data-tooltip-key={tooltipDataKey}
-        exit={reducedMotion ? undefined : { opacity: 0, y: -2 }}
-        initial={reducedMotion ? false : { opacity: 0, y: 2 }}
-        key={tooltipDataKey}
-        transition={{ duration: reducedMotion ? 0 : 0.1 }}
-      >
-        <div>
-          <div className="wrap-anywhere font-semibold text-sm">
-            {displayName}
-          </div>
-          <div className="mt-1 flex gap-2 text-muted-foreground text-xs">
-            {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
-            <span>SID {item.sid}</span>
-          </div>
+    <div
+      className="dashboard-traffic-tooltip__data space-y-3"
+      data-tooltip-key={tooltipDataKey}
+    >
+      <div>
+        <div className="wrap-anywhere font-semibold text-sm">{displayName}</div>
+        <div className="mt-1 flex gap-2 text-muted-foreground text-xs">
+          {item.uid !== undefined ? <span>UID {item.uid}</span> : null}
+          <span>SID {item.sid}</span>
         </div>
-        <div className="dashboard-traffic-tooltip__comparison space-y-2.5 rounded-xl border p-2.5">
-          <div className="dashboard-traffic-tooltip__legend flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--upload" />
-              {t("overview.upload", "Upload")}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--download" />
-              {t("overview.download", "Download")}
-            </span>
-          </div>
-          <TrafficTooltipComparisonBar
-            downloadShare={downloadShare}
-            label={currentLabel}
-            total={item.total}
-            uploadShare={uploadShare}
-            width={tooltipCurrentWidth}
-          />
-          <TrafficTooltipComparisonBar
-            downloadShare={previousDownloadShare}
-            label={previousLabel}
-            muted
-            total={item.previousTotal}
-            uploadShare={previousUploadShare}
-            width={tooltipPreviousWidth}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          <TrafficTooltipValue
-            label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
-            tone="upload"
-            value={formatBytes(item.upload)}
-          />
-          <TrafficTooltipValue
-            label={`${currentLabel} · ${t("overview.download", "Download")}`}
-            tone="download"
-            value={formatBytes(item.download)}
-          />
-          <TrafficTooltipValue
-            label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
-            tone="upload"
-            value={formatBytes(item.previousUpload)}
-          />
-          <TrafficTooltipValue
-            label={`${previousLabel} · ${t("overview.download", "Download")}`}
-            tone="download"
-            value={formatBytes(item.previousDownload)}
-          />
-          <TrafficTooltipValue
-            label={t("traffic", "Total traffic")}
-            value={formatBytes(item.total)}
-          />
-          <TrafficTooltipValue
-            label={t("overview.share", "Traffic share")}
-            value={`${item.share.toFixed(2)}%`}
-          />
-          <TrafficTooltipValue
-            label={currentLabel}
-            value={formatBytes(item.total)}
-          />
-          <TrafficTooltipValue
-            label={previousLabel}
-            value={formatBytes(item.previousTotal)}
-          />
-          <TrafficTooltipValue
-            label={t("overview.absoluteChange", "Absolute change")}
-            value={changeLabel}
-          />
-          <TrafficTooltipValue
-            label={t("overview.rankChange", "Rank change")}
-            value={
-              item.isNew
-                ? t("overview.newToRanking", "New")
-                : item.rankChange
-                  ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
-                  : "—"
-            }
-          />
-        </div>
-        <div className="flex items-center justify-between border-t pt-2 text-xs">
-          <span className="text-muted-foreground">
-            {t("overview.growth", "Growth")}
+      </div>
+      <div className="dashboard-traffic-tooltip__comparison space-y-2.5 rounded-xl border p-2.5">
+        <div className="dashboard-traffic-tooltip__legend flex items-center gap-3 text-muted-foreground text-xs">
+          <span className="inline-flex items-center gap-1.5">
+            <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--upload" />
+            {t("overview.upload", "Upload")}
           </span>
-          <GrowthChip value={item.growth} />
+          <span className="inline-flex items-center gap-1.5">
+            <i className="dashboard-traffic-tooltip__legend-dot dashboard-traffic-tooltip__legend-dot--download" />
+            {t("overview.download", "Download")}
+          </span>
         </div>
-      </motion.div>
-    </AnimatePresence>
+        <TrafficTooltipComparisonBar
+          downloadShare={downloadShare}
+          label={currentLabel}
+          total={item.total}
+          uploadShare={uploadShare}
+          width={tooltipCurrentWidth}
+        />
+        <TrafficTooltipComparisonBar
+          downloadShare={previousDownloadShare}
+          label={previousLabel}
+          muted
+          total={item.previousTotal}
+          uploadShare={previousUploadShare}
+          width={tooltipPreviousWidth}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+        <TrafficTooltipValue
+          label={`${currentLabel} · ${t("overview.upload", "Upload")}`}
+          tone="upload"
+          value={formatBytes(item.upload)}
+        />
+        <TrafficTooltipValue
+          label={`${currentLabel} · ${t("overview.download", "Download")}`}
+          tone="download"
+          value={formatBytes(item.download)}
+        />
+        <TrafficTooltipValue
+          label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
+          tone="upload"
+          value={formatBytes(item.previousUpload)}
+        />
+        <TrafficTooltipValue
+          label={`${previousLabel} · ${t("overview.download", "Download")}`}
+          tone="download"
+          value={formatBytes(item.previousDownload)}
+        />
+        <TrafficTooltipValue
+          label={t("traffic", "Total traffic")}
+          value={formatBytes(item.total)}
+        />
+        <TrafficTooltipValue
+          label={t("overview.share", "Traffic share")}
+          value={`${item.share.toFixed(2)}%`}
+        />
+        <TrafficTooltipValue
+          label={currentLabel}
+          value={formatBytes(item.total)}
+        />
+        <TrafficTooltipValue
+          label={previousLabel}
+          value={formatBytes(item.previousTotal)}
+        />
+        <TrafficTooltipValue
+          label={t("overview.absoluteChange", "Absolute change")}
+          value={changeLabel}
+        />
+        <TrafficTooltipValue
+          label={t("overview.rankChange", "Rank change")}
+          value={
+            item.isNew
+              ? t("overview.newToRanking", "New")
+              : item.rankChange
+                ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
+                : "—"
+          }
+        />
+      </div>
+      <div className="flex items-center justify-between border-t pt-2 text-xs">
+        <span className="text-muted-foreground">
+          {t("overview.growth", "Growth")}
+        </span>
+        <GrowthChip value={item.growth} />
+      </div>
+    </div>
   );
   return (
     <motion.li
       className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
       data-rank={index + 1}
+      data-traffic-id={`${trafficType}-${item.id}`}
       layout={reducedMotion ? false : "position"}
       transition={{
-        layout: {
-          duration: reducedMotion ? 0 : 0.24,
-          ease: [0.2, 0, 0, 1],
-        },
+        layout: presets.categoryLayout.transition,
       }}
     >
       <Tooltip
         delayDuration={100}
         open={touchDetails || detailOpen ? false : undefined}
+        sharedProvider
       >
         <TooltipTrigger asChild>
           <button
@@ -2245,7 +2381,7 @@ export function TrafficRankingRow({
                         {displayName}
                       </div>
                     )}
-                    <div className="mt-0.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground tabular-nums">
+                    <div className="mt-0.5 flex flex-wrap gap-2 text-muted-foreground text-xs tabular-nums">
                       {item.uid !== undefined ? (
                         <span>UID {item.uid}</span>
                       ) : null}
@@ -2259,13 +2395,13 @@ export function TrafficRankingRow({
                       format={formatBytes}
                       value={item.total}
                     />
-                    <div className="text-[11px] text-muted-foreground tabular-nums">
+                    <div className="text-muted-foreground text-xs tabular-nums">
                       {item.share.toFixed(1)}% {t("overview.share", "share")}
                     </div>
                   </div>
                 </div>
                 <div className="mt-2.5">
-                  <div className="mb-1 flex items-center justify-between gap-3 text-[10px] text-muted-foreground tabular-nums">
+                  <div className="mb-1 flex items-center justify-between gap-3 text-muted-foreground text-xs tabular-nums">
                     <span>{currentLabel}</span>
                     <span>
                       {t(
@@ -2287,14 +2423,20 @@ export function TrafficRankingRow({
                     className="h-2.5 overflow-hidden rounded-full bg-muted"
                     role="img"
                   >
-                    <div
+                    <motion.div
+                      animate={{ opacity: 1, scaleX: 1 }}
                       className="dashboard-traffic-bar flex h-full overflow-hidden rounded-full"
+                      initial={
+                        reducedMotion
+                          ? false
+                          : { opacity: 0.72, scaleX: presets.rankBar.scale }
+                      }
                       style={
                         {
-                          "--traffic-row-delay": `${Math.min(index, 5) * 12}ms`,
                           "--traffic-share": `${rankingWidth}%`,
                         } as React.CSSProperties
                       }
+                      transition={presets.rankBar.transition}
                     >
                       <span
                         className="h-full bg-chart-1"
@@ -2304,10 +2446,10 @@ export function TrafficRankingRow({
                         className="h-full bg-chart-4"
                         style={{ width: `${downloadShare}%` }}
                       />
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs tabular-nums">
                   <span className="inline-flex items-center gap-1">
                     <i className="size-1.5 rounded-full bg-chart-1" />
                     {t("overview.upload", "Upload")} {formatBytes(item.upload)}
@@ -2318,7 +2460,7 @@ export function TrafficRankingRow({
                     {formatBytes(item.download)}
                   </span>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs tabular-nums">
                   <span>
                     {previousLabel} {formatBytes(item.previousTotal)}
                   </span>
@@ -2326,9 +2468,9 @@ export function TrafficRankingRow({
                     className={cn(
                       "font-medium",
                       item.absoluteChange > 0
-                        ? "text-[var(--admin-success)]"
+                        ? "text-[var(--admin-info)]"
                         : item.absoluteChange < 0
-                          ? "text-destructive"
+                          ? "text-muted-foreground"
                           : "text-muted-foreground"
                     )}
                   >
@@ -2452,7 +2594,7 @@ function TrafficTooltipComparisonBar({
       className="dashboard-traffic-tooltip__period space-y-1.5"
       data-period={muted ? "previous" : "current"}
     >
-      <div className="flex items-center justify-between gap-3 text-[10px] text-muted-foreground tabular-nums">
+      <div className="flex items-center justify-between gap-3 text-muted-foreground text-xs tabular-nums">
         <span>{label}</span>
         <span className="font-medium text-foreground">
           {formatBytes(total)}

@@ -43,7 +43,7 @@ export default function Page() {
                     ...values,
                   });
                   toast.success(t("updateSuccess", "Updated successfully"));
-                  ref.current?.refresh();
+                  ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                   setLoading(false);
                   return true;
                 } catch {
@@ -67,7 +67,7 @@ export default function Page() {
                   id: row.id,
                 });
                 toast.success(t("deleteSuccess", "Deleted successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "delete", rowIds: [row.id] });
               }}
               title={t("confirmDelete", "Confirm Delete")}
               trigger={
@@ -93,7 +93,10 @@ export default function Page() {
                   });
                 }
                 toast.success(t("deleteSuccess", "Deleted successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({
+                  reason: "delete",
+                  rowIds: rows.map((row) => row.id),
+                });
               }}
               title={t("confirmDelete", "Confirm Delete")}
               trigger={
@@ -118,7 +121,10 @@ export default function Page() {
                       ...row.original,
                       show: checked,
                     });
-                    ref.current?.refresh();
+                    ref.current?.refresh({
+                      reason: "edit",
+                      rowIds: [row.original.id],
+                    });
                   }}
                 />
                 <EnabledStatusChip
@@ -141,7 +147,10 @@ export default function Page() {
                   ...row.original,
                   pinned: checked,
                 });
-                ref.current?.refresh();
+                ref.current?.refresh({
+                  reason: "edit",
+                  rowIds: [row.original.id],
+                });
               }}
             />
           ),
@@ -157,7 +166,10 @@ export default function Page() {
                   ...row.original,
                   popup: checked,
                 });
-                ref.current?.refresh();
+                ref.current?.refresh({
+                  reason: "edit",
+                  rowIds: [row.original.id],
+                });
               }}
             />
           ),
@@ -190,7 +202,7 @@ export default function Page() {
               try {
                 await createAnnouncement(values);
                 toast.success(t("createSuccess", "Created successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 setLoading(false);
                 return true;
               } catch {

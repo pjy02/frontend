@@ -140,8 +140,8 @@ export default function Servers({ actionRef }: ServersProps) {
             <ServerRowActions
               deleteDisabled={isServerReferencedByNodes(row.id)}
               key="more"
-              onChanged={() => {
-                ref.current?.refresh();
+              onChanged={(options) => {
+                ref.current?.refresh(options);
                 fetchServers();
               }}
               server={row}
@@ -165,7 +165,10 @@ export default function Servers({ actionRef }: ServersProps) {
                     rows.map((r) => deleteServer({ id: r.id }))
                   );
                   toast.success(t("deleted", "Deleted"));
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "delete",
+                    rowIds: rows.map((row) => row.id),
+                  });
                   fetchServers();
                 }}
                 title={t("confirmDeleteTitle", "Delete this server?")}
@@ -429,7 +432,7 @@ function ServerRowActions({
   server,
 }: {
   deleteDisabled: boolean;
-  onChanged: () => void;
+  onChanged: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
   server: API.Server;
 }) {
   const { t } = useTranslation("servers");
@@ -482,7 +485,10 @@ function ServerRowActions({
 
       toast.success(t("copied", "Copied"));
       setOpen(false);
-      onChanged();
+      onChanged({
+        reason: "create",
+        rowIds: newServerId ? [newServerId] : undefined,
+      });
     } catch {
       toast.error(t("copyFailed", "Copy failed"));
     } finally {
@@ -558,7 +564,7 @@ function ServerRowActions({
         onConfirm={async () => {
           await deleteServer({ id: server.id } as API.DeleteServerRequest);
           toast.success(t("deleted", "Deleted"));
-          onChanged();
+          onChanged({ reason: "delete", rowIds: [server.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmDeleteTitle", "Delete this server?")}

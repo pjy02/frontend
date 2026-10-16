@@ -40,7 +40,7 @@ export default function Ads() {
               try {
                 await updateAds({ ...row, ...values });
                 toast.success(t("updateSuccess", "Updated successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                 return true;
               } catch {
                 return false;
@@ -62,7 +62,7 @@ export default function Ads() {
             onConfirm={async () => {
               await deleteAds({ id: row.id });
               toast.success(t("deleteSuccess", "Deleted successfully"));
-              ref.current?.refresh();
+              ref.current?.refresh({ reason: "delete", rowIds: [row.id] });
             }}
             title={t("confirmDelete", "Confirm Delete")}
             trigger={
@@ -86,7 +86,10 @@ export default function Ads() {
                       ...row.original,
                       status: checked ? 1 : 0,
                     });
-                    ref.current?.refresh();
+                    ref.current?.refresh({
+                      reason: "edit",
+                      rowIds: [row.original.id],
+                    });
                   }}
                 />
                 <EnabledStatusChip
@@ -145,7 +148,7 @@ export default function Ads() {
                   status: 0,
                 });
                 toast.success(t("createSuccess", "Created successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 return true;
               } catch {
                 return false;

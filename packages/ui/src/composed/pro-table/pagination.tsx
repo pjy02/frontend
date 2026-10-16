@@ -1,5 +1,6 @@
 import type { Table } from "@tanstack/react-table";
 import { Button } from "@workspace/ui/components/button";
+import { useMotionProfile } from "@workspace/ui/components/motion-profile";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ export function Pagination<TData>({
   motionEnabled = false,
 }: PaginationProps<TData>) {
   const { t } = useTranslation("components");
+  const preset = useMotionProfile()?.presets.pagination;
   const pageIndex = table.getState().pagination.pageIndex;
   const previousPageRef = useRef(pageIndex);
   const direction = pageIndex >= previousPageRef.current ? 1 : -1;
@@ -92,13 +94,21 @@ export function Pagination<TData>({
               <motion.span
                 animate={{ opacity: 1, x: 0 }}
                 exit={
-                  motionEnabled ? { opacity: 0, x: direction * -6 } : undefined
+                  motionEnabled
+                    ? { opacity: 0, x: direction * -(preset?.distance ?? 6) }
+                    : undefined
                 }
                 initial={
-                  motionEnabled ? { opacity: 0, x: direction * 6 } : false
+                  motionEnabled
+                    ? { opacity: 0, x: direction * (preset?.distance ?? 6) }
+                    : false
                 }
                 key={pageIndex}
-                transition={{ duration: motionEnabled ? 0.16 : 0 }}
+                transition={
+                  motionEnabled
+                    ? (preset?.transition ?? { duration: 0.16 })
+                    : { duration: 0 }
+                }
               >
                 {pageIndex + 1} / {pageCount}
               </motion.span>

@@ -43,7 +43,7 @@ export default function EmailTaskManager() {
         id: taskId,
       });
       toast.success(t("taskStoppedSuccessfully", "Task stopped successfully"));
-      ref.current?.refresh();
+      ref.current?.refresh({ reason: "edit", rowIds: [taskId] });
     } catch (error) {
       console.error("Failed to stop task:", error);
       toast.error(t("failedToStopTask", "Failed to stop task"));

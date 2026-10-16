@@ -77,7 +77,10 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
           } as API.UpdateSubscribeRequest);
           toast.success(t("updateSuccess"));
           await fetchSubscribes();
-          listAction?.current?.refresh();
+          listAction?.current?.refresh({
+            reason: "edit",
+            rowIds: [product.id],
+          });
           return true;
         } catch {
           return false;

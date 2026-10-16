@@ -154,7 +154,10 @@ export function ProtocolForm() {
               ...row.original,
               is_default: checked,
             });
-            tableRef.current?.refresh();
+            tableRef.current?.refresh({
+              reason: "edit",
+              rowIds: [row.original.id],
+            });
           }}
         />
       ),
@@ -285,7 +288,7 @@ export function ProtocolForm() {
     setLoading(true);
     try {
       await deleteSubscribeApplication({ id: client.id });
-      tableRef.current?.refresh();
+      tableRef.current?.refresh({ reason: "delete", rowIds: [client.id] });
       toast.success(t("actions.deleteSuccess", "Deleted successfully"));
     } catch (error) {
       console.error("Failed to delete client:", error);
@@ -301,7 +304,10 @@ export function ProtocolForm() {
       await Promise.all(
         clients.map((client) => deleteSubscribeApplication({ id: client.id }))
       );
-      tableRef.current?.refresh();
+      tableRef.current?.refresh({
+        reason: "delete",
+        rowIds: clients.map((client) => client.id),
+      });
       toast.success(
         t(
           "actions.batchDeleteSuccess",
@@ -336,7 +342,10 @@ export function ProtocolForm() {
       }
       form.reset(form.getValues());
       setOpen(false);
-      tableRef.current?.refresh();
+      tableRef.current?.refresh({
+        reason: editingClient ? "edit" : "create",
+        rowIds: editingClient ? [editingClient.id] : undefined,
+      });
     } catch (error) {
       console.error("Failed to save client:", error);
       toast.error(t("actions.saveFailed", "Save failed"));

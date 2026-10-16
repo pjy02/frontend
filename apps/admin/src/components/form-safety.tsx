@@ -127,10 +127,16 @@ export function useFormSafety<T extends FieldValues>({
   );
   const resolver = useRef<((accepted: boolean) => void) | null>(null);
   const mounted = useRef(true);
+  const openRef = useRef(open);
+  openRef.current = open;
+  const frames = useRef(new Set<number>());
+  const confirmationFocus = useRef<HTMLElement | null>(null);
   const running = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState(false);
   const errors = formErrorEntries(form.formState.errors);
+  const previousErrors = useRef(errors);
+  if (errors.length) previousErrors.current = errors;
   const busy = submitting || form.formState.isSubmitting;
 
   useEffect(() => {
@@ -139,6 +145,8 @@ export function useFormSafety<T extends FieldValues>({
       mounted.current = false;
       resolver.current?.(false);
       resolver.current = null;
+      for (const frame of frames.current) cancelAnimationFrame(frame);
+      frames.current.clear();
     };
   }, []);
   useEffect(() => {
@@ -152,6 +160,8 @@ export function useFormSafety<T extends FieldValues>({
   }, [dirty]);
   useEffect(() => {
     if (!open) {
+      for (const frame of frames.current) cancelAnimationFrame(frame);
+      frames.current.clear();
       resolver.current?.(false);
       resolver.current = null;
       setConfirmation(null);
@@ -168,6 +178,10 @@ export function useFormSafety<T extends FieldValues>({
   const ask = (kind: "discard" | "review") => {
     // A double click must not replace a pending navigation/submit resolver.
     if (resolver.current) return Promise.resolve(false);
+    confirmationFocus.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
       setConfirmation(kind);
@@ -231,26 +245,54 @@ export function useFormSafety<T extends FieldValues>({
     const leaf = parts.at(-1)!;
     return `${t(`formSafety.fields.${group}`, group)} · ${identifier}${parts.length > 2 ? ` · ${title || t(`formSafety.fields.${leaf}`, leaf)}` : ""}`;
   };
+  const scheduleFocus = (work: () => void) => {
+    const frame = requestAnimationFrame(() => {
+      frames.current.delete(frame);
+      if (mounted.current && openRef.current) work();
+    });
+    frames.current.add(frame);
+  };
   const locate = (name: string) => {
-    // Open unmounted tabs/accordions before resolving the control/ref.
-    for (const trigger of root()?.querySelectorAll<HTMLElement>(
-      "[data-form-path]"
-    ) || []) {
-      const prefixes = trigger.dataset.formPath?.split(" ") || [];
-      if (
-        prefixes.some(
-          (prefix) => name === prefix || name.startsWith(`${prefix}.`)
-        ) &&
-        !["active", "open"].includes(trigger.dataset.state || "")
-      )
-        trigger.click();
-    }
-    const element = fieldElement(name);
-    const panel = element?.closest('[role="tabpanel"]');
-    const trigger = panel?.getAttribute("aria-labelledby");
-    if (trigger) document.getElementById(trigger)?.click();
-    requestAnimationFrame(() => {
+    for (const frame of frames.current) cancelAnimationFrame(frame);
+    frames.current.clear();
+    const activate = (trigger: HTMLElement) => {
+      if (trigger.dataset.slot === "tabs-trigger") {
+        // Radix Tabs activates on keydown/mousedown, not synthetic .click().
+        trigger.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+        );
+      } else trigger.click();
+    };
+    const reveal = (attempt = 0) => {
+      let opening = false;
+      for (const trigger of root()?.querySelectorAll<HTMLElement>(
+        "[data-form-path]"
+      ) || []) {
+        const prefixes = trigger.dataset.formPath?.split(" ") || [];
+        if (
+          prefixes.some(
+            (prefix) => name === prefix || name.startsWith(`${prefix}.`)
+          ) &&
+          !["active", "open"].includes(trigger.dataset.state || "")
+        ) {
+          activate(trigger);
+          opening = true;
+        }
+      }
+      const panel = fieldElement(name)?.closest(
+        '[role="tabpanel"][data-state="inactive"]'
+      );
+      const triggerId = panel?.getAttribute("aria-labelledby");
+      const tab = triggerId ? document.getElementById(triggerId) : null;
+      if (tab) {
+        activate(tab);
+        opening = true;
+      }
+      // A parent can mount another collapsed section. Resolve it on the next commit.
+      if (opening && attempt < 3)
+        return scheduleFocus(() => reveal(attempt + 1));
       const target = fieldElement(name);
+      if (target?.closest("[hidden], [inert]")) return;
       target?.scrollIntoView?.({ block: "center", behavior: "instant" });
       if (target) {
         const control = target.matches(
@@ -262,7 +304,8 @@ export function useFormSafety<T extends FieldValues>({
             );
         control?.focus({ preventScroll: true });
       } else form.setFocus(name as Path<T>);
-    });
+    };
+    scheduleFocus(() => reveal());
   };
   const handleSubmit =
     (submit: SubmitHandler<T>, invalid?: SubmitErrorHandler<T>) =>
@@ -280,7 +323,7 @@ export function useFormSafety<T extends FieldValues>({
           },
           async (validationErrors, sourceEvent) => {
             await invalid?.(validationErrors, sourceEvent);
-            requestAnimationFrame(() =>
+            scheduleFocus(() =>
               anchor.current?.scrollIntoView?.({
                 block: "start",
                 behavior: "instant",
@@ -315,32 +358,41 @@ export function useFormSafety<T extends FieldValues>({
     handleSubmit,
     summary: (
       <div className="col-span-full" ref={anchor}>
-        {errors.length > 0 && (
-          <div
-            className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
-            role="alert"
-            tabIndex={-1}
-          >
-            <p className="font-medium text-sm">
-              {t("formSafety.errors", "Please correct {{count}} fields", {
-                count: errors.length,
-              })}
-            </p>
-            <ul className="mt-2 space-y-1">
-              {errors.map(({ name, message }) => (
-                <li key={name}>
-                  <button
-                    className="min-h-11 text-left text-destructive text-sm underline underline-offset-4"
-                    onClick={() => locate(name)}
-                    type="button"
-                  >
-                    {fieldLabel(name)}: {message}
-                  </button>
-                </li>
-              ))}
-            </ul>
+        <div
+          aria-hidden={errors.length === 0 || undefined}
+          className="admin-form-summary-region grid"
+          data-state={errors.length ? "visible" : "hidden"}
+          inert={errors.length === 0}
+        >
+          <div className="min-h-0 overflow-hidden">
+            {previousErrors.current.length > 0 && (
+              <div
+                className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
+                role="alert"
+                tabIndex={-1}
+              >
+                <p className="font-medium text-sm">
+                  {t("formSafety.errors", "Please correct {{count}} fields", {
+                    count: previousErrors.current.length,
+                  })}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {previousErrors.current.map(({ name, message }) => (
+                    <li key={name}>
+                      <button
+                        className="min-h-11 text-left text-destructive text-sm underline underline-offset-4"
+                        onClick={() => locate(name)}
+                        type="button"
+                      >
+                        {fieldLabel(name)}: {message}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
+        </div>
         {failure && (
           <p className="mb-4 text-destructive text-sm" role="alert">
             {t(
@@ -363,7 +415,20 @@ export function useFormSafety<T extends FieldValues>({
           }}
           open={confirmation !== null}
         >
-          <AlertDialogContent className="max-h-[85dvh] overflow-y-auto">
+          <AlertDialogContent
+            className="max-h-[85dvh] overflow-y-auto"
+            onCloseAutoFocus={(event) => {
+              const target = confirmationFocus.current;
+              if (!(target?.isConnected && openRef.current)) return;
+              if (
+                target.matches(":disabled") ||
+                target.closest("[inert], [hidden]")
+              )
+                return;
+              event.preventDefault();
+              target.focus({ preventScroll: true });
+            }}
+          >
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {confirmation === "review"

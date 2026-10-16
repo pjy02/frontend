@@ -14,6 +14,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -28,7 +29,7 @@ import {
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
 import { cn } from "@workspace/ui/lib/utils";
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
 import {
   cloneElement,
   createContext,
@@ -37,6 +38,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type TouchEvent as ReactTouchEvent,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -45,24 +47,17 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { useAdminMotion } from "./motion-provider";
 
 type MenuMode = "desktop" | "mobile";
 
-const mobileMenuLevelVariants = {
-  animate: { opacity: 1, x: 0 },
-  exit: (direction: 1 | -1) => ({
-    opacity: 0,
-    x: direction === 1 ? -12 : 12,
-  }),
-  initial: (direction: 1 | -1) => ({
-    opacity: 0,
-    x: direction === 1 ? 20 : -20,
-  }),
-};
-
 type AdminActionMenuContextValue = {
   backLabel: string;
+  close: () => void;
   mode: MenuMode;
+  open: boolean;
   mobileDirection: 1 | -1;
   mobilePath: string[];
   setMobilePath: (path: string[]) => void;
@@ -133,19 +128,22 @@ function AdminActionMenu({
     setMobilePath(nextPath);
   };
 
-  const updateOpen = (nextOpen: boolean) => {
-    if (controlledOpen === undefined) {
-      setInternalOpen(nextOpen);
-    }
-    onOpenChange?.(nextOpen);
-    if (!nextOpen) {
-      setMobilePath([]);
-      setMobileDirection(1);
-    }
-  };
+  const updateOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (controlledOpen === undefined) {
+        setInternalOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+      if (nextOpen) {
+        setMobilePath([]);
+        setMobileDirection(1);
+      }
+    },
+    [controlledOpen, onOpenChange]
+  );
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setMobilePath([]);
     }
   }, [open]);
@@ -153,12 +151,14 @@ function AdminActionMenu({
   const context = useMemo(
     () => ({
       backLabel,
+      close: () => updateOpen(false),
       mode,
+      open,
       mobileDirection,
       mobilePath,
       setMobilePath: updateMobilePath,
     }),
-    [backLabel, mode, mobileDirection, mobilePath]
+    [backLabel, mode, mobileDirection, mobilePath, open, updateOpen]
   );
 
   if (mode === "mobile") {
@@ -224,12 +224,56 @@ function AdminMobileActionPanel({
   description,
   title,
 }: AdminMobileActionPanelProps) {
+  const { reducedMotion, presets } = useAdminMotion();
+  const mobileMenuLevelVariants = {
+    animate: { opacity: 1, x: 0 },
+    exit: (direction: 1 | -1) => ({
+      opacity: 0,
+      x: direction * -presets.menuExit.distance,
+    }),
+    initial: (direction: 1 | -1) => ({
+      opacity: 0,
+      x: direction * presets.menuLevel.distance,
+    }),
+  };
   const context = useAdminActionMenuContext();
-  const { mobileDirection, mobilePath } = context;
+  const { mobileDirection, mobilePath, open } = context;
   const pathKey = mobilePath.join("/") || "root";
   const panelRef = useRef<HTMLDivElement>(null);
+  const previousPath = useRef(mobilePath);
+  const [height, setHeight] = useState<number>();
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const level = Array.from(
+      panelRef.current?.querySelectorAll<HTMLElement>(
+        "[data-admin-action-menu-current-level]"
+      ) ?? []
+    ).find(
+      (element) => element.dataset.adminActionMenuCurrentLevel === pathKey
+    );
+    if (!level) return;
+    const measure = () => setHeight(level.offsetHeight);
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measure);
+    observer?.observe(level);
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+    return () => observer?.disconnect();
+  }, [pathKey, open]);
 
   useEffect(() => {
+    if (!open) {
+      previousPath.current = [];
+      return;
+    }
+    const returningTo =
+      previousPath.current.length > mobilePath.length
+        ? previousPath.current.slice(0, mobilePath.length + 1).join("/")
+        : null;
+    previousPath.current = mobilePath;
     const frame = window.requestAnimationFrame(() => {
       const selector =
         mobilePath.length > 0
@@ -240,14 +284,32 @@ function AdminMobileActionPanel({
           "[data-admin-action-menu-current-level]"
         ) ?? []
       ).find((level) => level.dataset.adminActionMenuCurrentLevel === pathKey);
-      currentLevel?.querySelector<HTMLElement>(selector)?.focus({
+      const returnedTrigger = returningTo
+        ? Array.from(
+            currentLevel?.querySelectorAll<HTMLElement>(
+              "[data-admin-action-menu-sub-id]"
+            ) ?? []
+          ).find(
+            (element) => element.dataset.adminActionMenuSubId === returningTo
+          )
+        : null;
+      (
+        returnedTrigger ?? currentLevel?.querySelector<HTMLElement>(selector)
+      )?.focus({
         preventScroll: true,
       });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [mobilePath.length, pathKey]);
+  }, [mobilePath.length, pathKey, open]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented) return;
+    if (event.key === "Escape" && mobilePath.length === 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      context.close();
+      return;
+    }
     if (
       (event.key === "Escape" || event.key === "ArrowLeft") &&
       mobilePath.length > 0
@@ -273,8 +335,15 @@ function AdminMobileActionPanel({
       return;
     }
 
-    const controls = Array.from(
+    const currentLevel = Array.from(
       panelRef.current?.querySelectorAll<HTMLElement>(
+        "[data-admin-action-menu-current-level]"
+      ) ?? []
+    ).find(
+      (element) => element.dataset.adminActionMenuCurrentLevel === pathKey
+    );
+    const controls = Array.from(
+      currentLevel?.querySelectorAll<HTMLElement>(
         "[data-admin-action-menu-control]:not([disabled]):not([data-disabled=true])"
       ) ?? []
     );
@@ -299,33 +368,44 @@ function AdminMobileActionPanel({
 
   return (
     <DrawerContent
+      aria-hidden={!open || undefined}
       className={cn(
         "admin-action-menu-mobile max-h-[min(80dvh,40rem)] overflow-hidden rounded-t-[20px] border-x border-t pb-[env(safe-area-inset-bottom)] shadow-2xl",
         className
       )}
       data-slot="admin-mobile-action-panel"
+      inert={!open}
+      onEscapeKeyDown={(event) => {
+        event.preventDefault();
+        if (mobilePath.length) context.setMobilePath(mobilePath.slice(0, -1));
+        else context.close();
+      }}
     >
       <div
         className="admin-action-menu-mobile-scroll min-h-0 overflow-y-auto overscroll-contain px-2 pb-2"
         onKeyDown={handleKeyDown}
         ref={panelRef}
       >
-        <motion.div className="relative" layout>
+        <motion.div
+          animate={{ height: height || "auto" }}
+          className="relative"
+          initial={false}
+          transition={presets.menuLevel.transition}
+        >
           <AnimatePresence
             custom={mobileDirection}
             initial={false}
             mode="popLayout"
           >
-            <motion.div
+            <MobileMenuLevel
               animate="animate"
               className="admin-action-menu-mobile-level"
               custom={mobileDirection}
               data-admin-action-menu-current-level={pathKey}
               exit="exit"
-              initial="initial"
+              initial={reducedMotion ? false : "initial"}
               key={pathKey}
-              layout
-              transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+              transition={presets.menuLevel.transition}
               variants={mobileMenuLevelVariants}
             >
               <AdminActionMenuContext.Provider value={context}>
@@ -343,11 +423,23 @@ function AdminMobileActionPanel({
                 ) : null}
                 {children}
               </AdminActionMenuContext.Provider>
-            </motion.div>
+            </MobileMenuLevel>
           </AnimatePresence>
         </motion.div>
       </div>
     </DrawerContent>
+  );
+}
+
+/** Exiting levels must not retain tabbable controls or respond to touch. */
+function MobileMenuLevel(props: React.ComponentProps<typeof motion.div>) {
+  const present = useIsPresent();
+  return (
+    <motion.div
+      {...props}
+      aria-hidden={!present || undefined}
+      inert={!present}
+    />
   );
 }
 
@@ -435,6 +527,39 @@ function AdminActionMenuItem({
   const levelPath = useContext(AdminActionMenuLevelContext);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchMovedRef = useRef(false);
+  const { t } = useTranslation("components");
+  const running = useRef(false);
+  const mounted = useRef(false);
+  const [pending, setPending] = useState(false);
+  const busy = loading || pending;
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const runAction = async () => {
+    if (running.current || disabled || busy || !onAction) return;
+    running.current = true;
+    try {
+      const result = onAction();
+      if (result && typeof result.then === "function") {
+        if (mounted.current) setPending(true);
+        await result;
+      }
+    } catch {
+      // A closed menu must not swallow a pending operation's failure feedback.
+      toast.error(
+        t(
+          "error.unknown",
+          "An error occurred in the system, please try again later."
+        )
+      );
+    } finally {
+      running.current = false;
+      if (mounted.current) setPending(false);
+    }
+  };
 
   if (mode === "mobile" && !pathsEqual(mobilePath, levelPath)) {
     return null;
@@ -446,7 +571,7 @@ function AdminActionMenuItem({
         aria-hidden="true"
         className="flex size-5 items-center justify-center text-muted-foreground [&_svg]:size-4"
       >
-        {loading ? <LoaderCircle className="animate-spin" /> : icon}
+        {busy ? <LoaderCircle className="animate-spin" /> : icon}
       </span>
       <AdminActionMenuLabel tooltip={tooltip}>{label}</AdminActionMenuLabel>
       <span className="flex min-w-0 items-center justify-end text-muted-foreground text-xs [&_svg]:size-4">
@@ -459,7 +584,8 @@ function AdminActionMenuItem({
     asChild && isValidElement<{ children?: ReactNode }>(children)
       ? cloneElement(children, undefined, itemContent(children.props.children))
       : null;
-  const isDisabled = disabled || loading;
+  const isDisabled = disabled || busy;
+  const busyLabel = loadingLabel ?? t("actions.processing", "Processing");
   const handleTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
     const touch = event.touches[0];
     if (!touch) return;
@@ -481,8 +607,8 @@ function AdminActionMenuItem({
   if (mode === "desktop") {
     return (
       <DropdownMenuItem
-        aria-busy={loading || undefined}
-        aria-label={loading ? loadingLabel : undefined}
+        aria-busy={busy || undefined}
+        aria-label={busy ? busyLabel : undefined}
         asChild={asChild}
         className={cn(itemClassName, className)}
         disabled={isDisabled}
@@ -491,7 +617,7 @@ function AdminActionMenuItem({
             event.preventDefault();
           }
           if (!isDisabled) {
-            await onAction?.();
+            await runAction();
           }
         }}
         variant={variant}
@@ -504,8 +630,9 @@ function AdminActionMenuItem({
   const Comp = asChild ? Slot : "button";
   const mobileItem = (
     <Comp
-      aria-busy={loading || undefined}
-      aria-label={loading ? loadingLabel : undefined}
+      aria-busy={busy || undefined}
+      aria-disabled={isDisabled || undefined}
+      aria-label={busy ? busyLabel : undefined}
       className={cn(
         itemClassName,
         "min-h-11 hover:bg-accent focus-visible:bg-accent",
@@ -519,14 +646,14 @@ function AdminActionMenuItem({
       data-variant={variant}
       disabled={asChild ? undefined : isDisabled}
       onClick={async (event) => {
-        if (touchMovedRef.current) {
+        if (touchMovedRef.current || isDisabled || running.current) {
           event.preventDefault();
           event.stopPropagation();
           touchMovedRef.current = false;
           return;
         }
         if (!isDisabled) {
-          await onAction?.();
+          await runAction();
         }
       }}
       onTouchMove={handleTouchMove}
@@ -647,14 +774,16 @@ function AdminActionMenuSub({
             </span>
             <AdminActionMenuLabel>{label}</AdminActionMenuLabel>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent
-            className="admin-action-menu-content w-max min-w-40 max-w-[220px] rounded-[10px] p-1.5"
-            collisionPadding={8}
-            data-admin-action-menu-level="sub"
-            sideOffset={4}
-          >
-            {children}
-          </DropdownMenuSubContent>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent
+              className="admin-action-menu-content w-max min-w-40 max-w-[220px] rounded-[10px] p-1.5"
+              collisionPadding={8}
+              data-admin-action-menu-level="sub"
+              sideOffset={4}
+            >
+              {children}
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
         </DropdownMenuSub>
       </AdminActionMenuLevelContext.Provider>
     );
@@ -669,6 +798,7 @@ function AdminActionMenuSub({
           className
         )}
         data-admin-action-menu-control
+        data-admin-action-menu-sub-id={ownPath.join("/")}
         data-admin-action-menu-sub-trigger
         disabled={disabled}
         onClick={() => setMobilePath(ownPath)}

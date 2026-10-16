@@ -1,11 +1,13 @@
-import { useSortable } from "@dnd-kit/sortable";
+import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@workspace/ui/components/button";
+import { useMotionProfile } from "@workspace/ui/components/motion-profile";
 import { cn } from "@workspace/ui/lib/utils";
 import { GripVertical } from "lucide-react";
 import { motion } from "motion/react";
 import type React from "react";
-import type { RowFeedback } from "./data-continuity.js";
+import { useCallback } from "react";
+import { type RowFeedback, rowExit } from "./data-continuity.js";
 
 interface SortableMobileCardProps {
   id: string;
@@ -17,6 +19,8 @@ interface SortableMobileCardProps {
   selected?: boolean;
   feedback?: RowFeedback;
   motionEnabled: boolean;
+  mutationLayout?: boolean;
+  ref?: React.Ref<HTMLElement>;
 }
 
 export function SortableMobileCard({
@@ -29,7 +33,10 @@ export function SortableMobileCard({
   label,
   motionEnabled,
   selected,
+  mutationLayout = false,
+  ref,
 }: SortableMobileCardProps) {
+  const presets = useMotionProfile()?.presets;
   const {
     attributes,
     isDragging,
@@ -38,7 +45,19 @@ export function SortableMobileCard({
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id });
+  } = useSortable({
+    id,
+    animateLayoutChanges: (args) =>
+      mutationLayout && !args.isSorting && !args.wasDragging
+        ? args.previousItems.includes(args.id)
+        : defaultAnimateLayoutChanges(args),
+    transition: presets
+      ? {
+          duration: presets.dataLayout.durationMs,
+          easing: `cubic-bezier(${presets.dataLayout.transition.ease.join(", ")})`,
+        }
+      : undefined,
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(
@@ -52,6 +71,14 @@ export function SortableMobileCard({
     transition,
     zIndex: isDragging ? 10 : undefined,
   };
+  const setRef = useCallback(
+    (node: HTMLElement | null) => {
+      setNodeRef(node);
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+    },
+    [setNodeRef, ref]
+  );
 
   return (
     <motion.article
@@ -67,11 +94,22 @@ export function SortableMobileCard({
       data-dragging={isDragging || undefined}
       data-feedback={feedback}
       data-state={selected ? "selected" : undefined}
-      exit={motionEnabled ? { opacity: 0 } : undefined}
-      initial={motionEnabled ? { opacity: 0 } : false}
-      ref={setNodeRef}
+      exit="removed"
+      initial={motionEnabled && feedback === "added" ? { opacity: 0 } : false}
+      ref={setRef}
       style={style}
-      transition={{ duration: motionEnabled ? 0.18 : 0 }}
+      transition={
+        motionEnabled
+          ? (presets?.dataEnter.transition ?? { duration: 0.18 })
+          : { duration: 0 }
+      }
+      variants={{
+        removed: rowExit(
+          id,
+          motionEnabled,
+          presets?.dataExit.transition.duration
+        ),
+      }}
     >
       <div className="admin-pro-table-card__body p-4">{children}</div>
       <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">

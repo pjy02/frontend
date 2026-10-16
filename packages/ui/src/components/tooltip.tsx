@@ -18,13 +18,14 @@ function TooltipProvider({
 }
 
 function Tooltip({
+  sharedProvider = false,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  return (
-    <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
-    </TooltipProvider>
-  );
+}: React.ComponentProps<typeof TooltipPrimitive.Root> & {
+  sharedProvider?: boolean;
+}) {
+  const root = <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+  if (sharedProvider) return root;
+  return <TooltipProvider>{root}</TooltipProvider>;
 }
 
 function TooltipTrigger({

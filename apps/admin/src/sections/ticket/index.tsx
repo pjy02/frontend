@@ -145,7 +145,9 @@ export default function Page() {
                 </Button>,
                 <TicketRowActions
                   key="more"
-                  onClosed={() => ref.current?.refresh()}
+                  onClosed={() =>
+                    ref.current?.refresh({ reason: "edit", rowIds: [row.id] })
+                  }
                   ticketId={row.id}
                 />,
               ];

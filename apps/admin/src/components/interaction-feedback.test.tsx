@@ -21,6 +21,8 @@ import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import { createRef } from "react";
 import { useForm } from "react-hook-form";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MotionProvider } from "./motion-provider";
+import { adminMotionProfile } from "./motion-tokens";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -64,9 +66,57 @@ function ErrorMessageProbe() {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("admin interaction feedback", () => {
+  it("cancels the success timer on close so reopening cannot be closed by stale feedback", async () => {
+    vi.useFakeTimers();
+    render(
+      <ConfirmButton
+        description="Fixture"
+        onConfirm={vi.fn()}
+        title="Confirm operation"
+        trigger={<Button>Open</Button>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Confirm" }))
+    );
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    expect(screen.queryByText("Completed")).toBeNull();
+  });
+
+  it("retains input and allows confirmation retry after an actual rejected request", async () => {
+    const confirm = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Fixture"))
+      .mockResolvedValueOnce(undefined);
+    render(
+      <ConfirmButton
+        description="Fixture"
+        onConfirm={confirm}
+        title="Confirm operation"
+        trigger={<Button>Open</Button>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Confirm" }).hasAttribute("disabled")
+      ).toBe(false)
+    );
+    expect(screen.queryByText("Completed")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await screen.findByText("Completed");
+    expect(confirm).toHaveBeenCalledTimes(2);
+  });
   it("keeps button width content mounted while exposing loading and success", () => {
     const view = render(
       <Button loading loadingLabel="Refreshing data">
@@ -170,5 +220,57 @@ describe("admin interaction feedback", () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(returnFocusRef.current)
     );
+  });
+
+  it("takes successful feedback retention from the opted-in profile", async () => {
+    vi.useFakeTimers();
+    const profile = {
+      ...adminMotionProfile,
+      successHold: { ...adminMotionProfile.successHold, duration: 60 },
+    };
+    render(
+      <MotionProvider profile={profile}>
+        <ConfirmButton
+          description="Local fixture"
+          onConfirm={async () => {
+            await Promise.resolve();
+          }}
+          title="Confirm operation"
+          trigger={<Button>Open</Button>}
+        />
+      </MotionProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Confirm" }))
+    );
+    expect(screen.getByText("Completed")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(59));
+    expect(screen.getByText("Confirm operation")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByText("Confirm operation")).toBeNull();
+  });
+
+  it("does not schedule feedback after the pending confirmation unmounts", async () => {
+    vi.useFakeTimers();
+    let resolve: (() => void) | undefined;
+    const view = render(
+      <ConfirmButton
+        description="Local fixture"
+        onConfirm={() =>
+          new Promise<void>((done) => {
+            resolve = done;
+          })
+        }
+        title="Confirm operation"
+        trigger={<Button>Open</Button>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    view.unmount();
+    const schedule = vi.spyOn(globalThis, "setTimeout");
+    await act(async () => resolve?.());
+    expect(schedule.mock.calls.some((args) => args[1] === 420)).toBe(false);
   });
 });

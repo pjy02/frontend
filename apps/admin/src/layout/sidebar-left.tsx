@@ -52,7 +52,10 @@ export function SidebarLeft({
     width: 0,
     height: 0,
     visible: false,
+    animated: false,
+    layout: "",
   });
+  const indicatorLayout = `${isMobile ? "mobile" : state}`;
 
   const updateScrollEdges = React.useCallback(() => {
     const element = scrollRef.current;
@@ -67,7 +70,7 @@ export function SidebarLeft({
     const container = scrollRef.current;
     if (!container) return;
     let active = container.querySelector<HTMLElement>(
-      '[data-slot="sidebar-menu-button"][data-active="true"], [data-slot="sidebar-menu-sub-button"][data-active="true"]'
+      '[data-sidebar="menu-button"][data-active="true"], [data-sidebar="menu-sub-button"][data-active="true"]'
     );
     const closedGroup = active?.closest<HTMLElement>(
       '.admin-sidebar-group-motion[data-open="false"]'
@@ -82,14 +85,16 @@ export function SidebarLeft({
 
     const containerRect = container.getBoundingClientRect();
     const activeRect = active.getBoundingClientRect();
-    setActiveIndicator({
+    setActiveIndicator((current) => ({
       x: activeRect.left - containerRect.left + container.scrollLeft,
       y: activeRect.top - containerRect.top + container.scrollTop,
       width: activeRect.width,
       height: activeRect.height,
       visible: true,
-    });
-  }, []);
+      animated: current.visible && current.layout === indicatorLayout,
+      layout: indicatorLayout,
+    }));
+  }, [indicatorLayout]);
 
   const normalize = (path: string) =>
     path.endsWith("/") && path !== "/" ? path.replace(/\/+$/, "") : path;
@@ -127,7 +132,10 @@ export function SidebarLeft({
     });
   }, [pathname, navs]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
+    // Measure before first paint: no selection flight from the zero rectangle.
+    updateScrollEdges();
+    updateActiveIndicator();
     const frame = requestAnimationFrame(() => {
       updateScrollEdges();
       updateActiveIndicator();
@@ -262,11 +270,16 @@ export function SidebarLeft({
         data-can-scroll-down={scrollEdges.down}
         data-can-scroll-up={scrollEdges.up}
         onScroll={updateScrollEdges}
+        onTransitionEnd={(event) => {
+          if (event.propertyName === "grid-template-rows")
+            updateActiveIndicator();
+        }}
         ref={scrollRef}
       >
         <div
           aria-hidden="true"
           className="admin-sidebar-active-indicator"
+          data-animated={activeIndicator.animated}
           style={
             {
               "--admin-sidebar-indicator-height": `${activeIndicator.height}px`,

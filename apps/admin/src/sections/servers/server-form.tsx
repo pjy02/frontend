@@ -34,12 +34,12 @@ import {
 import { Switch } from "@workspace/ui/components/switch";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
-import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useFormSafety } from "@/components/form-safety";
+import { StatusChip } from "@/components/status-chip";
 import {
   WorkspaceDialog,
   WorkspaceDialogContent,
@@ -503,11 +503,9 @@ function renderGroupCard(
 
   return (
     <div className="relative">
-      <fieldset className="rounded-lg border border-border">
-        <legend className="ml-3 bg-background px-1 py-1 font-medium text-foreground text-sm">
-          {title}
-        </legend>
-        <div className="p-4 pt-2">
+      <fieldset className="admin-form-section">
+        <legend className="text-foreground">{title}</legend>
+        <div className="pt-2">
           {renderFieldsByGroup(
             fields,
             group,
@@ -895,7 +893,7 @@ export default function ServerForm(props: ServerFormProps) {
                 <h3 className="font-semibold text-foreground text-sm">
                   {t("protocol_configurations", "Protocol Configurations")}
                 </h3>
-                <p className="mt-1 text-muted-foreground text-xs">
+                <p className="admin-helper-text mt-1">
                   {t(
                     "protocol_configurations_desc",
                     "Enable and configure the required protocol types"
@@ -952,18 +950,13 @@ export default function ServerForm(props: ServerFormProps) {
                               )}
                             </div>
                             <div className="flex items-center gap-1">
-                              <span
-                                className={cn(
-                                  "text-xs",
-                                  isEnabled
-                                    ? "text-green-500"
-                                    : "text-muted-foreground"
-                                )}
+                              <StatusChip
+                                tone={isEnabled ? "success" : "neutral"}
                               >
                                 {isEnabled
                                   ? t("enabled", "Enabled")
                                   : t("disabled", "Disabled")}
-                              </span>
+                              </StatusChip>
                             </div>
                           </div>
                           <Switch
@@ -994,7 +987,7 @@ export default function ServerForm(props: ServerFormProps) {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pt-0 pb-4">
-                        <div className="-mx-4 space-y-4 rounded-b-lg border-t px-4 pt-4">
+                        <div className="admin-protocol-groups space-y-5 border-t pt-4">
                           {renderGroupCard(
                             t("basic", "Basic Configuration"),
                             fields,

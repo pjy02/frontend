@@ -1,5 +1,6 @@
 "use client";
 
+import { replaceEqualDeep } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -20,6 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible";
+import { useMotionProfile } from "@workspace/ui/components/motion-profile";
 import {
   Popover,
   PopoverContent,
@@ -44,6 +46,7 @@ import { SortableRow } from "@workspace/ui/composed/pro-table/sortable-row";
 import { ProTableWrapper } from "@workspace/ui/composed/pro-table/wrapper";
 import { useReducedMotion } from "@workspace/ui/hooks/use-reduced-motion";
 import { useStoredPreference } from "@workspace/ui/hooks/use-stored-preference";
+import type { ResolvedMotionProfile } from "@workspace/ui/lib/motion-profile";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   ChevronDown,
@@ -53,13 +56,15 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, animate, motion } from "motion/react";
 import type React from "react";
 import {
+  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -71,7 +76,13 @@ import {
   getRowIdentity,
   type PageDirection,
   type RowFeedback,
+  resolveTableOperation,
+  rowExit,
+  type TableRefreshOptions,
 } from "./data-continuity.js";
+
+export type { TableRefreshOptions } from "./data-continuity.js";
+
 import {
   parseTablePreferences,
   type SavedTableView,
@@ -151,7 +162,7 @@ export interface ProTablePagination {
 }
 
 export interface ProTableActions {
-  refresh: () => void;
+  refresh: (options?: TableRefreshOptions) => Promise<void>;
   reset: () => void;
 }
 
@@ -182,8 +193,19 @@ export function ProTable<
   pagination: paginationEnabled = true,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
-  const actionOptions = useRef({ actions, texts, t });
-  actionOptions.current = { actions, texts, t };
+  const motionProfile = useMotionProfile();
+  const actionOptions = useRef({
+    actions,
+    texts,
+    t,
+    memoize: Boolean(motionProfile),
+  });
+  actionOptions.current = {
+    actions,
+    texts,
+    t,
+    memoize: Boolean(motionProfile),
+  };
   // A new component type on each table render unmounts open row workspaces.
   // Keep the renderer identity stable while reading the latest callbacks/text.
   const renderActions = useCallback(({ row }: { row: Row<TData> }) => {
@@ -191,14 +213,17 @@ export function ProTable<
       actions: currentActions,
       texts: currentTexts,
       t: translate,
+      memoize,
     } = actionOptions.current;
+    const Actions = memoize ? MemoizedDataRowActions : DataRowActions;
     return (
-      <RowActions
-        items={currentActions?.render?.(row.original) || []}
+      <Actions
+        data={row.original}
         moreLabel={
           currentTexts?.moreActions ||
           translate("table.moreActions", "More actions")
         }
+        render={currentActions?.render}
         visibleCount={currentActions?.visibleCount}
       />
     );
@@ -263,6 +288,12 @@ export function ProTable<
   onDataReadyRef.current = onDataReady;
   const dataRef = useRef<TData[]>([]);
   const lastLoadedPageRef = useRef(normalizedInitialPagination.pageIndex);
+  const lastLoadedQueryRef = useRef<string | undefined>(undefined);
+  const [operation, setOperation] = useState<TableRefreshOptions>({
+    reason: "initial",
+  });
+  const mobileResultRef = useRef<HTMLDivElement>(null);
+  const desktopResultRef = useRef<HTMLTableSectionElement>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pageDirection, setPageDirection] = useState<PageDirection>("none");
@@ -272,6 +303,10 @@ export function ProTable<
     {}
   );
   const reducedMotion = useReducedMotion();
+  const presets = motionProfile?.presets;
+  const MobileRowActions = motionProfile
+    ? MemoizedDataRowActions
+    : DataRowActions;
   const adminMotionEnabled =
     typeof document !== "undefined" &&
     document.documentElement.classList.contains("admin-console") &&
@@ -283,6 +318,8 @@ export function ProTable<
   const setContinuousData: React.Dispatch<React.SetStateAction<TData[]>> = (
     nextValue
   ) => {
+    setOperation({ reason: "sort" });
+    setRowFeedback({});
     setData((currentData) => {
       const nextData =
         typeof nextValue === "function" ? nextValue(currentData) : nextValue;
@@ -291,50 +328,67 @@ export function ProTable<
     });
   };
 
+  const tableColumns = useMemo(
+    () =>
+      [
+        ...(onSort
+          ? [
+              {
+                id: "sortable",
+                header: (
+                  <GripVertical className="h-4 w-4 cursor-move text-muted-foreground hover:text-foreground" />
+                ),
+                enableSorting: false,
+                enableHiding: false,
+              },
+            ]
+          : []),
+        ...(actions?.batchRender
+          ? [
+              createSelectColumn<TData, TValue>({
+                selectAll: t("table.selectAll", "Select all rows on this page"),
+                selectRow: t("table.selectRow", "Select row"),
+              }),
+            ]
+          : []),
+        ...columns.map(
+          (column) =>
+            ({
+              enableSorting: false,
+              ...column,
+            }) as ColumnDef<TData, TValue>
+        ),
+        ...(actions?.render
+          ? ([
+              {
+                id: "actions",
+                header: texts?.actions,
+                cell: renderActions,
+                enableSorting: false,
+                enableHiding: false,
+              },
+            ] as ColumnDef<TData, TValue>[])
+          : []),
+      ] as ColumnDef<TData, TValue>[],
+    [
+      Boolean(onSort),
+      Boolean(actions?.batchRender),
+      Boolean(actions?.render),
+      columns,
+      texts?.actions,
+      renderActions,
+      t,
+    ]
+  );
   const table = useReactTable({
     data,
-    columns: [
-      ...(onSort
-        ? [
-            {
-              id: "sortable",
-              header: (
-                <GripVertical className="h-4 w-4 cursor-move text-muted-foreground hover:text-foreground" />
-              ),
-              enableSorting: false,
-              enableHiding: false,
-            },
-          ]
-        : []),
-      ...(actions?.batchRender
-        ? [
-            createSelectColumn<TData, TValue>({
-              selectAll: t("table.selectAll", "Select all rows on this page"),
-              selectRow: t("table.selectRow", "Select row"),
-            }),
-          ]
-        : []),
-      ...columns.map(
-        (column) =>
-          ({
-            enableSorting: false,
-            ...column,
-          }) as ColumnDef<TData, TValue>
-      ),
-      ...(actions?.render
-        ? ([
-            {
-              id: "actions",
-              header: texts?.actions,
-              cell: renderActions,
-              enableSorting: false,
-              enableHiding: false,
-            },
-          ] as ColumnDef<TData, TValue>[])
-        : []),
-    ] as ColumnDef<TData, TValue>[],
+    columns: tableColumns,
     onPaginationChange: setPagination,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      setOperation({ reason: "sort" });
+      setRowFeedback({});
+    },
     onColumnFiltersChange: (updater) => {
       setColumnFilters((current) =>
         typeof updater === "function" ? updater(current) : updater
@@ -363,7 +417,10 @@ export function ProTable<
     manualSorting: true,
   });
 
-  const fetchData = async (showRefreshFeedback = false) => {
+  const fetchData = async (
+    showRefreshFeedback = false,
+    options: TableRefreshOptions = {}
+  ) => {
     const requestId = ++requestIdRef.current;
     const filters = Object.fromEntries(
       columnFilters.map((item) => [item.id, item.value])
@@ -388,33 +445,69 @@ export function ProTable<
       );
       if (requestId === requestIdRef.current) {
         const previousData = dataRef.current;
-        const nextFeedback = getRowFeedback(previousData, response.list);
+        const query = `${serializeColumnFilters(columnFilters)}\n${serializePagination(pagination)}`;
+        const reason = resolveTableOperation(
+          lastLoadedQueryRef.current,
+          query,
+          options
+        );
+        const nextOperation = { ...options, reason };
+        const nextFeedback = getRowFeedback(
+          previousData,
+          response.list,
+          nextOperation
+        );
+        setOperation(nextOperation);
+        lastLoadedQueryRef.current = query;
         const nextPageDirection = getPageDirection(
           lastLoadedPageRef.current,
           pagination.pageIndex
         );
 
-        dataRef.current = response.list;
-        setData(response.list);
+        // Admin opt-in only. Preserve unchanged JSON row identities without
+        // caching requests or skipping fresh server responses.
+        const nextData = motionProfile
+          ? replaceEqualDeep(previousData, response.list)
+          : response.list;
+        dataRef.current = nextData;
+        setData(nextData);
         setRowCount(response.total);
-        setRowFeedback(previousData.length > 0 ? nextFeedback : {});
+        setRowFeedback((current) =>
+          Object.keys(current).length === 0 &&
+          Object.keys(nextFeedback).length === 0
+            ? current
+            : nextFeedback
+        );
         setPageDirection(nextPageDirection);
-        if (nextPageDirection !== "none") {
+        if (reason === "pagination" || reason === "filter") {
           setPageTransitionVersion((version) => version + 1);
         }
         lastLoadedPageRef.current = pagination.pageIndex;
 
         if (feedbackTimerRef.current) {
           clearTimeout(feedbackTimerRef.current);
+          feedbackTimerRef.current = null;
         }
-        feedbackTimerRef.current = setTimeout(() => setRowFeedback({}), 900);
+        const mutation = ["create", "edit", "delete"].includes(reason);
+        if (mutation || Object.keys(nextFeedback).length > 0) {
+          feedbackTimerRef.current = setTimeout(() => {
+            setRowFeedback((current) =>
+              Object.keys(current).length ? {} : current
+            );
+            if (mutation) {
+              setOperation((current) =>
+                current === nextOperation ? { reason: "refresh" } : current
+              );
+            }
+          }, presets?.feedback.durationMs ?? 900);
+        }
 
         if (showRefreshFeedback) {
           setRefreshSucceeded(true);
           if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
           refreshTimerRef.current = setTimeout(
             () => setRefreshSucceeded(false),
-            900
+            presets?.feedback.durationMs ?? 900
           );
         }
       }
@@ -541,17 +634,45 @@ export function ProTable<
     if (!isLoading && data.length > 0) onDataReadyRef.current?.();
   }, [data, isLoading]);
   useImperativeHandle(action, () => ({
-    refresh: () => fetchData(),
+    refresh: (options) => fetchData(false, options),
     reset,
   }));
 
   useEffect(
     () => () => {
+      requestIdRef.current += 1;
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     },
     []
   );
+
+  // One interruptible result-region transition. Never key/remount the rows:
+  // filters/page changes are navigation, not additions/deletions.
+  useEffect(() => {
+    if (!adminMotionEnabled || pageTransitionVersion === 0) return;
+    const elements = [mobileResultRef.current, desktopResultRef.current].filter(
+      (element): element is HTMLDivElement | HTMLTableSectionElement =>
+        element !== null
+    );
+    let active = true;
+    const controls = elements.map((element) => {
+      const control = animate(
+        element,
+        { opacity: [0.72, 1] },
+        presets?.pagination.transition ?? { duration: 0.16 }
+      );
+      control.then(() => {
+        if (active) element.style.opacity = "";
+      });
+      return control;
+    });
+    return () => {
+      active = false;
+      for (const control of controls) control.stop();
+      for (const element of elements) element.style.opacity = "";
+    };
+  }, [pageTransitionVersion, adminMotionEnabled, presets?.pagination]);
 
   const filtersSnapshot = serializeColumnFilters(columnFilters);
   const paginationSnapshot = serializePagination(pagination);
@@ -635,6 +756,7 @@ export function ProTable<
       className="admin-pro-table flex min-w-0 flex-col gap-4"
       data-density={preferenceKey ? viewPreferences.density : undefined}
       data-loading={isLoading}
+      data-operation={operation.reason}
       data-refreshing={isLoading && data.length > 0}
       data-selection-active={selectedCount > 0 && Boolean(actions?.batchRender)}
       data-tablet-layout={
@@ -738,10 +860,22 @@ export function ProTable<
               <motion.div
                 animate={{ opacity: 1, y: 0 }}
                 className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
-                exit={adminMotionEnabled ? { opacity: 0, y: 8 } : undefined}
-                initial={adminMotionEnabled ? { opacity: 0, y: 8 } : false}
+                exit={
+                  adminMotionEnabled
+                    ? { opacity: 0, y: presets?.batch.distance ?? 8 }
+                    : undefined
+                }
+                initial={
+                  adminMotionEnabled
+                    ? { opacity: 0, y: presets?.batch.distance ?? 8 }
+                    : false
+                }
                 key="batch-actions"
-                transition={{ duration: adminMotionEnabled ? 0.18 : 0 }}
+                transition={
+                  adminMotionEnabled
+                    ? (presets?.batch.transition ?? { duration: 0.18 })
+                    : { duration: 0 }
+                }
               >
                 <div
                   aria-label={t("table.batchActions", "Batch actions")}
@@ -786,98 +920,119 @@ export function ProTable<
           <div
             className="admin-pro-table-mobile grid items-start gap-3 lg:hidden"
             data-page-direction={pageDirection}
-            key={`mobile-page-${pageTransitionVersion}`}
+            ref={mobileResultRef}
           >
-            {table.getRowModel().rows.length ? (
-              <AnimatePresence initial={false} mode="popLayout">
-                {table.getRowModel().rows.map((row) => {
-                  const rowActions = actions?.render?.(row.original) || [];
-                  const label = mobile?.getAriaLabel
-                    ? mobile.getAriaLabel(row.original)
-                    : t("table.recordLabel", "Record {{number}}", {
-                        number: row.index + 1,
-                      });
-                  const body = mobile?.render ? (
-                    mobile.render(row.original)
-                  ) : (
-                    <DefaultMobileCard
-                      detailsLimit={mobile?.detailsLimit}
-                      row={row}
-                    />
-                  );
-                  const selection = actions?.batchRender ? (
-                    <Checkbox
-                      aria-label={t("table.selectRow", "Select row")}
-                      checked={row.getIsSelected()}
-                      className="admin-pro-table-selection"
-                      onCheckedChange={(value) => row.toggleSelected(!!value)}
-                    />
-                  ) : null;
-                  const rowActionsMenu = (
-                    <RowActions
-                      items={rowActions}
-                      moreLabel={
-                        texts?.moreActions ||
-                        t("table.moreActions", "More actions")
-                      }
-                      visibleCount={actions?.visibleCount}
-                    />
-                  );
-                  const feedback = rowFeedback[row.id];
+            <AnimatePresence
+              custom={operation}
+              initial={false}
+              mode="popLayout"
+            >
+              {table.getRowModel().rows.map((row) => {
+                const rowActions = actions?.render?.(row.original) || [];
+                const label = mobile?.getAriaLabel
+                  ? mobile.getAriaLabel(row.original)
+                  : t("table.recordLabel", "Record {{number}}", {
+                      number: row.index + 1,
+                    });
+                const body = mobile?.render ? (
+                  mobile.render(row.original)
+                ) : (
+                  <DefaultMobileCard
+                    detailsLimit={mobile?.detailsLimit}
+                    row={row}
+                  />
+                );
+                const selection = actions?.batchRender ? (
+                  <Checkbox
+                    aria-label={t("table.selectRow", "Select row")}
+                    checked={row.getIsSelected()}
+                    className="admin-pro-table-selection"
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                  />
+                ) : null;
+                const rowActionsMenu = (
+                  <MobileRowActions
+                    data={row.original}
+                    moreLabel={
+                      texts?.moreActions ||
+                      t("table.moreActions", "More actions")
+                    }
+                    render={actions?.render}
+                    visibleCount={actions?.visibleCount}
+                  />
+                );
+                const feedback = rowFeedback[row.id];
 
-                  if (onSort) {
-                    return (
-                      <SortableMobileCard
-                        dragLabel={t("table.reorderRow", "Reorder")}
-                        feedback={feedback}
-                        footerEnd={rowActionsMenu}
-                        footerStart={selection}
-                        id={row.id}
-                        key={row.id}
-                        label={label}
-                        motionEnabled={adminMotionEnabled}
-                        selected={row.getIsSelected()}
-                      >
-                        {body}
-                      </SortableMobileCard>
-                    );
-                  }
-
+                if (onSort) {
                   return (
-                    <motion.article
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      aria-label={label}
-                      className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
-                      data-feedback={feedback}
-                      data-state={row.getIsSelected() ? "selected" : undefined}
-                      exit={
-                        adminMotionEnabled
-                          ? { opacity: 0, scale: 0.99, y: -4 }
-                          : undefined
-                      }
-                      initial={
-                        adminMotionEnabled
-                          ? { opacity: 0, scale: 0.99, y: 4 }
-                          : false
-                      }
+                    <SortableMobileCard
+                      dragLabel={t("table.reorderRow", "Reorder")}
+                      feedback={feedback}
+                      footerEnd={rowActionsMenu}
+                      footerStart={selection}
+                      id={row.id}
                       key={row.id}
-                      layout={adminMotionEnabled ? "position" : false}
-                      transition={getRowMotionTransition(adminMotionEnabled)}
+                      label={label}
+                      motionEnabled={adminMotionEnabled}
+                      mutationLayout={
+                        adminMotionEnabled &&
+                        ["create", "delete"].includes(operation.reason || "")
+                      }
+                      selected={row.getIsSelected()}
                     >
-                      <div className="admin-pro-table-card__body p-4">
-                        {body}
-                      </div>
-                      {(actions?.batchRender || rowActions.length > 0) && (
-                        <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
-                          {selection || <span />}
-                          {rowActionsMenu}
-                        </div>
-                      )}
-                    </motion.article>
+                      {body}
+                    </SortableMobileCard>
                   );
-                })}
-              </AnimatePresence>
-            ) : isLoading ? (
+                }
+
+                return (
+                  <motion.article
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    aria-label={label}
+                    className="admin-pro-table-card overflow-hidden rounded-xl border bg-card"
+                    data-feedback={feedback}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                    exit="removed"
+                    initial={
+                      adminMotionEnabled && feedback === "added"
+                        ? {
+                            opacity: 0,
+                            scale: presets?.dataEnter.scale ?? 0.99,
+                            y: presets?.dataEnter.distance ?? 4,
+                          }
+                        : false
+                    }
+                    key={row.id}
+                    layout={
+                      adminMotionEnabled &&
+                      ["create", "delete"].includes(operation.reason || "")
+                        ? "position"
+                        : false
+                    }
+                    transition={getRowMotionTransition(
+                      adminMotionEnabled,
+                      presets
+                    )}
+                    variants={{
+                      removed: rowExit(
+                        row.id,
+                        adminMotionEnabled,
+                        presets?.dataExit.transition.duration
+                      ),
+                    }}
+                  >
+                    <div className="admin-pro-table-card__body p-4">{body}</div>
+                    {(actions?.batchRender || rowActions.length > 0) && (
+                      <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+                        {selection || <span />}
+                        {rowActionsMenu}
+                      </div>
+                    )}
+                  </motion.article>
+                );
+              })}
+            </AnimatePresence>
+            {table.getRowModel().rows.length ? null : isLoading ? (
               Array.from({ length: 3 }, (_, index) => (
                 <div
                   className="admin-pro-table-placeholder space-y-3 rounded-xl border bg-card p-4"
@@ -976,49 +1131,32 @@ export function ProTable<
             <TableBody
               className="admin-pro-table-content"
               data-page-direction={pageDirection}
-              key={`table-page-${pageTransitionVersion}`}
+              ref={desktopResultRef}
             >
-              {table.getRowModel()?.rows?.length ? (
-                onSort ? (
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {table.getRowModel().rows.map((row) => (
-                      <SortableRow
-                        className="h-13"
-                        feedback={rowFeedback[row.id]}
-                        id={row.id}
-                        isSortable
-                        key={row.id}
-                        motionEnabled={adminMotionEnabled}
-                        selected={row.getIsSelected()}
-                      >
-                        {row
-                          .getVisibleCells()
-                          .filter((cell) => cell.column.id !== "sortable")
-                          .map((cell) => (
-                            <TableCell
-                              className={getTableCellClass(cell.column.id)}
-                              key={cell.id}
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </TableCell>
-                          ))}
-                      </SortableRow>
-                    ))}
-                  </AnimatePresence>
-                ) : (
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {table.getRowModel().rows.map((row) => (
-                      <AnimatedTableRow
-                        feedback={rowFeedback[row.id]}
-                        key={row.id}
-                        motionEnabled={adminMotionEnabled}
-                        pageDirection={pageDirection}
-                        selected={row.getIsSelected()}
-                      >
-                        {row.getVisibleCells().map((cell) => (
+              {onSort ? (
+                <AnimatePresence
+                  custom={operation}
+                  initial={false}
+                  mode="popLayout"
+                >
+                  {table.getRowModel().rows.map((row) => (
+                    <SortableRow
+                      className="h-13"
+                      feedback={rowFeedback[row.id]}
+                      id={row.id}
+                      isSortable
+                      key={row.id}
+                      motionEnabled={adminMotionEnabled}
+                      mutationLayout={
+                        adminMotionEnabled &&
+                        ["create", "delete"].includes(operation.reason || "")
+                      }
+                      selected={row.getIsSelected()}
+                    >
+                      {row
+                        .getVisibleCells()
+                        .filter((cell) => cell.column.id !== "sortable")
+                        .map((cell) => (
                           <TableCell
                             className={getTableCellClass(cell.column.id)}
                             key={cell.id}
@@ -1029,11 +1167,42 @@ export function ProTable<
                             )}
                           </TableCell>
                         ))}
-                      </AnimatedTableRow>
-                    ))}
-                  </AnimatePresence>
-                )
-              ) : isLoading ? (
+                    </SortableRow>
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <AnimatePresence
+                  custom={operation}
+                  initial={false}
+                  mode="popLayout"
+                >
+                  {table.getRowModel().rows.map((row) => (
+                    <AnimatedTableRow
+                      feedback={rowFeedback[row.id]}
+                      id={row.id}
+                      key={row.id}
+                      layoutEnabled={["create", "delete"].includes(
+                        operation.reason || ""
+                      )}
+                      motionEnabled={adminMotionEnabled}
+                      selected={row.getIsSelected()}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          className={getTableCellClass(cell.column.id)}
+                          key={cell.id}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </AnimatedTableRow>
+                  ))}
+                </AnimatePresence>
+              )}
+              {table.getRowModel().rows.length ? null : isLoading ? (
                 Array.from(
                   { length: Math.min(pagination.pageSize, 6) },
                   (_, rowIndex) => (
@@ -1155,17 +1324,20 @@ function AnimatedTableRow({
   children,
   feedback,
   motionEnabled,
-  pageDirection,
+  layoutEnabled,
+  id,
   selected,
+  ref,
 }: {
   children: React.ReactNode;
   feedback?: RowFeedback;
   motionEnabled: boolean;
-  pageDirection: PageDirection;
+  layoutEnabled: boolean;
+  id: string;
   selected: boolean;
+  ref?: React.Ref<HTMLTableRowElement>;
 }) {
-  const initialX =
-    pageDirection === "forward" ? 6 : pageDirection === "backward" ? -6 : 0;
+  const presets = useMotionProfile()?.presets;
 
   return (
     <motion.tr
@@ -1174,18 +1346,38 @@ function AnimatedTableRow({
       data-feedback={feedback}
       data-slot="table-row"
       data-state={selected ? "selected" : undefined}
-      exit={motionEnabled ? { opacity: 0, y: -3 } : undefined}
-      initial={motionEnabled ? { opacity: 0, x: initialX, y: 3 } : false}
-      layout={motionEnabled ? "position" : false}
-      transition={getRowMotionTransition(motionEnabled)}
+      exit="removed"
+      initial={
+        motionEnabled && feedback === "added"
+          ? { opacity: 0, y: presets?.dataEnter.distance ?? 3 }
+          : false
+      }
+      layout={motionEnabled && layoutEnabled ? "position" : false}
+      ref={ref}
+      transition={getRowMotionTransition(motionEnabled, presets)}
+      variants={{
+        removed: rowExit(
+          id,
+          motionEnabled,
+          presets?.dataExit.transition.duration
+        ),
+      }}
     >
       {children}
     </motion.tr>
   );
 }
 
-function getRowMotionTransition(enabled: boolean) {
+function getRowMotionTransition(
+  enabled: boolean,
+  presets?: ResolvedMotionProfile
+) {
   if (!enabled) return { duration: 0 };
+  if (presets)
+    return {
+      ...presets.dataEnter.transition,
+      layout: presets.dataLayout.transition,
+    };
   return {
     duration: 0.18,
     ease: [0.2, 0, 0, 1] as [number, number, number, number],
@@ -1334,6 +1526,30 @@ function createSelectColumn<TData, TValue>(labels: {
   };
 }
 
+function DataRowActions<TData>({
+  data,
+  render,
+  moreLabel,
+  visibleCount,
+}: {
+  data: TData;
+  render?: (row: TData) => React.ReactNode[];
+  moreLabel: string;
+  visibleCount?: number;
+}) {
+  return (
+    <RowActions
+      items={render?.(data) || []}
+      moreLabel={moreLabel}
+      visibleCount={visibleCount}
+    />
+  );
+}
+
+// Local refresh UI must not re-render hundreds of closed row workspaces.
+// Data, factory and labels are explicit props so changed callbacks never go stale.
+const MemoizedDataRowActions = memo(DataRowActions) as typeof DataRowActions;
+
 function RowActions({
   items,
   moreLabel,
@@ -1353,7 +1569,7 @@ function RowActions({
   return (
     <div
       className={cn(
-        "flex items-center justify-end",
+        "admin-row-actions flex items-center justify-end",
         primary.length >= 3 ? "gap-0.5" : "gap-1.5"
       )}
     >

@@ -54,7 +54,7 @@ export default function PaymentTable() {
                   ...values,
                 });
                 toast.success(t("updateSuccess", "Updated successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
                 setLoading(false);
                 return true;
               } catch {
@@ -67,7 +67,7 @@ export default function PaymentTable() {
           />,
           <PaymentRowActions
             key="more"
-            onChanged={() => ref.current?.refresh()}
+            onChanged={(options) => ref.current?.refresh(options)}
             payment={row}
           />,
         ],
@@ -86,7 +86,10 @@ export default function PaymentTable() {
                   await deletePaymentMethod({ id: row.id });
                 }
                 toast.success(t("deleteSuccess", "Deleted successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({
+                  reason: "delete",
+                  rowIds: rows.map((row) => row.id),
+                });
               }}
               title={t("confirmDelete", "Confirm Delete")}
               trigger={
@@ -111,7 +114,10 @@ export default function PaymentTable() {
                     ...row.original,
                     enable: checked,
                   });
-                  ref.current?.refresh();
+                  ref.current?.refresh({
+                    reason: "edit",
+                    rowIds: [row.original.id],
+                  });
                 }}
               />
               <EnabledStatusChip
@@ -184,7 +190,7 @@ export default function PaymentTable() {
                   enable: false,
                 });
                 toast.success(t("createSuccess", "Created successfully"));
-                ref.current?.refresh();
+                ref.current?.refresh({ reason: "create" });
                 setLoading(false);
                 return true;
               } catch {
@@ -252,7 +258,10 @@ export default function PaymentTable() {
                     checked={Boolean(row.enable)}
                     onCheckedChange={async (checked) => {
                       await updatePaymentMethod({ ...row, enable: checked });
-                      ref.current?.refresh();
+                      ref.current?.refresh({
+                        reason: "edit",
+                        rowIds: [row.id],
+                      });
                     }}
                   />
                 </div>
@@ -286,7 +295,7 @@ function PaymentRowActions({
   onChanged,
   payment,
 }: {
-  onChanged: () => void;
+  onChanged: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
   payment: API.PaymentConfig;
 }) {
   const { t } = useTranslation("payment");
@@ -330,7 +339,7 @@ function PaymentRowActions({
               await createPaymentMethod({ ...params, enable: false });
               toast.success(t("copySuccess", "Copied successfully"));
               setOpen(false);
-              onChanged();
+              onChanged({ reason: "create" });
             } catch {
               toast.error(t("copyFailed", "Unable to copy payment method"));
             } finally {
@@ -357,7 +366,7 @@ function PaymentRowActions({
         onConfirm={async () => {
           await deletePaymentMethod({ id: payment.id });
           toast.success(t("deleteSuccess", "Deleted successfully"));
-          onChanged();
+          onChanged({ reason: "delete", rowIds: [payment.id] });
         }}
         restoreFocusRef={moreTriggerRef}
         title={t("confirmDelete", "Confirm Delete")}
