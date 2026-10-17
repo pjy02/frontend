@@ -10,8 +10,8 @@ import {
 import { Separator } from "@workspace/ui/components/separator";
 import { SidebarTrigger } from "@workspace/ui/components/sidebar";
 import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
-import { ThemeSwitch } from "@workspace/ui/composed/theme-switch";
 import { Fragment, useMemo } from "react";
+import { AdminThemeSwitch } from "@/components/theme-switch";
 import { AdminSearch } from "./admin-search";
 import { findNavByUrl, useNavs } from "./navs";
 import TimezoneSwitch from "./timezone-switch";
@@ -68,7 +68,7 @@ export function Header() {
           <LanguageSwitch />
           <TimezoneSwitch />
         </div>
-        <ThemeSwitch />
+        <AdminThemeSwitch />
         <Separator
           className="mx-1 hidden h-5 md:block"
           orientation="vertical"

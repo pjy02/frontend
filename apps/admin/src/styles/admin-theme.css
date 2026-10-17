@@ -2091,6 +2091,33 @@ html.admin-console .admin-user-profile-section > [data-slot="card-content"] {
   }
 }
 
+/* Theme snapshots are Admin opt-in. Keep the old image still below the reveal. */
+/* biome-ignore lint/correctness/noUnknownTypeSelector: root is a valid View Transition name, not a type selector. */
+html.admin-console[data-theme-reveal]::view-transition-group(root) {
+  animation: none;
+}
+/* biome-ignore lint/correctness/noUnknownTypeSelector: root is a View Transition name. */
+html.admin-console[data-theme-reveal]::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+/* biome-ignore lint/correctness/noUnknownTypeSelector: root is a View Transition name. */
+html.admin-console[data-theme-reveal]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 2;
+}
+html.admin-console[data-theme-reveal]::view-transition {
+  pointer-events: none;
+}
+html.admin-console[data-theme-capture] *,
+html.admin-console[data-theme-capture] *::before,
+html.admin-console[data-theme-capture] *::after {
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.admin-console *,
   html.admin-console *::before,

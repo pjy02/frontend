@@ -1,7 +1,7 @@
 import { getCookie, removeCookie, setCookie } from "@workspace/ui/lib/cookies";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+export type Theme = "dark" | "light" | "system";
 type ResolvedTheme = Exclude<Theme, "system">;
 
 const DEFAULT_THEME = "system";
@@ -12,6 +12,8 @@ type ThemeProviderProps = {
   children: React.ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
+  /** Opt-in for snapshot transitions; other applications retain effect updates. */
+  synchronousUpdates?: boolean;
 };
 
 type ThemeProviderState = {
@@ -41,10 +43,25 @@ function getSystemTheme(): ResolvedTheme {
     : "light";
 }
 
+function applyResolvedTheme(resolvedTheme: ResolvedTheme) {
+  const root = window.document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(resolvedTheme);
+  root.style.colorScheme = resolvedTheme;
+  const themeColor = getComputedStyle(root)
+    .getPropertyValue("--background")
+    .trim();
+  const metaThemeColor = document.querySelector("meta[name='theme-color']");
+  if (themeColor && metaThemeColor) {
+    metaThemeColor.setAttribute("content", themeColor);
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = DEFAULT_THEME,
   storageKey = THEME_COOKIE_NAME,
+  synchronousUpdates = false,
   ...props
 }: ThemeProviderProps) {
   const [theme, _setTheme] = useState<Theme>(
@@ -71,27 +88,26 @@ export function ThemeProvider({
   }, []);
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(resolvedTheme);
-    root.style.colorScheme = resolvedTheme;
-
-    const themeColor = getComputedStyle(root)
-      .getPropertyValue("--background")
-      .trim();
-    const metaThemeColor = document.querySelector("meta[name='theme-color']");
-    if (themeColor && metaThemeColor) {
-      metaThemeColor.setAttribute("content", themeColor);
-    }
+    applyResolvedTheme(resolvedTheme);
   }, [resolvedTheme]);
 
   const setTheme = (theme: Theme) => {
     setCookie(storageKey, theme, THEME_COOKIE_MAX_AGE);
+    if (synchronousUpdates) {
+      const system = getSystemTheme();
+      setSystemTheme(system);
+      applyResolvedTheme(theme === "system" ? system : theme);
+    }
     _setTheme(theme);
   };
 
   const resetTheme = () => {
     removeCookie(storageKey);
+    if (synchronousUpdates) {
+      const system = getSystemTheme();
+      setSystemTheme(system);
+      applyResolvedTheme(system);
+    }
     _setTheme(DEFAULT_THEME);
   };
 

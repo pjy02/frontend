@@ -32,7 +32,9 @@ export type MotionRole =
   | "categoryExit"
   | "categoryLayout"
   | "rankBar"
-  | "tooltipBar";
+  | "tooltipBar"
+  | "themeReveal"
+  | "themeRevealCompact";
 
 export interface MotionToken {
   /** Spatial changes must not compete with a drag/positioning owner. */

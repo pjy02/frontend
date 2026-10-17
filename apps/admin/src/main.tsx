@@ -19,6 +19,7 @@ import { LanguageProvider } from "@workspace/ui/integrations/language";
 import { ThemeProvider } from "@workspace/ui/integrations/theme";
 import { initializeI18n } from "@workspace/ui/lib/i18n";
 import { MotionProvider } from "./components/motion-provider.tsx";
+import { AdminThemeTransitionProvider } from "./components/theme-transition-provider.tsx";
 import {
   fallbackLng,
   getInitialI18nNamespaces,
@@ -81,10 +82,12 @@ if (rootElement && !rootElement.innerHTML) {
       <Suspense fallback={null}>
         <TanStackQueryProvider {...TanStackQueryProviderContext}>
           <LanguageProvider supportedLanguages={supportedLngs}>
-            <ThemeProvider>
+            <ThemeProvider synchronousUpdates>
               <DirectionProvider>
                 <MotionProvider>
-                  <RouterProvider router={router} />
+                  <AdminThemeTransitionProvider navigation={hashHistory}>
+                    <RouterProvider router={router} />
+                  </AdminThemeTransitionProvider>
                 </MotionProvider>
               </DirectionProvider>
             </ThemeProvider>

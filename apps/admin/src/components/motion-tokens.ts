@@ -57,4 +57,6 @@ export const adminMotionProfile: MotionProfile = {
   categoryLayout: spatial(240),
   rankBar: spatial(280, 0, 0.78, enter),
   tooltipBar: spatial(360, 0, 0, enter),
+  themeReveal: spatial(420),
+  themeRevealCompact: spatial(360),
 };
