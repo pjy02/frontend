@@ -526,7 +526,7 @@ interface ServerFormProps {
   loading?: boolean;
   initialValues?: Partial<API.Server>;
   open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void | Promise<void>;
   onSubmit: (values: Partial<API.Server>) => Promise<boolean> | boolean;
 }
 
@@ -549,7 +549,7 @@ export default function ServerForm(props: ServerFormProps) {
     if (controlledOpen === undefined) {
       setInternalOpen(nextOpen);
     }
-    onOpenChange?.(nextOpen);
+    return onOpenChange?.(nextOpen);
   };
 
   const { isProtocolUsedInNodes } = useNode();
@@ -779,9 +779,7 @@ export default function ServerForm(props: ServerFormProps) {
 
     const ok = await onSubmit(result);
     if (ok) {
-      form.reset();
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
     }
   }
 
@@ -1053,21 +1051,21 @@ export default function ServerForm(props: ServerFormProps) {
         </ScrollArea>
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
-            disabled={loading}
+            disabled={loading || safety.busy}
             onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("cancel", "Cancel")}
           </Button>
           <Button
-            disabled={loading}
+            disabled={loading || safety.busy}
             onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const key = Object.keys(errors)[0] as keyof typeof errors;
               if (key) toast.error(String(errors[key]?.message));
               return false;
             })}
           >
-            {loading && (
+            {(loading || safety.busy) && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}
             {t("confirm", "Confirm")}

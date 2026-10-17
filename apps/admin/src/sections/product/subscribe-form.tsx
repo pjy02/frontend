@@ -62,7 +62,7 @@ interface SubscribeFormProps<T> {
   trigger?: string;
   title: string;
   open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void | Promise<void>;
 }
 
 const defaultValues = {
@@ -105,7 +105,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
     if (controlledOpen === undefined) {
       setInternalOpen(nextOpen);
     }
-    onOpenChange?.(nextOpen);
+    return onOpenChange?.(nextOpen);
   };
 
   const formSchema = z.object({
@@ -273,8 +273,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
     if (bool) {
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
     }
   }
 
@@ -1065,14 +1064,14 @@ export default function SubscribeForm<T extends Record<string, any>>({
         </ScrollArea>
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
-            disabled={loading}
+            disabled={loading || safety.busy}
             onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("form.cancel")}
           </Button>
           <Button
-            disabled={loading}
+            disabled={loading || safety.busy}
             onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const keys = Object.keys(errors);
               for (const key of keys) {
@@ -1087,7 +1086,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
               }
             })}
           >
-            {loading && (
+            {(loading || safety.busy) && (
               <Icon className="mr-2 animate-spin" icon="mdi:loading" />
             )}
             {t("form.confirm")}

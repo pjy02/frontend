@@ -6,6 +6,7 @@ import {
   createRouter,
   Outlet,
   RouterProvider,
+  useNavigate,
 } from "@tanstack/react-router";
 import {
   cleanup,
@@ -60,14 +61,23 @@ function Harness({
   save = async () => {
     /* No-op successful fixture. */
   },
+  close,
 }: {
   save?: () => Promise<void>;
+  close?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(true);
   const form = useForm({
     defaultValues: { name: "Original", secret: "private-key-do-not-display" },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: (next) => {
+      if (!next && close) return close();
+      setOpen(next);
+    },
+  });
   return (
     <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogContent aria-describedby={undefined}>
@@ -76,8 +86,7 @@ function Harness({
           <form
             onSubmit={safety.handleSubmit(async () => {
               await save();
-              form.reset(form.getValues());
-              setOpen(false);
+              await safety.completeSave();
             })}
           >
             {safety.summary}
@@ -353,5 +362,120 @@ describe("complex form safety", () => {
     );
     await screen.findByRole("heading", { name: "Other page" });
     history.destroy();
+  });
+  it("blocks navigation during a write, then closes the routed editor after one successful save", async () => {
+    let finishWrite!: () => void;
+    const save = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishWrite = resolve;
+        })
+    );
+    const root = createRootRoute({ component: Outlet });
+    function RoutedEditor() {
+      const navigate = useNavigate();
+      return <Harness close={() => navigate({ to: "/" })} save={save} />;
+    }
+    const editor = createRoute({
+      getParentRoute: () => root,
+      path: "/edit",
+      component: RoutedEditor,
+    });
+    const list = createRoute({
+      getParentRoute: () => root,
+      path: "/",
+      component: () => <h1>Server list</h1>,
+    });
+    window.location.hash = "#/edit";
+    const history = createHashHistory();
+    const router = createRouter({
+      routeTree: root.addChildren([editor, list]),
+      history,
+    });
+    try {
+      render(<RouterProvider router={router} />);
+      await screen.findByRole("textbox", { name: "Name" });
+      edit();
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Confirm save" })
+      );
+      await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+      router.history.push("/");
+      await waitFor(() =>
+        expect(router.history.location.pathname).toBe("/edit")
+      );
+      expect(router.state.location.pathname).toBe("/edit");
+      fireEvent.click(screen.getByRole("button", { name: "Close editor" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(
+        (screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement)
+          .value
+      ).toBe("Changed");
+      finishWrite();
+      await screen.findByRole("heading", { name: "Server list" });
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(save).toHaveBeenCalledTimes(1);
+    } finally {
+      history.destroy();
+    }
+  });
+  it("retains saved values while an asynchronous close is pending", async () => {
+    let finishClose!: () => void;
+    const close = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishClose = resolve;
+        })
+    );
+    render(<Harness close={close} />);
+    edit();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirm save" })
+    );
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    expect(
+      (screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement).value
+    ).toBe("Changed");
+    finishClose();
+  });
+  it("closes a route-owned editor after a single explicit discard confirmation", async () => {
+    const root = createRootRoute({ component: Outlet });
+    function RoutedEditor() {
+      const navigate = useNavigate();
+      return <Harness close={() => navigate({ to: "/" })} />;
+    }
+    const editor = createRoute({
+      getParentRoute: () => root,
+      path: "/edit",
+      component: RoutedEditor,
+    });
+    const list = createRoute({
+      getParentRoute: () => root,
+      path: "/",
+      component: () => <h1>Server list</h1>,
+    });
+    window.location.hash = "#/edit";
+    const history = createHashHistory();
+    const router = createRouter({
+      routeTree: root.addChildren([editor, list]),
+      history,
+    });
+    try {
+      render(<RouterProvider router={router} />);
+      await screen.findByRole("textbox", { name: "Name" });
+      edit();
+      fireEvent.click(screen.getByRole("button", { name: "Close editor" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Discard changes" })
+      );
+      await screen.findByRole("heading", { name: "Server list" });
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    } finally {
+      history.destroy();
+    }
   });
 });

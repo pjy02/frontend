@@ -111,7 +111,7 @@ export function useFormSafety<T extends FieldValues>({
 }: {
   form: UseFormReturn<T>;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (open: boolean) => void | Promise<void>;
   review?: boolean;
 }) {
   const { t } = useTranslation("components");
@@ -132,6 +132,7 @@ export function useFormSafety<T extends FieldValues>({
   const frames = useRef(new Set<number>());
   const confirmationFocus = useRef<HTMLElement | null>(null);
   const running = useRef(false);
+  const closingApproved = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState(false);
   const errors = formErrorEntries(form.formState.errors);
@@ -188,6 +189,9 @@ export function useFormSafety<T extends FieldValues>({
     });
   };
   const confirmDiscard = async () => {
+    // An approved save/discard may close a routed editor before state settles.
+    // Read a ref here: the router can call the old render's blocker.
+    if (closingApproved.current) return true;
     if (running.current || form.formState.isSubmitting) return false;
     if (!(await ask("discard"))) return false;
     form.reset();
@@ -196,7 +200,21 @@ export function useFormSafety<T extends FieldValues>({
   const requestOpenChange = async (next: boolean) => {
     if (next) return onOpenChange(true);
     if (running.current || form.formState.isSubmitting) return;
-    if (!dirty || (await confirmDiscard())) onOpenChange(false);
+    if (!dirty || (await confirmDiscard())) await closeWithApproval();
+  };
+  const closeWithApproval = async () => {
+    closingApproved.current = true;
+    try {
+      await onOpenChange(false);
+    } finally {
+      closingApproved.current = false;
+    }
+  };
+  const completeSave = async () => {
+    // Only call after the write succeeds. Keep submitted values as the baseline,
+    // rather than clearing a still-visible form before navigation completes.
+    form.reset(form.getValues());
+    await closeWithApproval();
   };
   const root = () =>
     anchor.current?.closest('[role="dialog"]') ||
@@ -355,6 +373,7 @@ export function useFormSafety<T extends FieldValues>({
       return !dirty || (await confirmDiscard());
     },
     requestOpenChange,
+    completeSave,
     handleSubmit,
     summary: (
       <div className="col-span-full" ref={anchor}>

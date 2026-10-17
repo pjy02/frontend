@@ -65,7 +65,7 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
       loading={saving}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          close();
+          return close();
         }
       }}
       onSubmit={async (values) => {
@@ -82,8 +82,6 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
             rowIds: [product.id],
           });
           return true;
-        } catch {
-          return false;
         } finally {
           setSaving(false);
         }

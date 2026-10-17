@@ -8,6 +8,7 @@ import { getCookie } from "@workspace/ui/lib/cookies";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdminPageTransition } from "@/components/page-transition";
+import { AdminRouteContent } from "@/components/route-content";
 import { Header } from "@/layout/header";
 import { useGlobalStore } from "@/stores/global";
 import { SidebarLeft } from "./sidebar-left";
@@ -84,7 +85,9 @@ export default function DashboardLayout() {
             tabIndex={-1}
           >
             <AdminPageTransition transitionKey={pageTransitionKey}>
-              <Outlet />
+              <AdminRouteContent>
+                <Outlet />
+              </AdminRouteContent>
             </AdminPageTransition>
           </main>
         </SidebarInset>

@@ -70,7 +70,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
       loading={saving}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          close();
+          return close();
         }
       }}
       onSubmit={async (values) => {
@@ -92,8 +92,6 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
             rowIds: server ? [server.id] : undefined,
           });
           return true;
-        } catch {
-          return false;
         } finally {
           setSaving(false);
         }
