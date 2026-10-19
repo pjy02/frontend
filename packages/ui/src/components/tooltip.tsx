@@ -2,35 +2,42 @@
 
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import type * as React from "react";
+import { type ComponentProps, createContext, useContext } from "react";
+import { useMotionProfile } from "./motion-profile";
+
+const TooltipScope = createContext(false);
 
 function TooltipProvider({
   delayDuration = 0,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
+}: ComponentProps<typeof TooltipPrimitive.Provider>) {
   return (
-    <TooltipPrimitive.Provider
-      data-slot="tooltip-provider"
-      delayDuration={delayDuration}
-      {...props}
-    />
+    <TooltipScope.Provider value={true}>
+      <TooltipPrimitive.Provider
+        data-slot="tooltip-provider"
+        delayDuration={delayDuration}
+        {...props}
+      />
+    </TooltipScope.Provider>
   );
 }
 
 function Tooltip({
   sharedProvider = false,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Root> & {
+}: ComponentProps<typeof TooltipPrimitive.Root> & {
   sharedProvider?: boolean;
 }) {
+  const sharedScope = useContext(TooltipScope);
+  const profile = useMotionProfile();
   const root = <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
-  if (sharedProvider) return root;
+  if (sharedProvider || (profile && sharedScope)) return root;
   return <TooltipProvider>{root}</TooltipProvider>;
 }
 
 function TooltipTrigger({
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+}: ComponentProps<typeof TooltipPrimitive.Trigger>) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
@@ -39,7 +46,7 @@ function TooltipContent({
   sideOffset = 0,
   children,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: ComponentProps<typeof TooltipPrimitive.Content>) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content

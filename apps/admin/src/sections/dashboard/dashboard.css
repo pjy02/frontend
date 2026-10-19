@@ -171,7 +171,7 @@ html.admin-console
 
 .dashboard-traffic-tooltip {
   --dashboard-traffic-tooltip-upload: var(--chart-1);
-  --dashboard-traffic-tooltip-download: var(--chart-5);
+  --dashboard-traffic-tooltip-download: var(--chart-4);
 
   border: 1px solid var(--border);
   background: var(--popover);
@@ -224,11 +224,11 @@ html.admin-console .dashboard-traffic-detail {
 }
 
 .dashboard-traffic-tooltip__value--upload {
-  color: var(--dashboard-traffic-tooltip-upload);
+  color: var(--admin-chart-text-1);
 }
 
 .dashboard-traffic-tooltip__value--download {
-  color: var(--dashboard-traffic-tooltip-download);
+  color: var(--admin-chart-text-4);
 }
 
 @media (max-width: 639px) {
@@ -270,7 +270,7 @@ html.admin-console .dashboard-traffic-detail {
     display: -webkit-box;
     min-height: 2rem;
     overflow: hidden;
-    font-size: 0.6875rem;
+    font-size: var(--admin-type-meta);
     line-height: 1rem;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;

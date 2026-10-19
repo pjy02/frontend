@@ -81,7 +81,7 @@ export function DashboardComponentsMenu({
           <WorkspaceDialogDescription>
             {t(
               "components.localHint",
-              "Settings are saved for this administrator in this browser. Phone/tablet and desktop layouts are independent."
+              "Saved for this administrator in this browser. Narrow (<1024px) and wide (≥1024px) layouts are independent."
             )}
           </WorkspaceDialogDescription>
         </WorkspaceDialogHeader>
@@ -101,7 +101,7 @@ export function DashboardComponentsMenu({
               >
                 {t(
                   `components.${value}`,
-                  value === "desktop" ? "Desktop" : "Phone / tablet"
+                  value === "desktop" ? "Wide · ≥1024px" : "Narrow · <1024px"
                 )}
               </Button>
             ))}

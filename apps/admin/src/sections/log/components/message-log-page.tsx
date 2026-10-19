@@ -12,13 +12,16 @@ import { RequestSource } from "@/sections/log/request-source";
 interface MessageLogPageProps {
   title: React.ReactNode;
   description: React.ReactNode;
-  load: (params: {
-    page: number;
-    size: number;
-    search?: string;
-    start_date?: string;
-    end_date?: string;
-  }) => Promise<unknown>;
+  load: (
+    params: {
+      page: number;
+      size: number;
+      search?: string;
+      start_date?: string;
+      end_date?: string;
+    },
+    options?: { signal?: AbortSignal }
+  ) => Promise<unknown>;
 }
 
 export function MessageLogPage({
@@ -100,7 +103,9 @@ export function MessageLogPage({
         start_date: "string",
         end_date: "string",
       }}
-      load={(pagination, filters) => load({ ...pagination, ...filters })}
+      load={(pagination, filters, { signal }) =>
+        load({ ...pagination, ...filters }, { signal })
+      }
       params={[
         {
           key: "search",

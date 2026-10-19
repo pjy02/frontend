@@ -7,6 +7,29 @@ import { describe, expect, it } from "vitest";
 import { adminMotionProfile } from "./motion-tokens";
 
 describe("Admin semantic motion profile", () => {
+  it("keeps press immediate, exit shorter and state presets free of displacement", () => {
+    expect(adminMotionProfile.press.duration).toBeLessThan(
+      adminMotionProfile.state.duration
+    );
+    for (const [enter, exit] of [
+      ["menuEnter", "menuExit"],
+      ["dialogEnter", "dialogExit"],
+      ["overlayEnter", "overlayExit"],
+      ["dataEnter", "dataExit"],
+      ["categoryEnter", "categoryExit"],
+    ] as const) {
+      expect(adminMotionProfile[exit].duration).toBeLessThanOrEqual(
+        adminMotionProfile[enter].duration
+      );
+    }
+    for (const token of Object.values(adminMotionProfile)) {
+      if (token.kind === "state") {
+        expect(token.distance ?? 0).toBe(0);
+        expect(token.scale ?? 1).toBe(1);
+      }
+    }
+  });
+
   it("uses the same duration, easing and geometry in CSS and Motion", () => {
     const profile = {
       ...adminMotionProfile,

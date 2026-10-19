@@ -93,8 +93,12 @@ describe("new log pages", () => {
       user_id: 7,
       search: "system",
     };
-    mocks.props.load(pagination, filters);
-    expect(mocks.admin).toHaveBeenCalledWith({ ...pagination, ...filters });
+    const context = { signal: new AbortController().signal };
+    mocks.props.load(pagination, filters, context);
+    expect(mocks.admin).toHaveBeenCalledWith(
+      { ...pagination, ...filters },
+      context
+    );
     const mobile = mocks.props.mobile.render(mocks.row);
     cleanup();
     render(mobile);
@@ -133,8 +137,12 @@ describe("new log pages", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     const pagination = { page: 2, size: 50 };
     const filters = { end_date: "2026-09-30", user_id: 7, search: "ORDER-42" };
-    mocks.props.load(pagination, filters);
-    expect(mocks.unmatched).toHaveBeenCalledWith({ ...pagination, ...filters });
+    const context = { signal: new AbortController().signal };
+    mocks.props.load(pagination, filters, context);
+    expect(mocks.unmatched).toHaveBeenCalledWith(
+      { ...pagination, ...filters },
+      context
+    );
     const mobile = mocks.props.mobile.render(mocks.row);
     cleanup();
     render(mobile);

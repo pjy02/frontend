@@ -12,6 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
 import { useMotionProfile } from "@workspace/ui/components/motion-profile";
+import { useLoadingFeedback } from "@workspace/ui/hooks/use-loading-feedback";
 import { Check, LoaderCircle } from "lucide-react";
 import type React from "react";
 import type { ReactNode, RefObject } from "react";
@@ -22,10 +23,13 @@ interface ConfirmationButtonProps {
   trigger: ReactNode;
   title: string;
   description: string;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => unknown;
   cancelText?: string;
   confirmText?: string;
   restoreFocusRef?: RefObject<HTMLElement | null>;
+  /** Use brief only when this check is the single success signal (no duplicate Toast). */
+  successFeedback?: "none" | "brief";
+  errorText?: string;
 }
 
 export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
@@ -36,9 +40,13 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
   cancelText,
   confirmText,
   restoreFocusRef,
+  successFeedback,
+  errorText,
 }) => {
   const { t } = useTranslation("components");
-  const successHold = useMotionProfile()?.presets.successHold.durationMs ?? 420;
+  const profile = useMotionProfile();
+  const feedback = successFeedback ?? (profile ? "none" : "brief");
+  const successHold = profile?.presets.successHold.durationMs ?? 420;
   const mounted = useRef(false);
   const running = useRef(false);
   useEffect(() => {
@@ -49,6 +57,11 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
   }, []);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [failed, setFailed] = useState(false);
+  const loadingVisible = useLoadingFeedback(
+    status === "loading",
+    profile?.presets.loadingReveal.durationMs ?? 0
+  );
   useEffect(() => {
     if (!open || status !== "success") return;
     const finish = () => {
@@ -64,13 +77,21 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
     event.preventDefault();
     if (running.current || status !== "idle") return;
     running.current = true;
+    setFailed(false);
     setStatus("loading");
     try {
-      await onConfirm();
+      const result = await onConfirm();
+      if (result === false) throw new Error("Operation was not confirmed");
       if (!mounted.current) return;
-      setStatus("success");
+      if (feedback === "none") {
+        setOpen(false);
+        setStatus("idle");
+      } else setStatus("success");
     } catch {
-      if (mounted.current) setStatus("idle");
+      if (mounted.current) {
+        setStatus("idle");
+        setFailed(true);
+      }
     } finally {
       running.current = false;
     }
@@ -81,14 +102,17 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
       onOpenChange={(nextOpen) => {
         if (running.current || status === "loading") return;
         setOpen(nextOpen);
-        if (!nextOpen) setStatus("idle");
+        if (!nextOpen) {
+          setStatus("idle");
+          setFailed(false);
+        }
       }}
       open={open}
     >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent
         onCloseAutoFocus={(event) => {
-          if (!restoreFocusRef?.current) return;
+          if (!restoreFocusRef?.current?.isConnected) return;
           event.preventDefault();
           restoreFocusRef.current.focus({ preventScroll: true });
         }}
@@ -97,6 +121,15 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {profile && failed && (
+          <p className="text-destructive text-sm" role="alert">
+            {errorText ??
+              t(
+                "actions.writeFailed",
+                "The change was not confirmed. Your input is retained; retry when safe."
+              )}
+          </p>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={status !== "idle"}>
             {cancelText ?? t("actions.cancel", "Cancel")}
@@ -105,6 +138,15 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
             aria-busy={status === "loading" || undefined}
             className="admin-confirm-action"
             data-status={status}
+            data-visual-status={
+              profile
+                ? loadingVisible
+                  ? "loading"
+                  : status === "success"
+                    ? "success"
+                    : "idle"
+                : status
+            }
             disabled={status !== "idle"}
             onClick={handleConfirm}
           >
@@ -112,7 +154,7 @@ export const ConfirmButton: React.FC<ConfirmationButtonProps> = ({
               {confirmText ?? t("actions.confirm", "Confirm")}
             </span>
             <span aria-live="polite" className="admin-confirm-action__status">
-              {status === "loading" ? (
+              {loadingVisible ? (
                 <LoaderCircle className="animate-spin" />
               ) : status === "success" ? (
                 <Check />

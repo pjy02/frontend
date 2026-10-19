@@ -11,7 +11,6 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { MarkdownEditor } from "@workspace/ui/composed/editor/markdown";
-import { Icon } from "@workspace/ui/composed/icon";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -65,9 +64,9 @@ export default function AnnouncementForm<T extends Record<string, any>>({
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
+    if (bool === false) throw new Error("Write was not confirmed");
     if (bool) {
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
     }
   }
 
@@ -143,11 +142,10 @@ export default function AnnouncementForm<T extends Record<string, any>>({
           </Button>
           <Button
             disabled={loading}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit)}
           >
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}{" "}
             {t("form.confirm", "Confirm")}
           </Button>
         </SheetFooter>

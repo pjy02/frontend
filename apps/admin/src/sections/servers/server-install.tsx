@@ -16,6 +16,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   WorkspaceDialog,
   WorkspaceDialogBody,
   WorkspaceDialogContent,
@@ -36,14 +41,15 @@ export default function ServerInstall({ server, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [domain, setDomain] = useState("");
 
-  const { data: cfgResp } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getNodeConfig"],
     queryFn: async () => {
       const { data } = await getNodeConfig();
-      return data.data as API.NodeConfig | undefined;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
+  const { data: cfgResp } = readQuery;
 
   useEffect(() => {
     if (open) {
@@ -58,6 +64,7 @@ export default function ServerInstall({ server, trigger }: Props) {
   }, [domain, server.id, cfgResp?.node_secret]);
 
   async function handleCopy() {
+    if (!(readReady(readQuery) && cfgResp?.node_secret)) return;
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(installCommand);
@@ -100,35 +107,48 @@ export default function ServerInstall({ server, trigger }: Props) {
         </WorkspaceDialogHeader>
 
         <WorkspaceDialogBody className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t("apiHost", "API Host")}</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                onChange={onDomainChange}
-                placeholder={t("apiHostPlaceholder", "http(s)://example.com")}
-                value={domain}
-              />
+          <ReadBoundary query={readQuery}>
+            {!cfgResp?.node_secret && (
+              <p className="text-muted-foreground text-sm" role="status">
+                {t(
+                  "installConfigurationMissing",
+                  "Set the global node secret in Node configuration before copying an installation command."
+                )}
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label>{t("apiHost", "API Host")}</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  onChange={onDomainChange}
+                  placeholder={t("apiHostPlaceholder", "http(s)://example.com")}
+                  value={domain}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>{t("installCommand", "Install command")}</Label>
-            <div className="flex flex-col gap-2">
-              <textarea
-                aria-label={t("installCommand", "Install command")}
-                className="min-h-32 w-full resize-none rounded-xl border bg-muted/35 p-4 font-mono text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
-                readOnly
-                value={installCommand}
-              />
+            <div className="space-y-2">
+              <Label>{t("installCommand", "Install command")}</Label>
+              <div className="flex flex-col gap-2">
+                <textarea
+                  aria-label={t("installCommand", "Install command")}
+                  className="min-h-32 w-full resize-none rounded-xl border bg-muted/35 p-4 font-mono text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+                  readOnly
+                  value={installCommand}
+                />
+              </div>
             </div>
-          </div>
+          </ReadBoundary>
         </WorkspaceDialogBody>
 
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button onClick={() => setOpen(false)} variant="outline">
             {t("close", "Close")}
           </Button>
-          <Button onClick={handleCopy}>
+          <Button
+            disabled={!(readReady(readQuery) && cfgResp?.node_secret)}
+            onClick={handleCopy}
+          >
             {t("copyAndClose", "Copy and Close")}
           </Button>
         </WorkspaceDialogFooter>

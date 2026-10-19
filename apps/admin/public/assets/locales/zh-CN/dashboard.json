@@ -4,10 +4,10 @@
     "description": "选择在当前设备上显示的可选内容。",
     "projectSupport": "项目支持",
     "projectSupportDescription": "显示当前支持 PPanel 项目的组织和服务。",
-    "localHint": "设置按当前管理员保存在此浏览器中，手机/平板与电脑布局分别保存。",
+    "localHint": "按当前管理员保存在此浏览器中。窄屏（小于 1024px）与宽屏（1024px 及以上）布局分别保存。",
     "device": "编辑的布局",
-    "desktop": "电脑",
-    "mobile": "手机 / 平板",
+    "desktop": "宽屏 · ≥1024px",
+    "mobile": "窄屏 · <1024px",
     "presets": "布局预设",
     "preset": {
       "operations": "运营视图",
@@ -123,7 +123,11 @@
     "viewServers": "查看服务器",
     "viewTickets": "查看工单",
     "yesterdayComparison": "昨日 / 变化",
-    "trafficShareScope": "流量占比按当前接口返回的全部排行记录合计计算。"
+    "trafficShareScope": "流量占比按当前接口返回的全部排行记录合计计算。",
+    "notConfigured": "尚未配置",
+    "cannotCompare": "无法比较",
+    "noComparisonBase": "无可比基数",
+    "rankingShare": "占接口返回排行总量"
   },
   "projectSupport": {
     "description": "当前为 PPanel 提供支持的组织和服务。",

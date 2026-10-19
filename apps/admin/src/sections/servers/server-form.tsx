@@ -527,6 +527,7 @@ interface ServerFormProps {
   initialValues?: Partial<API.Server>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void | Promise<void>;
+  onAfterClose?: () => void | Promise<void>;
   onSubmit: (values: Partial<API.Server>) => Promise<boolean> | boolean;
 }
 
@@ -538,6 +539,7 @@ export default function ServerForm(props: ServerFormProps) {
     initialValues,
     open: controlledOpen,
     onOpenChange,
+    onAfterClose,
     onSubmit,
   } = props;
   const { t } = useTranslation("servers");
@@ -573,7 +575,12 @@ export default function ServerForm(props: ServerFormProps) {
       ...initialValues,
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
   const { control } = form;
 
   const protocolsValues = useWatch({ control, name: "protocols" });
@@ -778,6 +785,7 @@ export default function ServerForm(props: ServerFormProps) {
     };
 
     const ok = await onSubmit(result);
+    if (ok === false) throw new Error("Write was not confirmed");
     if (ok) {
       await safety.completeSave();
     }
@@ -806,7 +814,12 @@ export default function ServerForm(props: ServerFormProps) {
           </Button>
         </WorkspaceDialogTrigger>
       ) : null}
-      <WorkspaceDialogContent size="xl">
+      <WorkspaceDialogContent
+        onCloseAutoFocus={() => {
+          onAfterClose?.();
+        }}
+        size="xl"
+      >
         <WorkspaceDialogHeader>
           <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
         </WorkspaceDialogHeader>
@@ -923,6 +936,28 @@ export default function ServerForm(props: ServerFormProps) {
                       <AccordionTrigger
                         className="px-4 py-3 hover:no-underline"
                         data-form-path={`protocols.${i}`}
+                        trailing={
+                          <Switch
+                            aria-label={`${type} ${t("enabled", "Enabled")}`}
+                            checked={!!isEnabled}
+                            disabled={Boolean(
+                              initialValues?.id &&
+                                isProtocolUsedInNodes(initialValues.id, type) &&
+                                isEnabled
+                            )}
+                            onCheckedChange={(checked) => {
+                              form.setValue(`protocols.${i}.enable`, checked, {
+                                shouldDirty: true,
+                              });
+                              if (checked) setAccordionValue(type);
+                              else {
+                                if (accordionValue === type)
+                                  setAccordionValue(undefined);
+                                form.clearErrors(`protocols.${i}` as any);
+                              }
+                            }}
+                          />
+                        }
                       >
                         <div className="flex w-full items-center justify-between">
                           <div className="flex flex-col items-start gap-1">
@@ -957,31 +992,6 @@ export default function ServerForm(props: ServerFormProps) {
                               </StatusChip>
                             </div>
                           </div>
-                          <Switch
-                            checked={!!isEnabled}
-                            className="mr-2"
-                            disabled={Boolean(
-                              initialValues?.id &&
-                                isProtocolUsedInNodes(
-                                  initialValues?.id || 0,
-                                  type
-                                ) &&
-                                isEnabled
-                            )}
-                            onCheckedChange={(checked) => {
-                              form.setValue(`protocols.${i}.enable`, checked);
-                              if (checked) {
-                                setAccordionValue(type);
-                                return;
-                              }
-
-                              if (accordionValue === type) {
-                                setAccordionValue(undefined);
-                              }
-                              form.clearErrors(`protocols.${i}` as any);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pt-0 pb-4">
@@ -1059,15 +1069,14 @@ export default function ServerForm(props: ServerFormProps) {
           </Button>
           <Button
             disabled={loading || safety.busy}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const key = Object.keys(errors)[0] as keyof typeof errors;
               if (key) toast.error(String(errors[key]?.message));
               return false;
             })}
           >
-            {(loading || safety.busy) && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
             {t("confirm", "Confirm")}
           </Button>
         </WorkspaceDialogFooter>

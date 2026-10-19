@@ -28,6 +28,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   WorkspaceDialog,
   WorkspaceDialogContent,
   WorkspaceDialogFooter,
@@ -55,14 +60,15 @@ export default function ConfigForm() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getSubscribeConfig"],
     queryFn: async () => {
       const { data } = await getSubscribeConfig();
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
+  const { data, refetch } = readQuery;
 
   const form = useForm<SubscribeConfigFormData>({
     resolver: zodResolver(
@@ -80,7 +86,12 @@ export default function ConfigForm() {
       profile_web_page_url: "",
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   useEffect(() => {
     if (data && !safety.dirty && !safety.busy) {
@@ -89,6 +100,7 @@ export default function ConfigForm() {
   }, [data, form]);
 
   async function onSubmit(values: SubscribeConfigFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateSubscribeConfig(values as API.SubscribeConfig);
@@ -106,7 +118,10 @@ export default function ConfigForm() {
   return (
     <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       <WorkspaceDialogTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:cog" />
@@ -121,7 +136,7 @@ export default function ConfigForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </WorkspaceDialogTrigger>
       <WorkspaceDialogContent size="lg">
         <WorkspaceDialogHeader>
@@ -130,276 +145,282 @@ export default function ConfigForm() {
           </WorkspaceDialogTitle>
         </WorkspaceDialogHeader>
         <ScrollArea className="min-h-0 flex-1 px-5 py-5 sm:px-7 sm:py-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="subscribe-config-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="show_tutorial"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.showTutorial", "Show Tutorial Section")}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.showTutorialDescription",
-                        "Show the client tutorial section on the user document page"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="single_model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(
-                        "config.singleSubscriptionMode",
-                        "Single Subscription Mode"
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.singleSubscriptionModeDescription",
-                        "Limit users to one active subscription. Existing subscriptions unaffected"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="pan_domain"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.wildcardResolution", "Wildcard Resolution")}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.wildcardResolutionDescription",
-                        "Enable wildcard domain resolution for subscriptions"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="subscribe_path"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.subscriptionPath", "Subscription Path")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueBlur={field.onChange}
-                        placeholder={t(
-                          "config.subscriptionPathPlaceholder",
-                          "Enter subscription path"
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="subscribe-config-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="show_tutorial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.showTutorial", "Show Tutorial Section")}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.showTutorialDescription",
+                          "Show the client tutorial section on the user document page"
                         )}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.subscriptionPathDescription",
-                        "Custom path for subscription endpoints (better performance after system restart)"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="single_model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "config.singleSubscriptionMode",
+                          "Single Subscription Mode"
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.singleSubscriptionModeDescription",
+                          "Limit users to one active subscription. Existing subscriptions unaffected"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="subscribe_domain"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.subscriptionDomain", "Subscription Domain")}
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        className="h-32"
-                        placeholder={`${t(
-                          "config.subscriptionDomainPlaceholder",
-                          "Enter subscription domain, one per line"
-                        )}\nexample.com\nwww.example.com`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.subscriptionDomainDescription",
-                        "Custom domain for subscription links"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="pan_domain"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.wildcardResolution", "Wildcard Resolution")}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.wildcardResolutionDescription",
+                          "Enable wildcard domain resolution for subscriptions"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="profile_update_interval"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(
-                        "config.profileUpdateInterval",
-                        "Profile Update Interval"
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        min={0}
-                        onValueBlur={(value) => field.onChange(Number(value))}
-                        placeholder="24"
-                        suffix="Hours"
-                        type="number"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.profileUpdateIntervalDescription",
-                        "Set the profile-update-interval response header in hours. 0 disables this header."
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="subscribe_path"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.subscriptionPath", "Subscription Path")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueBlur={field.onChange}
+                          placeholder={t(
+                            "config.subscriptionPathPlaceholder",
+                            "Enter subscription path"
+                          )}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.subscriptionPathDescription",
+                          "Custom path for subscription endpoints (better performance after system restart)"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="profile_web_page_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.profileWebPageUrl", "Profile Web Page URL")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueBlur={field.onChange}
-                        placeholder="https://example.com"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.profileWebPageUrlDescription",
-                        "Set the profile-web-page-url response header. Leave blank to disable this header."
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="subscribe_domain"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.subscriptionDomain", "Subscription Domain")}
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-32"
+                          placeholder={`${t(
+                            "config.subscriptionDomainPlaceholder",
+                            "Enter subscription domain, one per line"
+                          )}\nexample.com\nwww.example.com`}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.subscriptionDomainDescription",
+                          "Custom domain for subscription links"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="user_agent_limit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.userAgentLimit", "{{userAgent}} Restriction", {
-                        userAgent: "User-Agent",
-                      })}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.userAgentLimitDescription",
-                        "Enable access restrictions based on {{userAgent}}",
-                        {
+                <FormField
+                  control={form.control}
+                  name="profile_update_interval"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "config.profileUpdateInterval",
+                          "Profile Update Interval"
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          min={0}
+                          onValueBlur={(value) => field.onChange(Number(value))}
+                          placeholder="24"
+                          suffix="Hours"
+                          type="number"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.profileUpdateIntervalDescription",
+                          "Set the profile-update-interval response header in hours. 0 disables this header."
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="profile_web_page_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.profileWebPageUrl", "Profile Web Page URL")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueBlur={field.onChange}
+                          placeholder="https://example.com"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.profileWebPageUrlDescription",
+                          "Set the profile-web-page-url response header. Leave blank to disable this header."
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="user_agent_limit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "config.userAgentLimit",
+                          "{{userAgent}} Restriction",
+                          {
+                            userAgent: "User-Agent",
+                          }
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.userAgentLimitDescription",
+                          "Enable access restrictions based on {{userAgent}}",
+                          {
+                            userAgent: "User-Agent",
+                          }
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="user_agent_list"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("config.userAgentList", "{{userAgent}} Whitelist", {
                           userAgent: "User-Agent",
-                        }
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="user_agent_list"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("config.userAgentList", "{{userAgent}} Whitelist", {
-                        userAgent: "User-Agent",
-                      })}
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        className="h-32"
-                        placeholder={`${t(
-                          "config.userAgentListPlaceholder",
-                          "Enter allowed {{userAgent}}, one per line",
-                          { userAgent: "User-Agent" }
-                        )}\nClashX\nClashForAndroid\nClash-verge`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "config.userAgentListDescription",
-                        "Allowed {{userAgent}} for subscription access, one per line. Configured application {{userAgent}} will be automatically included",
-                        {
-                          userAgent: "User-Agent",
-                        }
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-32"
+                          placeholder={`${t(
+                            "config.userAgentListPlaceholder",
+                            "Enter allowed {{userAgent}}, one per line",
+                            { userAgent: "User-Agent" }
+                          )}\nClashX\nClashForAndroid\nClash-verge`}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "config.userAgentListDescription",
+                          "Allowed {{userAgent}} for subscription access, one per line. Configured application {{userAgent}} will be automatically included",
+                          {
+                            userAgent: "User-Agent",
+                          }
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
@@ -409,10 +430,13 @@ export default function ConfigForm() {
           >
             {t("actions.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="subscribe-config-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="subscribe-config-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("actions.save", "Save")}
           </Button>
         </WorkspaceDialogFooter>

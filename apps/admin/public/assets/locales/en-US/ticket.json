@@ -24,5 +24,6 @@
   "ticketList": "Ticket List",
   "title": "Title",
   "updatedAt": "Updated At",
-  "user": "User"
+  "user": "User",
+  "newMessages": "New messages · jump to latest"
 }

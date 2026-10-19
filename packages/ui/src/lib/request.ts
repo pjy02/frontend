@@ -223,6 +223,8 @@ request.interceptors.response.use(
     response?: { data?: unknown; config?: unknown; statusText?: string };
     message?: string;
   }) => {
+    // Superseded reads are expected control flow, not a failed business action.
+    if (axios.isCancel(error)) return Promise.reject(error);
     handleError({
       data: error.response?.data as { code?: number },
       config: {

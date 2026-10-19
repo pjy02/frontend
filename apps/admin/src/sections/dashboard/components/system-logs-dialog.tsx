@@ -12,6 +12,7 @@ import { LIVE_QUERY_OPTIONS } from "@workspace/ui/integrations/tanstack-query";
 import { getToolLog as getSystemLog } from "@workspace/ui/services/admin/admin";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReadBoundary, requireReadData } from "@/components/read-boundary";
 import {
   WorkspaceDialog,
   WorkspaceDialogBody,
@@ -36,19 +37,16 @@ export default function SystemLogsDialog({
   const { t } = useTranslation("tool");
   const [open, setOpen] = useState(false);
 
-  const {
-    data: logs,
-    refetch,
-    isLoading,
-  } = useQuery({
+  const logQuery = useQuery({
     ...LIVE_QUERY_OPTIONS,
     queryKey: ["getSystemLog"],
     queryFn: async () => {
       const { data } = await getSystemLog();
-      return data.data?.list || [];
+      return requireReadData(data.data)?.list ?? [];
     },
     enabled: open,
   });
+  const { data: logs, refetch, isFetching } = logQuery;
 
   const defaultTrigger = (
     <Button size={size} variant={variant}>
@@ -69,14 +67,7 @@ export default function SystemLogsDialog({
         </WorkspaceDialogHeader>
         <WorkspaceDialogBody>
           <ScrollArea className="h-full min-h-0 w-full rounded-lg border bg-muted/30 p-1">
-            {isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Icon
-                  className="h-8 w-8 animate-spin text-primary"
-                  icon="uil:loading"
-                />
-              </div>
-            ) : (
+            <ReadBoundary empty={logs?.length === 0} query={logQuery}>
               <Accordion className="w-full" collapsible type="single">
                 {logs?.map((log: any, index: number) => (
                   <AccordionItem
@@ -105,20 +96,19 @@ export default function SystemLogsDialog({
                   </AccordionItem>
                 ))}
               </Accordion>
-            )}
+            </ReadBoundary>
           </ScrollArea>
         </WorkspaceDialogBody>
         <WorkspaceDialogFooter>
           <Button
+            loading={isFetching}
+            loadingLabel={t("components:read.refreshing")}
             onClick={() => {
               refetch();
             }}
             variant="outline"
           >
-            <Icon
-              className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`}
-              icon="uil:refresh"
-            />
+            <Icon className="h-5 w-5" icon="uil:refresh" />
             <span>{t("refreshLogs", "Refresh Logs")}</span>
           </Button>
         </WorkspaceDialogFooter>

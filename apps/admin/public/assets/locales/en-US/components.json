@@ -1,12 +1,32 @@
 {
+  "form": { "addItem": "Add item", "removeItem": "Remove item" },
+  "read": {
+    "loading": "Loading data",
+    "failed": "Unable to load data",
+    "failedDescription": "No data has been loaded. Retry before editing or saving.",
+    "stale": "Refresh failed. Showing previously loaded data.",
+    "refreshing": "Refreshing; current content is retained",
+    "retry": "Retry",
+    "unconfigured": "Not configured yet. Complete the fields below to configure it.",
+    "empty": "No data available",
+    "emptyDescription": "No records were returned. You can refresh to check again.",
+    "estimateFailed": "Unable to calculate at the moment",
+    "calculating": "Calculating…"
+  },
   "accessibility": {
+    "toggleSidebar": "Toggle sidebar",
     "skipToContent": "Skip to main content"
   },
   "actions": {
+    "savedStale": "Saved · stale",
+    "notConfirmed": "Not confirmed",
     "cancel": "Cancel",
     "completed": "Completed",
     "confirm": "Confirm",
-    "processing": "Processing"
+    "processing": "Processing",
+    "writeFailed": "The change was not confirmed. The previous state and input are retained; retry when safe.",
+    "savedSyncFailed": "Saved. Refresh failed; do not submit again.",
+    "retryRefresh": "Retry refresh"
   },
   "admin": {
     "consoleDescription": "Admin console",
@@ -137,6 +157,7 @@
     "retry": "Try again"
   },
   "table": {
+    "sortFailed": "The order was not confirmed. The original order is retained; retry when safe.",
     "applyFilters": "Apply filters",
     "batchActions": "Batch actions",
     "clearSelection": "Clear selection",

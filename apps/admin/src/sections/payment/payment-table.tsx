@@ -28,6 +28,7 @@ import {
 } from "@/components/admin-action-menu";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
+import { PageHeader } from "@/components/page-header";
 import PaymentForm from "./payment-form";
 
 export default function PaymentTable() {
@@ -36,258 +37,265 @@ export default function PaymentTable() {
   const ref = useRef<ProTableActions>(null);
 
   return (
-    <ProTable<API.PaymentConfig, { search: string }>
-      action={ref}
-      actions={{
-        visibleCount: 2,
-        render: (row) => [
-          <PaymentForm<API.UpdatePaymentMethodRequest>
-            initialValues={row}
-            isEdit
-            key="edit"
-            loading={loading}
-            onSubmit={async (values) => {
-              setLoading(true);
-              try {
-                await updatePaymentMethod({
-                  ...row,
-                  ...values,
-                });
-                toast.success(t("updateSuccess", "Updated successfully"));
-                ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
-                setLoading(false);
-                return true;
-              } catch {
-                setLoading(false);
-                return false;
-              }
-            }}
-            title={t("editPayment", "Edit Payment Method")}
-            trigger={<Button>{t("edit", "Edit")}</Button>}
-          />,
-          <PaymentRowActions
-            key="more"
-            onChanged={(options) => ref.current?.refresh(options)}
-            payment={row}
-          />,
-        ],
-        batchRender(rows) {
-          return [
-            <ConfirmButton
-              cancelText={t("cancel", "Cancel")}
-              confirmText={t("confirm", "Confirm")}
-              description={t(
-                "deleteWarning",
-                "Are you sure you want to delete this payment method? This action cannot be undone."
-              )}
-              key="delete"
-              onConfirm={async () => {
-                for (const row of rows) {
-                  await deletePaymentMethod({ id: row.id });
-                }
-                toast.success(t("deleteSuccess", "Deleted successfully"));
-                ref.current?.refresh({
-                  reason: "delete",
-                  rowIds: rows.map((row) => row.id),
-                });
-              }}
-              title={t("confirmDelete", "Confirm Delete")}
-              trigger={
-                <Button variant="destructive">
-                  {t("batchDelete", "Batch Delete")}
-                </Button>
-              }
-            />,
-          ];
-        },
-      }}
-      columns={[
-        {
-          accessorKey: "enable",
-          header: t("enable", "Enable"),
-          cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={Boolean(row.getValue("enable"))}
-                onCheckedChange={async (checked) => {
+    <div className="space-y-5">
+      <PageHeader title={t("paymentManagement", "Payment Management")} />
+      <ProTable<API.PaymentConfig, { search: string }>
+        action={ref}
+        actions={{
+          visibleCount: 2,
+          render: (row) => [
+            <PaymentForm<API.UpdatePaymentMethodRequest>
+              initialValues={row}
+              isEdit
+              key="edit"
+              loading={loading}
+              onSubmit={async (values) => {
+                setLoading(true);
+                try {
                   await updatePaymentMethod({
-                    ...row.original,
-                    enable: checked,
+                    ...row,
+                    ...values,
                   });
+                  toast.success(t("updateSuccess", "Updated successfully"));
+                  ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
+                  setLoading(false);
+                  return true;
+                } catch {
+                  setLoading(false);
+                  return false;
+                }
+              }}
+              title={t("editPayment", "Edit Payment Method")}
+              trigger={<Button>{t("edit", "Edit")}</Button>}
+            />,
+            <PaymentRowActions
+              key="more"
+              onChanged={(options) => ref.current?.refresh(options)}
+              payment={row}
+            />,
+          ],
+          batchRender(rows) {
+            return [
+              <ConfirmButton
+                cancelText={t("cancel", "Cancel")}
+                confirmText={t("confirm", "Confirm")}
+                description={t(
+                  "deleteWarning",
+                  "Are you sure you want to delete this payment method? This action cannot be undone."
+                )}
+                key="delete"
+                onConfirm={async () => {
+                  for (const row of rows) {
+                    await deletePaymentMethod({ id: row.id });
+                  }
+                  toast.success(t("deleteSuccess", "Deleted successfully"));
                   ref.current?.refresh({
-                    reason: "edit",
-                    rowIds: [row.original.id],
+                    reason: "delete",
+                    rowIds: rows.map((row) => row.id),
                   });
                 }}
-              />
-              <EnabledStatusChip
-                disabledLabel={t("disabled", "Disabled")}
-                enabled={Boolean(row.original.enable)}
-                enabledLabel={t("enabled", "Enabled")}
-              />
-            </div>
+                title={t("confirmDelete", "Confirm Delete")}
+                trigger={
+                  <Button variant="destructive">
+                    {t("batchDelete", "Batch Delete")}
+                  </Button>
+                }
+              />,
+            ];
+          },
+        }}
+        columns={[
+          {
+            accessorKey: "enable",
+            header: t("enable", "Enable"),
+            cell: ({ row }) => (
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={Boolean(row.getValue("enable"))}
+                  onCheckedChange={async (checked) => {
+                    await updatePaymentMethod({
+                      ...row.original,
+                      enable: checked,
+                    });
+                    ref.current?.refresh({
+                      reason: "edit",
+                      rowIds: [row.original.id],
+                    });
+                  }}
+                />
+                <EnabledStatusChip
+                  disabledLabel={t("disabled", "Disabled")}
+                  enabled={Boolean(row.original.enable)}
+                  enabledLabel={t("enabled", "Enabled")}
+                />
+              </div>
+            ),
+          },
+          {
+            accessorKey: "icon",
+            header: t("icon", "Icon"),
+            cell: ({ row }) => {
+              const icon = row.getValue("icon") as string;
+              return (
+                <Avatar className="h-8 w-8">
+                  {icon ? (
+                    <AvatarImage alt={row.getValue("name")} src={icon} />
+                  ) : null}
+                  <AvatarFallback>
+                    {(row.getValue("name") as string)?.charAt(0) || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              );
+            },
+          },
+          {
+            accessorKey: "name",
+            header: t("name", "Name"),
+          },
+          {
+            accessorKey: "platform",
+            header: t("platform", "Platform"),
+            cell: ({ row }) => <Badge>{t(row.original.platform)}</Badge>,
+          },
+          {
+            accessorKey: "notify_url",
+            header: t("notify_url", "Notify URL"),
+          },
+          {
+            accessorKey: "fee",
+            header: t("handlingFee", "Handling Fee"),
+            cell: ({ row }) => {
+              const feeMode = row.original.fee_mode;
+              if (feeMode === 1) {
+                return <Badge>{row.original.fee_percent}%</Badge>;
+              }
+              if (feeMode === 2) {
+                return (
+                  <Badge>
+                    <MoneyValue value={row.original.fee_amount} />
+                  </Badge>
+                );
+              }
+              return "--";
+            },
+          },
+        ]}
+        header={{
+          toolbar: (
+            <PaymentForm<API.CreatePaymentMethodRequest>
+              loading={loading}
+              onSubmit={async (values) => {
+                setLoading(true);
+                try {
+                  await createPaymentMethod({
+                    ...values,
+                    enable: false,
+                  });
+                  toast.success(t("createSuccess", "Created successfully"));
+                  ref.current?.refresh({ reason: "create" });
+                  setLoading(false);
+                  return true;
+                } catch {
+                  setLoading(false);
+                  return false;
+                }
+              }}
+              title={t("createPayment", "Add Payment Method")}
+              trigger={<Button>{t("create", "Add Payment Method")}</Button>}
+            />
           ),
-        },
-        {
-          accessorKey: "icon",
-          header: t("icon", "Icon"),
-          cell: ({ row }) => {
-            const icon = row.getValue("icon") as string;
+        }}
+        mobile={{
+          getAriaLabel: (row) => String(row.name || row.platform || row.id),
+          render: (row) => {
+            const notifyUrl =
+              (row as API.PaymentMethodDetail).notify_url || row.domain;
+            let fee: ReactNode = "—";
+            if (row.fee_mode === 1) {
+              fee = <span className="font-semibold">{row.fee_percent}%</span>;
+            } else if (row.fee_mode === 2) {
+              fee = <MoneyValue emphasis="strong" value={row.fee_amount} />;
+            }
+
             return (
-              <Avatar className="h-8 w-8">
-                {icon ? (
-                  <AvatarImage alt={row.getValue("name")} src={icon} />
-                ) : null}
-                <AvatarFallback>
-                  {(row.getValue("name") as string)?.charAt(0) || "?"}
-                </AvatarFallback>
-              </Avatar>
+              <MobileListSummary
+                details={[
+                  {
+                    label: t("notify_url", "Notify URL"),
+                    value: (
+                      <span className="font-mono text-xs [overflow-wrap:anywhere]">
+                        {notifyUrl || "—"}
+                      </span>
+                    ),
+                    wide: true,
+                  },
+                ]}
+                fields={[
+                  {
+                    label: t("platform", "Platform"),
+                    value: <Badge variant="outline">{t(row.platform)}</Badge>,
+                  },
+                  {
+                    label: t("handlingFee", "Handling Fee"),
+                    value: fee,
+                  },
+                ]}
+                leading={
+                  <Avatar className="size-10">
+                    {row.icon ? (
+                      <AvatarImage alt={row.name} src={row.icon} />
+                    ) : null}
+                    <AvatarFallback>
+                      {row.name?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                }
+                subtitle={`ID ${row.id}`}
+                title={row.name || "—"}
+                trailing={
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">
+                      {t("enable", "Enable")}
+                    </span>
+                    <Switch
+                      aria-label={t("enable", "Enable")}
+                      checked={Boolean(row.enable)}
+                      onCheckedChange={async (checked) => {
+                        await updatePaymentMethod({ ...row, enable: checked });
+                        ref.current?.refresh({
+                          reason: "edit",
+                          rowIds: [row.id],
+                        });
+                      }}
+                    />
+                  </div>
+                }
+              />
             );
           },
-        },
-        {
-          accessorKey: "name",
-          header: t("name", "Name"),
-        },
-        {
-          accessorKey: "platform",
-          header: t("platform", "Platform"),
-          cell: ({ row }) => <Badge>{t(row.original.platform)}</Badge>,
-        },
-        {
-          accessorKey: "notify_url",
-          header: t("notify_url", "Notify URL"),
-        },
-        {
-          accessorKey: "fee",
-          header: t("handlingFee", "Handling Fee"),
-          cell: ({ row }) => {
-            const feeMode = row.original.fee_mode;
-            if (feeMode === 1) {
-              return <Badge>{row.original.fee_percent}%</Badge>;
-            }
-            if (feeMode === 2) {
-              return (
-                <Badge>
-                  <MoneyValue value={row.original.fee_amount} />
-                </Badge>
-              );
-            }
-            return "--";
+        }}
+        params={[
+          {
+            key: "search",
+            placeholder: t("searchPlaceholder", "Enter search terms"),
           },
-        },
-      ]}
-      header={{
-        title: t("paymentManagement", "Payment Management"),
-        toolbar: (
-          <PaymentForm<API.CreatePaymentMethodRequest>
-            loading={loading}
-            onSubmit={async (values) => {
-              setLoading(true);
-              try {
-                await createPaymentMethod({
-                  ...values,
-                  enable: false,
-                });
-                toast.success(t("createSuccess", "Created successfully"));
-                ref.current?.refresh({ reason: "create" });
-                setLoading(false);
-                return true;
-              } catch {
-                setLoading(false);
-                return false;
-              }
-            }}
-            title={t("createPayment", "Add Payment Method")}
-            trigger={<Button>{t("create", "Add Payment Method")}</Button>}
-          />
-        ),
-      }}
-      mobile={{
-        getAriaLabel: (row) => String(row.name || row.platform || row.id),
-        render: (row) => {
-          const notifyUrl =
-            (row as API.PaymentMethodDetail).notify_url || row.domain;
-          let fee: ReactNode = "—";
-          if (row.fee_mode === 1) {
-            fee = <span className="font-semibold">{row.fee_percent}%</span>;
-          } else if (row.fee_mode === 2) {
-            fee = <MoneyValue emphasis="strong" value={row.fee_amount} />;
-          }
-
-          return (
-            <MobileListSummary
-              details={[
-                {
-                  label: t("notify_url", "Notify URL"),
-                  value: (
-                    <span className="font-mono text-xs [overflow-wrap:anywhere]">
-                      {notifyUrl || "—"}
-                    </span>
-                  ),
-                  wide: true,
-                },
-              ]}
-              fields={[
-                {
-                  label: t("platform", "Platform"),
-                  value: <Badge variant="outline">{t(row.platform)}</Badge>,
-                },
-                {
-                  label: t("handlingFee", "Handling Fee"),
-                  value: fee,
-                },
-              ]}
-              leading={
-                <Avatar className="size-10">
-                  {row.icon ? (
-                    <AvatarImage alt={row.name} src={row.icon} />
-                  ) : null}
-                  <AvatarFallback>{row.name?.charAt(0) || "?"}</AvatarFallback>
-                </Avatar>
-              }
-              subtitle={`ID ${row.id}`}
-              title={row.name || "—"}
-              trailing={
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">
-                    {t("enable", "Enable")}
-                  </span>
-                  <Switch
-                    aria-label={t("enable", "Enable")}
-                    checked={Boolean(row.enable)}
-                    onCheckedChange={async (checked) => {
-                      await updatePaymentMethod({ ...row, enable: checked });
-                      ref.current?.refresh({
-                        reason: "edit",
-                        rowIds: [row.id],
-                      });
-                    }}
-                  />
-                </div>
-              }
-            />
+        ]}
+        request={async (pagination, filter, { signal }) => {
+          const { data } = await getPaymentMethodList(
+            {
+              ...pagination,
+              ...filter,
+            },
+            { signal }
           );
-        },
-      }}
-      params={[
-        {
-          key: "search",
-          placeholder: t("searchPlaceholder", "Enter search terms"),
-        },
-      ]}
-      request={async (pagination, filter) => {
-        const { data } = await getPaymentMethodList({
-          ...pagination,
-          ...filter,
-        });
-        return {
-          list: data?.data?.list || [],
-          total: data?.data?.total || 0,
-        };
-      }}
-      tablet="grid"
-    />
+          return {
+            list: data?.data?.list || [],
+            total: data?.data?.total || 0,
+          };
+        }}
+        tablet="grid"
+      />
+    </div>
   );
 }
 

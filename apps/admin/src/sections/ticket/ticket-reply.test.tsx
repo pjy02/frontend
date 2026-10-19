@@ -11,6 +11,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TicketPage from "./index";
 
 const mocks = vi.hoisted(() => ({ reply: vi.fn(), refetch: vi.fn() }));
+// Business-only harness; follow/scroll preferences are covered by use-ticket-follow.
+vi.mock("@/components/motion-provider", () => ({
+  useAdminMotion: () => ({ reducedMotion: true }),
+}));
 vi.mock("@workspace/ui/services/admin/admin", () => ({
   postTicketFollow: mocks.reply,
   getTicketDetail: vi.fn(),

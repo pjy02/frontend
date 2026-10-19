@@ -45,9 +45,10 @@ describe("protected Admin UI contract", () => {
     expect(layout).toContain("<SidebarLeft />");
     expect(layout).toContain("<Header />");
     expect(layout).toContain('className="admin-shell"');
-    expect(layout).toContain(
-      "<AdminPageTransition transitionKey={pageTransitionKey}>"
+    expect(layout).toMatch(
+      /<AdminPageTransition\b[^>]*transitionKey=\{pageTransitionKey\}[^>]*>/
     );
+    expect(layout).toContain("waitForContent");
     expect(layout).not.toContain("key={pageTransitionKey}");
     const transition = readProjectFile(
       "apps/admin/src/components/page-transition.tsx"

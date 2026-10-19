@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useRouteTableAction } from "@/components/route-table-context";
 import { LoadingState, NotFoundState } from "@/components/states";
+import { useRouteWorkspaceExit } from "@/components/use-route-workspace-exit";
 import { useServer } from "@/stores/server";
 import ServerForm from "./server-form";
 
@@ -32,6 +33,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
       search,
       to: "/dashboard/servers",
     });
+  const exit = useRouteWorkspaceExit(close);
 
   if (serverId !== undefined && !loaded) {
     return (
@@ -68,11 +70,8 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
     <ServerForm
       initialValues={server}
       loading={saving}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          return close();
-        }
-      }}
+      onAfterClose={exit.onAfterClose}
+      onOpenChange={exit.onOpenChange}
       onSubmit={async (values) => {
         setSaving(true);
         try {
@@ -96,7 +95,7 @@ export function ServerRouteEditor({ serverId }: ServerRouteEditorProps) {
           setSaving(false);
         }
       }}
-      open
+      open={exit.open}
       title={
         isEditing
           ? t("drawerEditTitle", "Edit Server")

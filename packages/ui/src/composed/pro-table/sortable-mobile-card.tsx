@@ -13,6 +13,7 @@ interface SortableMobileCardProps {
   id: string;
   children: React.ReactNode;
   dragLabel: string;
+  disabled?: boolean;
   footerEnd?: React.ReactNode;
   footerStart?: React.ReactNode;
   label: string;
@@ -27,6 +28,7 @@ export function SortableMobileCard({
   id,
   children,
   dragLabel,
+  disabled = false,
   feedback,
   footerEnd,
   footerStart,
@@ -47,6 +49,7 @@ export function SortableMobileCard({
     transition,
   } = useSortable({
     id,
+    disabled,
     animateLayoutChanges: (args) =>
       mutationLayout && !args.isSorting && !args.wasDragging
         ? args.previousItems.includes(args.id)

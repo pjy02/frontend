@@ -3,6 +3,7 @@
 import { cn } from "@workspace/ui/lib/utils";
 import type * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
+import { usePresenceInert } from "../hooks/use-presence-inert";
 
 function Drawer({
   ...props
@@ -47,8 +48,10 @@ function DrawerOverlay({
 function DrawerContent({
   className,
   children,
+  ref,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  const contentRef = usePresenceInert(ref);
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />
@@ -62,6 +65,7 @@ function DrawerContent({
           className
         )}
         data-slot="drawer-content"
+        ref={contentRef}
         {...props}
       >
         <div className="mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />

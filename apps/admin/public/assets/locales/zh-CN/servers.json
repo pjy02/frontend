@@ -1,4 +1,5 @@
 {
+  "installConfigurationMissing": "请先在服务器页面的“节点配置”中设置通信密钥，再复制安装命令。",
   "fingerprintLegacyValue": "{{value}}（已保存的值）",
   "actions": {
     "cancel": "取消",

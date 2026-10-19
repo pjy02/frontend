@@ -4,6 +4,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@workspace/ui/lib/utils";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
 import type * as React from "react";
+import { usePresenceInert } from "../hooks/use-presence-inert";
 
 function DropdownMenu({
   ...props
@@ -33,8 +34,10 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  ref,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  const contentRef = usePresenceInert(ref);
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
@@ -43,6 +46,7 @@ function DropdownMenuContent({
           className
         )}
         data-slot="dropdown-menu-content"
+        ref={contentRef}
         sideOffset={sideOffset}
         {...props}
       />
@@ -223,8 +227,10 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({
   className,
+  ref,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  const contentRef = usePresenceInert(ref);
   return (
     <DropdownMenuPrimitive.SubContent
       className={cn(
@@ -232,6 +238,7 @@ function DropdownMenuSubContent({
         className
       )}
       data-slot="dropdown-menu-sub-content"
+      ref={contentRef}
       {...props}
     />
   );

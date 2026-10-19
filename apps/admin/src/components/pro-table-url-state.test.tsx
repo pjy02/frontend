@@ -35,7 +35,8 @@ describe("ProTable URL-restored state", () => {
     await waitFor(() => {
       expect(request).toHaveBeenLastCalledWith(
         { page: 2, size: 20 },
-        { user_id: 7 }
+        { user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
 
@@ -54,7 +55,8 @@ describe("ProTable URL-restored state", () => {
     await waitFor(() => {
       expect(request).toHaveBeenLastCalledWith(
         { page: 4, size: 50 },
-        { user_id: 19 }
+        { user_id: 19 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
   });

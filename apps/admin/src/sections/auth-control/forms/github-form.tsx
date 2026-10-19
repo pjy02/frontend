@@ -25,6 +25,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -46,18 +51,19 @@ export default function GithubForm() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getAuthMethodConfig", "github"],
     queryFn: async () => {
       const { data } = await getAuthMethodConfig({
         method: "github",
       });
 
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<GithubFormData>({
     resolver: zodResolver(githubSchema),
     defaultValues: {
@@ -66,7 +72,12 @@ export default function GithubForm() {
       client_secret: "",
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   useEffect(() => {
     if (data && !safety.dirty && !safety.busy) {
@@ -79,6 +90,7 @@ export default function GithubForm() {
   }, [data, form]);
 
   async function onSubmit(values: GithubFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateAuthMethodConfig({
@@ -104,7 +116,10 @@ export default function GithubForm() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:github" />
@@ -122,96 +137,98 @@ export default function GithubForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>{t("github.title", "GitHub Sign-In")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="github-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="enabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("github.enable", "Enable")}</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "github.enableDescription",
-                        "When enabled, users can sign in with their GitHub account"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="github-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="enabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("github.enable", "Enable")}</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "github.enableDescription",
+                          "When enabled, users can sign in with their GitHub account"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="client_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("github.clientId", "Client ID")}</FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="e.g., Iv1.1234567890abcdef"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "github.clientIdDescription",
-                        "GitHub OAuth App Client ID, available from GitHub Developer Settings"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="client_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("github.clientId", "Client ID")}</FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="e.g., Iv1.1234567890abcdef"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "github.clientIdDescription",
+                          "GitHub OAuth App Client ID, available from GitHub Developer Settings"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="client_secret"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("github.clientSecret", "Client Secret")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="e.g., 1234567890abcdef1234567890abcdef12345678"
-                        type="password"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "github.clientSecretDescription",
-                        "GitHub OAuth App Client Secret, available from GitHub Developer Settings"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                <FormField
+                  control={form.control}
+                  name="client_secret"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("github.clientSecret", "Client Secret")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="e.g., 1234567890abcdef1234567890abcdef12345678"
+                          type="password"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "github.clientSecretDescription",
+                          "GitHub OAuth App Client Secret, available from GitHub Developer Settings"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -221,10 +238,13 @@ export default function GithubForm() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="github-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="github-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save")}
           </Button>
         </SheetFooter>

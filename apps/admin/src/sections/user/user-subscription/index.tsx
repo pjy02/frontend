@@ -236,11 +236,14 @@ export default function UserSubscription({ userId }: { userId: number }) {
           />
         ),
       }}
-      request={async (pagination) => {
-        const { data } = await getUserSubscribe({
-          user_id: userId,
-          ...pagination,
-        });
+      request={async (pagination, _filters, { signal }) => {
+        const { data } = await getUserSubscribe(
+          {
+            user_id: userId,
+            ...pagination,
+          },
+          { signal }
+        );
         return {
           list: data.data?.list || [],
           total: data.data?.total || 0,

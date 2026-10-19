@@ -20,6 +20,7 @@ interface DataToolbarProps<TData> {
   refreshSucceeded?: boolean;
   mobileCards?: boolean;
   mobileFilterMode?: "inline" | "drawer";
+  filterResetKey?: number;
   onRefresh: () => void;
   onReset: () => void;
   viewSettings?: ReactNode;
@@ -42,6 +43,7 @@ export function DataToolbar<TData>({
   refreshSucceeded,
   mobileCards,
   mobileFilterMode,
+  filterResetKey,
   onRefresh,
   onReset,
   labels,
@@ -62,6 +64,7 @@ export function DataToolbar<TData>({
               filters={filters}
               mobileMode={mobileFilterMode}
               params={params}
+              resetKey={filterResetKey}
               table={table}
             />
           ) : null}

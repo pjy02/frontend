@@ -2,8 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Switch } from "@workspace/ui/components/switch";
 import {
   Tabs,
   TabsContent,
@@ -45,8 +43,14 @@ import {
   AdminActionMenuItem,
   AdminActionMenuSub,
 } from "@/components/admin-action-menu";
+import { AsyncSwitch, synchronizeTable } from "@/components/async-switch";
 import { Display } from "@/components/display";
+import {
+  type FormLeaveGuard,
+  FormNavigationGuard,
+} from "@/components/form-safety";
 import { PageHeader } from "@/components/page-header";
+import { ReadBoundary, requireReadData } from "@/components/read-boundary";
 import {
   Sheet,
   SheetContent,
@@ -157,16 +161,15 @@ export default function User() {
             accessorKey: "enable",
             header: t("enable", "Enable"),
             cell: ({ row }) => (
-              <Switch
-                defaultChecked={row.getValue("enable")}
-                onCheckedChange={async (checked) => {
-                  await updateUserEnabled(row.original, checked);
-                  toast.success(t("updateSuccess", "Updated successfully"));
-                  ref.current?.refresh({
-                    reason: "edit",
-                    rowIds: [row.original.id],
-                  });
-                }}
+              <AsyncSwitch
+                checked={Boolean(row.original.enable)}
+                disabled={Boolean(row.original.deleted_at)}
+                field="enable"
+                id={row.original.id}
+                label={t("enable", "Enable")}
+                onSync={() => synchronizeTable(ref, row.original.id)}
+                onWrite={(checked) => updateUserEnabled(row.original, checked)}
+                resource="user"
               />
             ),
           },
@@ -271,9 +274,7 @@ export default function User() {
             row.auth_methods?.[0]?.auth_identifier || `User ${row.id}`,
           render: (row) => (
             <UserMobileCard
-              onUpdated={() =>
-                ref.current?.refresh({ reason: "edit", rowIds: [row.id] })
-              }
+              onUpdated={() => synchronizeTable(ref, row.id)}
               user={row}
             />
           ),
@@ -310,14 +311,17 @@ export default function User() {
             ),
           },
         ]}
-        request={async (pagination, filter) => {
-          const { data } = await getUserList({
-            ...pagination,
-            ...filter,
-            user_subscribe_token: extractSubscribeTokenOrUuid(
-              filter.user_subscribe_token
-            ),
-          });
+        request={async (pagination, filter, { signal }) => {
+          const { data } = await getUserList(
+            {
+              ...pagination,
+              ...filter,
+              user_subscribe_token: extractSubscribeTokenOrUuid(
+                filter.user_subscribe_token
+              ),
+            },
+            { signal }
+          );
           return {
             list: data.data?.list || [],
             total: data.data?.total || 0,
@@ -329,23 +333,10 @@ export default function User() {
 }
 
 async function updateUserEnabled(user: API.User, checked: boolean) {
-  const {
-    auth_methods: _auth_methods,
-    user_devices: _user_devices,
-    enable_balance_notify: _enable_balance_notify,
-    enable_login_notify: _enable_login_notify,
-    enable_subscribe_notify: _enable_subscribe_notify,
-    enable_trade_notify: _enable_trade_notify,
-    updated_at: _updated_at,
-    created_at: _created_at,
-    id,
-    ...rest
-  } = user;
   await updateUserBasicInfo({
-    user_id: id,
-    ...rest,
+    user_id: user.id,
     enable: checked,
-  } as unknown as API.UpdateUserBasiceInfoRequest);
+  });
 }
 
 function UserMobileCard({
@@ -353,7 +344,7 @@ function UserMobileCard({
   onUpdated,
 }: {
   user: API.User;
-  onUpdated: () => void;
+  onUpdated: () => Promise<unknown>;
 }) {
   const { t } = useTranslation("user");
   const method = user.auth_methods?.[0];
@@ -394,15 +385,16 @@ function UserMobileCard({
           <StatusChip tone={isDeleted ? "danger" : "success"}>
             {isDeleted ? t("deleted", "Deleted") : t("normal", "Normal")}
           </StatusChip>
-          <Switch
-            aria-label={t("enable", "Enable")}
+          <AsyncSwitch
             checked={Boolean(user.enable)}
+            compact
             disabled={isDeleted}
-            onCheckedChange={async (checked) => {
-              await updateUserEnabled(user, checked);
-              toast.success(t("updateSuccess", "Updated successfully"));
-              onUpdated();
-            }}
+            field="enable"
+            id={user.id}
+            label={t("enable", "Enable")}
+            onSync={onUpdated}
+            onWrite={(checked) => updateUserEnabled(user, checked)}
+            resource="user"
           />
         </div>
       </div>
@@ -578,27 +570,47 @@ function ProfileSheet({
 }) {
   const { t } = useTranslation("user");
   const [open, setOpen] = useState(false);
-  const leaveGuard = useRef<(() => Promise<boolean>) | null>(null);
-  const requestOpenChange = async (next: boolean) => {
-    if (next || !leaveGuard.current || (await leaveGuard.current()))
-      setOpen(next);
+  const leaveGuards = useRef(new Map<string, FormLeaveGuard>());
+  const leaving = useRef(false);
+  const confirmLeave = async () => {
+    if (leaving.current) return false;
+    leaving.current = true;
+    const guards = [...leaveGuards.current.values()];
+    try {
+      for (const guard of guards) {
+        if (!(await guard())) {
+          for (const previous of guards) previous.cancel();
+          return false;
+        }
+      }
+      return true;
+    } finally {
+      leaving.current = false;
+    }
   };
-  const { data: user, refetch } = useQuery({
+  const requestOpenChange = async (next: boolean) => {
+    if (!(next || (await confirmLeave()))) return;
+    setOpen(next);
+  };
+  const profileQuery = useQuery({
     enabled: open,
     queryKey: ["user", userId],
     queryFn: async () => {
       const { data } = await getUserDetail({ id: userId });
-      return data.data as API.User;
+      return requireReadData(data.data);
     },
   });
+  const { data: user, refetch } = profileQuery;
 
   const refetchAll = async () => {
-    await refetch();
+    const result = await refetch();
+    if (result.isError) throw result.error;
     onUpdated?.();
     return Promise.resolve();
   };
   return (
     <Sheet onOpenChange={requestOpenChange} open={open}>
+      <FormNavigationGuard confirm={confirmLeave} dirty={open} />
       <SheetTrigger asChild>
         <Button
           aria-label={t("edit", "Edit")}
@@ -623,68 +635,88 @@ function ProfileSheet({
             )}
           </SheetDescription>
         </SheetHeader>
-        {user ? (
-          <>
-            <div className="flex items-center gap-3 border-b bg-muted/25 px-6 py-4">
-              <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
-                <UserRound className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">
-                  {user.auth_methods?.[0]?.auth_identifier || `User ${userId}`}
+        <ReadBoundary query={profileQuery}>
+          {user && (
+            <>
+              <div className="flex items-center gap-3 border-b bg-muted/25 px-6 py-4">
+                <div className="grid size-11 place-items-center rounded-full bg-primary/10 text-primary">
+                  <UserRound className="size-5" />
                 </div>
-                <div className="text-muted-foreground text-xs">ID {userId}</div>
-              </div>
-              <StatusChip tone={user.enable ? "success" : "neutral"}>
-                {user.enable
-                  ? t("enabled", "Enabled")
-                  : t("disabled", "Disabled")}
-              </StatusChip>
-            </div>
-            <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="basic">
-              <TabsList className="mx-6 mt-4 grid w-[calc(100%-3rem)] grid-cols-3">
-                <TabsTrigger value="basic">
-                  {t("basicInfoTitle", "Basic Info")}
-                </TabsTrigger>
-                <TabsTrigger value="notify">
-                  {t("notifySettingsTitle", "Notify Settings")}
-                </TabsTrigger>
-                <TabsTrigger value="auth">
-                  {t("authMethodsTitle", "Auth Methods")}
-                </TabsTrigger>
-              </TabsList>
-              <ScrollArea className="min-h-0 flex-1">
-                <div className="p-6 pt-4">
-                  <TabsContent
-                    className="mt-0 data-[state=inactive]:hidden"
-                    forceMount
-                    value="basic"
-                  >
-                    <BasicInfoForm
-                      onLeaveGuardChange={(guard) => {
-                        leaveGuard.current = guard;
-                      }}
-                      refetch={refetchAll}
-                      user={user}
-                    />
-                  </TabsContent>
-                  <TabsContent className="mt-0" value="notify">
-                    <NotifySettingsForm refetch={refetchAll} user={user} />
-                  </TabsContent>
-                  <TabsContent className="mt-0" value="auth">
-                    <AuthMethodsForm refetch={refetchAll} user={user} />
-                  </TabsContent>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">
+                    {user.auth_methods?.[0]?.auth_identifier ||
+                      `User ${userId}`}
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    ID {userId}
+                  </div>
                 </div>
-              </ScrollArea>
-            </Tabs>
-          </>
-        ) : (
-          <div className="space-y-4 p-6">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <Skeleton className="h-72 w-full rounded-xl" />
-          </div>
-        )}
+                <StatusChip tone={user.enable ? "success" : "neutral"}>
+                  {user.enable
+                    ? t("enabled", "Enabled")
+                    : t("disabled", "Disabled")}
+                </StatusChip>
+              </div>
+              <Tabs
+                className="flex min-h-0 flex-1 flex-col"
+                defaultValue="basic"
+                preserveContent
+              >
+                <TabsList className="mx-6 mt-4 grid w-[calc(100%-3rem)] grid-cols-3">
+                  <TabsTrigger value="basic">
+                    {t("basicInfoTitle", "Basic Info")}
+                  </TabsTrigger>
+                  <TabsTrigger value="notify">
+                    {t("notifySettingsTitle", "Notify Settings")}
+                  </TabsTrigger>
+                  <TabsTrigger value="auth">
+                    {t("authMethodsTitle", "Auth Methods")}
+                  </TabsTrigger>
+                </TabsList>
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="p-6 pt-4">
+                    <TabsContent
+                      className="mt-0 data-[state=inactive]:hidden"
+                      value="basic"
+                    >
+                      <BasicInfoForm
+                        onLeaveGuardChange={(guard) => {
+                          if (guard) leaveGuards.current.set("basic", guard);
+                          else leaveGuards.current.delete("basic");
+                        }}
+                        open={open}
+                        refetch={refetchAll}
+                        user={user}
+                      />
+                    </TabsContent>
+                    <TabsContent className="mt-0" value="notify">
+                      <NotifySettingsForm
+                        onLeaveGuardChange={(guard) => {
+                          if (guard) leaveGuards.current.set("notify", guard);
+                          else leaveGuards.current.delete("notify");
+                        }}
+                        open={open}
+                        refetch={refetchAll}
+                        user={user}
+                      />
+                    </TabsContent>
+                    <TabsContent className="mt-0" value="auth">
+                      <AuthMethodsForm
+                        onLeaveGuardChange={(guard) => {
+                          if (guard) leaveGuards.current.set("auth", guard);
+                          else leaveGuards.current.delete("auth");
+                        }}
+                        open={open}
+                        refetch={refetchAll}
+                        user={user}
+                      />
+                    </TabsContent>
+                  </div>
+                </ScrollArea>
+              </Tabs>
+            </>
+          )}
+        </ReadBoundary>
       </SheetContent>
     </Sheet>
   );

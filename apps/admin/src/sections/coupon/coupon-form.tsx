@@ -16,7 +16,6 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { DatePicker } from "@workspace/ui/composed/date-picker";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
-import { Icon } from "@workspace/ui/composed/icon";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -79,9 +78,9 @@ export default function CouponForm<T extends Record<string, any>>({
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
+    if (bool === false) throw new Error("Write was not confirmed");
     if (bool) {
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
     }
   }
 
@@ -391,11 +390,10 @@ export default function CouponForm<T extends Record<string, any>>({
           </Button>
           <Button
             disabled={loading}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit)}
           >
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}{" "}
             {t("form.confirm", "Confirm")}
           </Button>
         </WorkspaceDialogFooter>

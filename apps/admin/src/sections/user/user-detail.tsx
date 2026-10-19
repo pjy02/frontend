@@ -15,6 +15,7 @@ import {
 import { formatBytes } from "@workspace/ui/utils/formatting";
 import { useTranslation } from "react-i18next";
 import { Display } from "@/components/display";
+import { ReadBoundary, requireReadData } from "@/components/read-boundary";
 import { StatusChip } from "@/components/status-chip";
 import { formatDate } from "@/utils/common";
 
@@ -29,14 +30,15 @@ export function UserSubscribeDetail({
 }) {
   const { t } = useTranslation("user");
 
-  const { data } = useQuery({
+  const readQuery = useQuery({
     enabled: id !== 0 && enabled,
     queryKey: ["getUserSubscribeById", id],
     queryFn: async () => {
       const { data } = await getUserSubscribeById({ id });
-      return data.data;
+      return requireReadData(data.data);
     },
   });
+  const { data } = readQuery;
 
   if (!id) return "--";
 
@@ -44,104 +46,108 @@ export function UserSubscribeDetail({
   const totalTraffic = data?.traffic || 0;
 
   const subscribeContent = (
-    <div className="space-y-4 text-sm">
-      <div>
-        <h3 className="mb-2 font-medium text-sm">{t("subscriptionInfo")}</h3>
-        <div className="border-t pt-4">
-          <ul className="grid gap-3">
-            <li className="flex items-center justify-between font-semibold">
-              <span className="text-muted-foreground">
-                {t("subscriptionId")}
-              </span>
-              <span>{data?.id || "--"}</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {t("subscriptionName")}
-              </span>
-              <span>{data?.subscribe?.name || "--"}</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("token")}</span>
-              <div className="font-mono text-xs" title={data?.token || ""}>
-                {data?.token || "--"}
-              </div>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("trafficUsage")}</span>
-              <span>
-                {data
-                  ? totalTraffic === 0
-                    ? `${formatBytes(usedTraffic)} / ${t("unlimited")}`
-                    : `${formatBytes(usedTraffic)} / ${formatBytes(totalTraffic)}`
-                  : "--"}
-              </span>
-            </li>
-            <li className="space-y-1.5">
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width]"
-                  style={{
-                    width: `${totalTraffic > 0 ? Math.min((usedTraffic / totalTraffic) * 100, 100) : 0}%`,
-                  }}
-                />
-              </div>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("startTime")}</span>
-              <span>
-                {data?.start_time ? formatDate(data.start_time) : "--"}
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("expireTime")}</span>
-              <span>
-                {data?.expire_time ? formatDate(data.expire_time) : "--"}
-              </span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {!hoverCard && (
+    <ReadBoundary query={readQuery}>
+      <div className="space-y-4 text-sm">
         <div>
-          <h3 className="mb-2 font-medium text-sm">
-            {t("userInfo")}
-            {/* Removed link to legacy user detail page */}
-          </h3>
-          <ul className="grid gap-3">
-            <li className="flex items-center justify-between font-semibold">
-              <span className="text-muted-foreground">{t("userId")}</span>
-              <span>{data?.user_id}</span>
-            </li>
-            <li className="flex items-center justify-between font-semibold">
-              <span className="text-muted-foreground">{t("balance")}</span>
-              <span>
-                <Display type="currency" value={data?.user.balance} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("giftAmount")}</span>
-              <span>
-                <Display type="currency" value={data?.user?.gift_amount} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("commission")}</span>
-              <span>
-                <Display type="currency" value={data?.user?.commission} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">{t("createdAt")}</span>
-              <span>
-                {data?.user?.created_at && formatDate(data?.user?.created_at)}
-              </span>
-            </li>
-          </ul>
+          <h3 className="mb-2 font-medium text-sm">{t("subscriptionInfo")}</h3>
+          <div className="border-t pt-4">
+            <ul className="grid gap-3">
+              <li className="flex items-center justify-between font-semibold">
+                <span className="text-muted-foreground">
+                  {t("subscriptionId")}
+                </span>
+                <span>{data?.id || "--"}</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {t("subscriptionName")}
+                </span>
+                <span>{data?.subscribe?.name || "--"}</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("token")}</span>
+                <div className="font-mono text-xs" title={data?.token || ""}>
+                  {data?.token || "--"}
+                </div>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {t("trafficUsage")}
+                </span>
+                <span>
+                  {data
+                    ? totalTraffic === 0
+                      ? `${formatBytes(usedTraffic)} / ${t("unlimited")}`
+                      : `${formatBytes(usedTraffic)} / ${formatBytes(totalTraffic)}`
+                    : "--"}
+                </span>
+              </li>
+              <li className="space-y-1.5">
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{
+                      width: `${totalTraffic > 0 ? Math.min((usedTraffic / totalTraffic) * 100, 100) : 0}%`,
+                    }}
+                  />
+                </div>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("startTime")}</span>
+                <span>
+                  {data?.start_time ? formatDate(data.start_time) : "--"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("expireTime")}</span>
+                <span>
+                  {data?.expire_time ? formatDate(data.expire_time) : "--"}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
-      )}
-    </div>
+
+        {!hoverCard && (
+          <div>
+            <h3 className="mb-2 font-medium text-sm">
+              {t("userInfo")}
+              {/* Removed link to legacy user detail page */}
+            </h3>
+            <ul className="grid gap-3">
+              <li className="flex items-center justify-between font-semibold">
+                <span className="text-muted-foreground">{t("userId")}</span>
+                <span>{data?.user_id}</span>
+              </li>
+              <li className="flex items-center justify-between font-semibold">
+                <span className="text-muted-foreground">{t("balance")}</span>
+                <span>
+                  <Display type="currency" value={data?.user.balance} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("giftAmount")}</span>
+                <span>
+                  <Display type="currency" value={data?.user?.gift_amount} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("commission")}</span>
+                <span>
+                  <Display type="currency" value={data?.user?.commission} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">{t("createdAt")}</span>
+                <span>
+                  {data?.user?.created_at && formatDate(data?.user?.created_at)}
+                </span>
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+    </ReadBoundary>
   );
 
   if (hoverCard) {
@@ -165,14 +171,15 @@ export function UserSubscribeDetail({
 export function UserDetail({ id }: { id: number }) {
   const { t } = useTranslation("user");
 
-  const { data } = useQuery({
+  const readQuery = useQuery({
     enabled: id !== 0,
     queryKey: ["getUserDetail", id],
     queryFn: async () => {
       const { data } = await getUserDetail({ id });
-      return data.data;
+      return requireReadData(data.data);
     },
   });
+  const { data } = readQuery;
 
   if (!id) return "--";
 
@@ -191,55 +198,57 @@ export function UserDetail({ id }: { id: number }) {
         </Button>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 rounded-xl p-4">
-        <div className="grid gap-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div>
-              <div className="font-medium">{identifier || `User ${id}`}</div>
-              <div className="text-muted-foreground text-xs">ID {id}</div>
+        <ReadBoundary query={readQuery}>
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <div className="font-medium">{identifier || `User ${id}`}</div>
+                <div className="text-muted-foreground text-xs">ID {id}</div>
+              </div>
+              <StatusChip tone={data?.enable ? "success" : "neutral"}>
+                {data?.enable
+                  ? t("enabled", "Enabled")
+                  : t("disabled", "Disabled")}
+              </StatusChip>
             </div>
-            <StatusChip tone={data?.enable ? "success" : "neutral"}>
-              {data?.enable
-                ? t("enabled", "Enabled")
-                : t("disabled", "Disabled")}
-            </StatusChip>
+            <ul className="grid gap-3">
+              <li className="flex items-center justify-between font-semibold">
+                <span className="text-muted-foreground">ID</span>
+                <span>{data?.id}</span>
+              </li>
+              <li className="flex items-center justify-between font-semibold">
+                <span className="text-muted-foreground">
+                  {t("balance", "Balance")}
+                </span>
+                <span>
+                  <Display type="currency" value={data?.balance} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {t("giftAmount", "Gift Amount")}
+                </span>
+                <span>
+                  <Display type="currency" value={data?.gift_amount} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {t("commission", "Commission")}
+                </span>
+                <span>
+                  <Display type="currency" value={data?.commission} />
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {t("createdAt", "Created At")}
+                </span>
+                <span>{data?.created_at && formatDate(data?.created_at)}</span>
+              </li>
+            </ul>
           </div>
-          <ul className="grid gap-3">
-            <li className="flex items-center justify-between font-semibold">
-              <span className="text-muted-foreground">ID</span>
-              <span>{data?.id}</span>
-            </li>
-            <li className="flex items-center justify-between font-semibold">
-              <span className="text-muted-foreground">
-                {t("balance", "Balance")}
-              </span>
-              <span>
-                <Display type="currency" value={data?.balance} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {t("giftAmount", "Gift Amount")}
-              </span>
-              <span>
-                <Display type="currency" value={data?.gift_amount} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {t("commission", "Commission")}
-              </span>
-              <span>
-                <Display type="currency" value={data?.commission} />
-              </span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {t("createdAt", "Created At")}
-              </span>
-              <span>{data?.created_at && formatDate(data?.created_at)}</span>
-            </li>
-          </ul>
-        </div>
+        </ReadBoundary>
       </HoverCardContent>
     </HoverCard>
   );

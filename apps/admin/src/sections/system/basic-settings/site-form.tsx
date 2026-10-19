@@ -26,6 +26,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
+import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
 import { SettingsSection } from "@/components/settings-section";
 import {
   Sheet,
@@ -53,15 +58,16 @@ export default function SiteConfig() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getSiteConfig"],
     queryFn: async () => {
       const { data } = await getSiteConfig();
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<SiteFormData>({
     resolver: zodResolver(siteSchema),
     defaultValues: {
@@ -83,6 +89,7 @@ export default function SiteConfig() {
   }, [data, form]);
 
   async function onSubmit(values: SiteFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateSiteConfig(values as API.SiteConfig);
@@ -100,7 +107,10 @@ export default function SiteConfig() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:web" />
@@ -118,287 +128,301 @@ export default function SiteConfig() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("site.title", "Site Configuration")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-5 pt-4"
-              id="site-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <SettingsSection
-                description={t(
-                  "site.identityDescription",
-                  "Brand identity and metadata shown across the user-facing site."
-                )}
-                title={t("site.identity", "Site identity")}
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-5 pt-4"
+                id="site-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
               >
-                <FormField
-                  control={form.control}
-                  name="site_logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("site.logo", "Site Logo")}</FormLabel>
-                      <FormControl>
-                        <EnhancedInput
-                          onValueChange={field.onChange}
-                          placeholder={t(
-                            "site.logoPlaceholder",
-                            "Enter the URL of the logo, without ending with '/'"
-                          )}
-                          suffix={
-                            <UploadImage
-                              className="h-9 rounded-none border-none bg-muted px-2"
-                              onChange={(value) => {
-                                field.onChange(value);
-                              }}
-                            />
-                          }
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.logoDescription",
-                          "Used for displaying the logo in designated locations"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                {safety.summary}
+                <SettingsSection
+                  description={t(
+                    "site.identityDescription",
+                    "Brand identity and metadata shown across the user-facing site."
                   )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="site_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("site.siteName", "Site Name")}</FormLabel>
-                      <FormControl>
-                        <EnhancedInput
-                          onValueChange={field.onChange}
-                          placeholder={t(
-                            "site.siteNamePlaceholder",
-                            "Enter site name"
+                  title={t("site.identity", "Site identity")}
+                >
+                  <FormField
+                    control={form.control}
+                    name="site_logo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("site.logo", "Site Logo")}</FormLabel>
+                        <FormControl>
+                          <EnhancedInput
+                            onValueChange={field.onChange}
+                            placeholder={t(
+                              "site.logoPlaceholder",
+                              "Enter the URL of the logo, without ending with '/'"
+                            )}
+                            suffix={
+                              <UploadImage
+                                className="h-9 rounded-none border-none bg-muted px-2"
+                                onChange={(value) => {
+                                  field.onChange(value);
+                                }}
+                              />
+                            }
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.logoDescription",
+                            "Used for displaying the logo in designated locations"
                           )}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.siteNameDescription",
-                          "Used for displaying the site name in designated locations"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="site_desc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("site.siteDesc", "Site Description")}
-                      </FormLabel>
-                      <FormControl>
-                        <EnhancedInput
-                          onValueChange={field.onChange}
-                          placeholder={t(
-                            "site.siteDescPlaceholder",
-                            "Enter site description"
+                  <FormField
+                    control={form.control}
+                    name="site_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("site.siteName", "Site Name")}</FormLabel>
+                        <FormControl>
+                          <EnhancedInput
+                            onValueChange={field.onChange}
+                            placeholder={t(
+                              "site.siteNamePlaceholder",
+                              "Enter site name"
+                            )}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.siteNameDescription",
+                            "Used for displaying the site name in designated locations"
                           )}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.siteDescDescription",
-                          "Used for displaying the site description in designated locations"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="keywords"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("site.keywords", "Keywords")}</FormLabel>
-                      <FormControl>
-                        <EnhancedInput
-                          onValueChange={field.onChange}
-                          placeholder={t(
-                            "site.keywordsPlaceholder",
-                            "keyword1, keyword2, keyword3"
+                  <FormField
+                    control={form.control}
+                    name="site_desc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("site.siteDesc", "Site Description")}
+                        </FormLabel>
+                        <FormControl>
+                          <EnhancedInput
+                            onValueChange={field.onChange}
+                            placeholder={t(
+                              "site.siteDescPlaceholder",
+                              "Enter site description"
+                            )}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.siteDescDescription",
+                            "Used for displaying the site description in designated locations"
                           )}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t("site.keywordsDescription", "Used for SEO purposes")}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </SettingsSection>
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <SettingsSection
-                description={t(
-                  "site.runtimeDescription",
-                  "Domains and optional markup used when rendering the site."
-                )}
-                title={t("site.runtime", "Runtime configuration")}
-              >
-                <FormField
-                  control={form.control}
-                  name="custom_html"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("site.customHtml", "Custom HTML")}
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="h-32"
-                          placeholder={t(
+                  <FormField
+                    control={form.control}
+                    name="keywords"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("site.keywords", "Keywords")}</FormLabel>
+                        <FormControl>
+                          <EnhancedInput
+                            onValueChange={field.onChange}
+                            placeholder={t(
+                              "site.keywordsPlaceholder",
+                              "keyword1, keyword2, keyword3"
+                            )}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.keywordsDescription",
+                            "Used for SEO purposes"
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsSection>
+
+                <SettingsSection
+                  description={t(
+                    "site.runtimeDescription",
+                    "Domains and optional markup used when rendering the site."
+                  )}
+                  title={t("site.runtime", "Runtime configuration")}
+                >
+                  <FormField
+                    control={form.control}
+                    name="custom_html"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("site.customHtml", "Custom HTML")}
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-32"
+                            placeholder={t(
+                              "site.customHtmlDescription",
+                              "Custom HTML code to be injected into the bottom of the site's body tag"
+                            )}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
                             "site.customHtmlDescription",
                             "Custom HTML code to be injected into the bottom of the site's body tag"
                           )}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.customHtmlDescription",
-                          "Custom HTML code to be injected into the bottom of the site's body tag"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="host"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("site.siteDomain", "Site Domain")}
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="h-32"
-                          placeholder={`${t("site.siteDomainPlaceholder", "Please enter the domain address. For multiple domains, please enter one per line.")}\nexample.com\nwww.example.com`}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.siteDomainDescription",
-                          "Domain address of the current website, e.g., used in emails"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </SettingsSection>
+                  <FormField
+                    control={form.control}
+                    name="host"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("site.siteDomain", "Site Domain")}
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-32"
+                            placeholder={`${t("site.siteDomainPlaceholder", "Please enter the domain address. For multiple domains, please enter one per line.")}\nexample.com\nwww.example.com`}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.siteDomainDescription",
+                            "Domain address of the current website, e.g., used in emails"
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsSection>
 
-              <SettingsSection
-                columns={1}
-                description={t(
-                  "site.customDataDescription",
-                  "Custom data for website customization"
-                )}
-                title={t("site.customData", "Custom Data")}
-              >
-                <FormField
-                  control={form.control}
-                  name="custom_data"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("site.customData", "Custom Data")}
-                      </FormLabel>
-                      <FormControl>
-                        <JSONEditor
-                          onBlur={(value) => field.onChange(value)}
-                          schema={{
-                            type: "object",
-                            additionalProperties: true,
-                            properties: {
-                              website: { type: "string", title: "Website" },
-                              contacts: {
-                                type: "object",
-                                title: "Contacts",
-                                additionalProperties: true,
-                                properties: {
-                                  email: { type: "string", title: "Email" },
-                                  telephone: {
-                                    type: "string",
-                                    title: "Telephone",
+                <SettingsSection
+                  columns={1}
+                  description={t(
+                    "site.customDataDescription",
+                    "Custom data for website customization"
+                  )}
+                  title={t("site.customData", "Custom Data")}
+                >
+                  <FormField
+                    control={form.control}
+                    name="custom_data"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("site.customData", "Custom Data")}
+                        </FormLabel>
+                        <FormControl>
+                          <JSONEditor
+                            onBlur={(value) => field.onChange(value)}
+                            schema={{
+                              type: "object",
+                              additionalProperties: true,
+                              properties: {
+                                website: { type: "string", title: "Website" },
+                                contacts: {
+                                  type: "object",
+                                  title: "Contacts",
+                                  additionalProperties: true,
+                                  properties: {
+                                    email: { type: "string", title: "Email" },
+                                    telephone: {
+                                      type: "string",
+                                      title: "Telephone",
+                                    },
+                                    address: {
+                                      type: "string",
+                                      title: "Address",
+                                    },
                                   },
-                                  address: { type: "string", title: "Address" },
+                                },
+                                community: {
+                                  type: "object",
+                                  title: "Community",
+                                  additionalProperties: true,
+                                  properties: {
+                                    telegram: {
+                                      type: "string",
+                                      title: "Telegram",
+                                    },
+                                    twitter: {
+                                      type: "string",
+                                      title: "Twitter",
+                                    },
+                                    discord: {
+                                      type: "string",
+                                      title: "Discord",
+                                    },
+                                    instagram: {
+                                      type: "string",
+                                      title: "Instagram",
+                                    },
+                                    linkedin: {
+                                      type: "string",
+                                      title: "Linkedin",
+                                    },
+                                    facebook: {
+                                      type: "string",
+                                      title: "Facebook",
+                                    },
+                                    github: { type: "string", title: "Github" },
+                                  },
                                 },
                               },
-                              community: {
-                                type: "object",
-                                title: "Community",
-                                additionalProperties: true,
-                                properties: {
-                                  telegram: {
-                                    type: "string",
-                                    title: "Telegram",
-                                  },
-                                  twitter: { type: "string", title: "Twitter" },
-                                  discord: { type: "string", title: "Discord" },
-                                  instagram: {
-                                    type: "string",
-                                    title: "Instagram",
-                                  },
-                                  linkedin: {
-                                    type: "string",
-                                    title: "Linkedin",
-                                  },
-                                  facebook: {
-                                    type: "string",
-                                    title: "Facebook",
-                                  },
-                                  github: { type: "string", title: "Github" },
-                                },
-                              },
-                            },
-                          }}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          "site.customDataDescription",
-                          "Custom data for website customization"
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </SettingsSection>
-            </form>
-          </Form>
+                            }}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            "site.customDataDescription",
+                            "Custom data for website customization"
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsSection>
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -408,10 +432,13 @@ export default function SiteConfig() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="site-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="site-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save Settings")}
           </Button>
         </SheetFooter>

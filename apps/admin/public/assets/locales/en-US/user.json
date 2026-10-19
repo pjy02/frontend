@@ -1,4 +1,8 @@
 {
+  "email": "Email",
+  "invalidEmail": "Enter a valid email address",
+  "removeAuthTitle": "Remove authentication method?",
+  "removeAuthDescription": "This sign-in method will no longer be available to this user.",
   "referralPercentageInvalid": "Referral percentage must be between 0 and 100.",
   "saving": "Saving...",
   "accountEnable": "Account Enable",

@@ -24,6 +24,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -45,15 +50,16 @@ export default function VerifyCodeConfig() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getVerifyCodeConfig"],
     queryFn: async () => {
       const { data } = await getVerifyCodeConfig();
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<VerifyCodeFormData>({
     resolver: zodResolver(verifyCodeSchema),
     defaultValues: {
@@ -71,6 +77,7 @@ export default function VerifyCodeConfig() {
   }, [data, form]);
 
   async function onSubmit(values: VerifyCodeFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateVerifyCodeConfig(values as API.VerifyCodeConfig);
@@ -88,7 +95,10 @@ export default function VerifyCodeConfig() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon
@@ -109,7 +119,7 @@ export default function VerifyCodeConfig() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="lg">
         <SheetHeader>
@@ -117,111 +127,116 @@ export default function VerifyCodeConfig() {
             {t("verifyCode.title", "Verification Code Settings")}
           </SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="verify-code-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="verify_code_expire_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("verifyCode.expireTime", "Verification Code Validity")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        min={60}
-                        onValueBlur={(value) => field.onChange(Number(value))}
-                        placeholder={t(
-                          "verifyCode.inputPlaceholder",
-                          "Please enter"
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="verify-code-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="verify_code_expire_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "verifyCode.expireTime",
+                          "Verification Code Validity"
                         )}
-                        suffix={t("verifyCode.seconds", "seconds")}
-                        type="number"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "verifyCode.expireTimeDescription",
-                        "Validity period of verification codes (seconds)"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          min={60}
+                          onValueBlur={(value) => field.onChange(Number(value))}
+                          placeholder={t(
+                            "verifyCode.inputPlaceholder",
+                            "Please enter"
+                          )}
+                          suffix={t("verifyCode.seconds", "seconds")}
+                          type="number"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "verifyCode.expireTimeDescription",
+                          "Validity period of verification codes (seconds)"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="verify_code_interval"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("verifyCode.interval", "Sending Interval")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        min={30}
-                        onValueBlur={(value) => field.onChange(Number(value))}
-                        placeholder={t(
-                          "verifyCode.inputPlaceholder",
-                          "Please enter"
+                <FormField
+                  control={form.control}
+                  name="verify_code_interval"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("verifyCode.interval", "Sending Interval")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          min={30}
+                          onValueBlur={(value) => field.onChange(Number(value))}
+                          placeholder={t(
+                            "verifyCode.inputPlaceholder",
+                            "Please enter"
+                          )}
+                          suffix={t("verifyCode.seconds", "seconds")}
+                          type="number"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "verifyCode.intervalDescription",
+                          "Minimum interval between two verification code sends (seconds)"
                         )}
-                        suffix={t("verifyCode.seconds", "seconds")}
-                        type="number"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "verifyCode.intervalDescription",
-                        "Minimum interval between two verification code sends (seconds)"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="verify_code_limit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("verifyCode.dailyLimit", "Daily Sending Limit")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        min={1}
-                        onValueBlur={(value) => field.onChange(Number(value))}
-                        placeholder={t(
-                          "verifyCode.inputPlaceholder",
-                          "Please enter"
+                <FormField
+                  control={form.control}
+                  name="verify_code_limit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("verifyCode.dailyLimit", "Daily Sending Limit")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          min={1}
+                          onValueBlur={(value) => field.onChange(Number(value))}
+                          placeholder={t(
+                            "verifyCode.inputPlaceholder",
+                            "Please enter"
+                          )}
+                          suffix={t("verifyCode.times", "time(s)")}
+                          type="number"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "verifyCode.dailyLimitDescription",
+                          "Maximum number of verification codes each user can send per day"
                         )}
-                        suffix={t("verifyCode.times", "time(s)")}
-                        type="number"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "verifyCode.dailyLimitDescription",
-                        "Maximum number of verification codes each user can send per day"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -231,10 +246,13 @@ export default function VerifyCodeConfig() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="verify-code-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="verify-code-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save Settings")}
           </Button>
         </SheetFooter>

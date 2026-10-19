@@ -74,14 +74,17 @@ export default function ServerTrafficLogPage() {
         end_date: "string",
         server_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterServerTrafficLog({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          server_id: filter.server_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterServerTrafficLog(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            server_id: filter.server_id,
+          },
+          { signal }
+        )
       }
       params={[
         { key: "server_id", placeholder: t("column.serverId", "Server ID") },

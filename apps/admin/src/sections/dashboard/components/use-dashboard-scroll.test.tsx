@@ -69,4 +69,34 @@ describe("dashboard deferred scroll", () => {
     act(() => vi.advanceTimersByTime(64));
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
+  it("keeps a gesture cancellation when the account/layout scope arrives late", () => {
+    mocks.key = "late-account";
+    const hook = renderHook(
+      ({ ready, account }: { ready: boolean; account: string | null }) =>
+        useDashboardScroll(ready, account),
+      {
+        initialProps: { ready: false, account: null as string | null },
+      }
+    );
+    act(() => window.dispatchEvent(new Event("wheel")));
+    hook.rerender({ ready: true, account: "loaded-account" });
+    act(() => vi.advanceTimersByTime(64));
+    expect(window.scrollTo).not.toHaveBeenCalled();
+    mocks.key = "new-history-entry";
+    hook.rerender({ ready: true, account: "loaded-account" });
+    act(() => vi.advanceTimersByTime(64));
+    expect(window.scrollTo).toHaveBeenCalledWith({
+      left: 0,
+      top: 500,
+      behavior: "instant",
+    });
+  });
+  it("lets input between the two restoration frames take precedence", () => {
+    mocks.key = "between-frames";
+    renderHook(() => useDashboardScroll(true, "1"));
+    act(() => vi.advanceTimersByTime(17));
+    act(() => window.dispatchEvent(new Event("pointerdown")));
+    act(() => vi.advanceTimersByTime(64));
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
 });

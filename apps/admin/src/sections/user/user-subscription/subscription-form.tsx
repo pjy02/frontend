@@ -12,7 +12,6 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { DatePicker } from "@workspace/ui/composed/date-picker";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
-import { Icon } from "@workspace/ui/composed/icon";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import { type ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -74,10 +73,9 @@ export function SubscriptionForm({
 
   const handleSubmit = async (values: any) => {
     const success = await onSubmit(values);
+    if (success === false) throw new Error("Write was not confirmed");
     if (success) {
-      form.reset(form.getValues());
-      setOpen(false);
-      form.reset();
+      await safety.completeSave();
     }
   };
 
@@ -271,11 +269,10 @@ export function SubscriptionForm({
           </Button>
           <Button
             disabled={loading}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit)}
           >
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
             {t("confirm", "Confirm")}
           </Button>
         </SheetFooter>

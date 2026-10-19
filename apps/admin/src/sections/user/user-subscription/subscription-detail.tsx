@@ -122,12 +122,15 @@ export function SubscriptionDetail({
                 cell: ({ row }) => formatDate(row.getValue("updated_at")),
               },
             ]}
-            request={async (pagination) => {
-              const { data } = await getUserSubscribeDevices({
-                user_id: userId,
-                subscribe_id: subscriptionId,
-                ...pagination,
-              });
+            request={async (pagination, _filters, { signal }) => {
+              const { data } = await getUserSubscribeDevices(
+                {
+                  user_id: userId,
+                  subscribe_id: subscriptionId,
+                  ...pagination,
+                },
+                { signal }
+              );
               return {
                 list: data.data?.list || [],
                 total: data.data?.total || 0,

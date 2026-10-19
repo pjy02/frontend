@@ -24,6 +24,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -43,15 +48,16 @@ export default function TosConfig() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getTosConfig"],
     queryFn: async () => {
       const { data } = await getTosConfig();
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<TosFormData>({
     resolver: zodResolver(tosSchema),
     defaultValues: {
@@ -69,6 +75,7 @@ export default function TosConfig() {
   }, [data, form]);
 
   async function onSubmit(values: TosFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateTosConfig(values as API.TosConfig);
@@ -86,7 +93,10 @@ export default function TosConfig() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon
@@ -107,44 +117,48 @@ export default function TosConfig() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("tos.title", "Terms of Service")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="tos-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="tos_content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("tos.title", "Terms of Service")}</FormLabel>
-                    <FormControl>
-                      <MarkdownEditor
-                        onChange={field.onChange}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "tos.description",
-                        "Edit and manage terms of service content"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="tos-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="tos_content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("tos.title", "Terms of Service")}
+                      </FormLabel>
+                      <FormControl>
+                        <MarkdownEditor
+                          onChange={field.onChange}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "tos.description",
+                          "Edit and manage terms of service content"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -154,10 +168,13 @@ export default function TosConfig() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="tos-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="tos-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save Settings")}
           </Button>
         </SheetFooter>

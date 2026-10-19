@@ -1,4 +1,6 @@
 {
+  "savedSyncFailed": "Review saved. Refresh failed; do not review again.",
+  "retryRefresh": "Retry refresh",
   "actions": "Actions",
   "amount": "Amount",
   "approve": "Approve",

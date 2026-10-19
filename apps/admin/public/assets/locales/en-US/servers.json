@@ -1,4 +1,5 @@
 {
+  "installConfigurationMissing": "Set the global node secret in Node configuration before copying an installation command.",
   "fingerprintLegacyValue": "{{value}} (saved value)",
   "actions": {
     "cancel": "Cancel",

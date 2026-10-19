@@ -88,6 +88,55 @@ afterEach(() => {
 });
 
 describe("AdminActionMenu", () => {
+  it("returns one level at a time from a third-level desktop menu", async () => {
+    mockViewport(1440);
+    render(<MenuProbe />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Open actions" }), {
+      key: "Enter",
+    });
+    const logs = await screen.findByRole("menuitem", { name: "Logs" });
+    logs.focus();
+    fireEvent.keyDown(logs, { key: "ArrowRight" });
+    const audit = await screen.findByRole("menuitem", { name: "Audit" });
+    audit.focus();
+    fireEvent.keyDown(audit, { key: "ArrowRight" });
+    const risk = await screen.findByRole("menuitem", { name: "Risk details" });
+    fireEvent.keyDown(risk, { key: "Escape" });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("menuitem", { name: "Risk details" })
+      ).toBeNull()
+    );
+    expect(screen.getByRole("menuitem", { name: "Login logs" })).toBeTruthy();
+    expect(document.activeElement).toBe(audit);
+    fireEvent.keyDown(audit, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByRole("menuitem", { name: "Login logs" })).toBeNull()
+    );
+    expect(screen.getByRole("menuitem", { name: "Orders" })).toBeTruthy();
+    expect(document.activeElement).toBe(logs);
+  });
+  it("restores each mobile level's scroll position when returning", async () => {
+    mockViewport(390);
+    render(<MenuProbe />);
+    fireEvent.click(screen.getByRole("button", { name: "Open actions" }));
+    const logs = await screen.findByRole("button", { name: "Logs" });
+    const panel = document.querySelector<HTMLElement>(
+      ".admin-action-menu-mobile-scroll"
+    )!;
+    panel.scrollTop = 84;
+    fireEvent.scroll(panel);
+    fireEvent.click(logs);
+    const back = await screen.findByRole("button", { name: "Back" });
+    expect(panel.scrollTop).toBe(0);
+    fireEvent.click(back);
+    await waitFor(() => expect(panel.scrollTop).toBe(84));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Logs" })
+      )
+    );
+  });
   it.each([
     390, 1440,
   ])("locks pending actions and restores retry after rejection at %ipx", async (width) => {
@@ -206,6 +255,8 @@ describe("AdminActionMenu", () => {
     await waitFor(() =>
       expect(screen.queryByRole("menuitem", { name: "Login logs" })).toBeNull()
     );
+    expect(screen.getByRole("menuitem", { name: "Orders" })).toBeTruthy();
+    expect(document.activeElement).toBe(logs);
 
     fireEvent.keyDown(logs, { key: "Escape" });
     await waitFor(() => expect(screen.queryByText("Orders")).toBeNull());

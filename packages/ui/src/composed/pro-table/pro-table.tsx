@@ -56,7 +56,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { AnimatePresence, animate, motion } from "motion/react";
+import { AnimatePresence, animate, motion, useIsPresent } from "motion/react";
 import type React from "react";
 import {
   memo,
@@ -84,6 +84,10 @@ import {
 export type { TableRefreshOptions } from "./data-continuity.js";
 
 import {
+  RowActionOutlet,
+  useRowActionWorkspaces,
+} from "./row-action-workspaces";
+import {
   parseTablePreferences,
   type SavedTableView,
   safeViewFilters,
@@ -99,7 +103,8 @@ export interface ProTableProps<TData, TValue> {
       page: number;
       size: number;
     },
-    filter: TValue
+    filter: TValue,
+    context: { signal: AbortSignal }
   ) => Promise<{ list: TData[]; total: number }>;
   params?: IParams[];
   header?: {
@@ -193,7 +198,32 @@ export function ProTable<
   pagination: paginationEnabled = true,
 }: ProTableProps<TData, TValue>) {
   const { t } = useTranslation("components");
+  const rootRef = useRef<HTMLDivElement>(null);
   const motionProfile = useMotionProfile();
+  const preferenceScope = usePreferenceScope();
+  // The Admin tablet stylesheet intentionally keeps cards/lists through 1279px.
+  // Follow that policy, not Tailwind's generic lg breakpoint, or neither view
+  // would be visible at 1024px after removing the hidden duplicate tree.
+  const compactQuery = preferenceScope
+    ? "(max-width: 1279px)"
+    : "(max-width: 1023px)";
+  const [compact, setCompact] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(compactQuery).matches
+  );
+  useEffect(() => {
+    if (!motionProfile || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(compactQuery);
+    const update = () => setCompact(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, [Boolean(motionProfile), compactQuery]);
+  const workspaceHostRef = useRef<(id: string) => HTMLDivElement | null>(
+    () => null
+  );
   const actionOptions = useRef({
     actions,
     texts,
@@ -216,6 +246,8 @@ export function ProTable<
       memoize,
     } = actionOptions.current;
     const Actions = memoize ? MemoizedDataRowActions : DataRowActions;
+    if (memoize)
+      return <RowActionOutlet host={workspaceHostRef.current(row.id)} />;
     return (
       <Actions
         data={row.original}
@@ -228,7 +260,6 @@ export function ProTable<
       />
     );
   }, []);
-  const preferenceScope = usePreferenceScope();
   const columnSignature = columns
     .map(
       (column, index) =>
@@ -261,6 +292,7 @@ export function ProTable<
     toColumnFilters(initialFilters || {})
   );
   const [rowSelection, setRowSelection] = useState({});
+  const [filterResetKey, setFilterResetKey] = useState(0);
   const [data, setData] = useState<TData[]>([]);
   const [rowCount, setRowCount] = useState<number>(0);
   const normalizedInitialPagination = normalizePagination(initialPagination);
@@ -268,6 +300,7 @@ export function ProTable<
   const initialPageSize = normalizedInitialPagination.pageSize;
   const [pagination, setPagination] = useState(normalizedInitialPagination);
   const requestIdRef = useRef(0);
+  const requestAbortRef = useRef<AbortController | null>(null);
   const onFiltersChangeRef = useRef(onFiltersChange);
   const onPaginationChangeRef = useRef(onPaginationChange);
   const initialFiltersRef = useRef(initialFilters);
@@ -315,6 +348,30 @@ export function ProTable<
   const [fetchError, setFetchError] = useState<"error" | "forbidden" | null>(
     null
   );
+  const sortLock = useRef(false);
+  const [sortPending, setSortPending] = useState(false);
+  const [sortFailed, setSortFailed] = useState(false);
+  const guardedSort: typeof onSort =
+    onSort &&
+    (async (source, target, items) => {
+      if (!motionProfile) return onSort(source, target, items);
+      if (sortLock.current) return dataRef.current;
+      sortLock.current = true;
+      setSortPending(true);
+      setSortFailed(false);
+      const revision = requestIdRef.current;
+      const snapshot = items.map((item) => ({ ...item }));
+      try {
+        const updated = await onSort(source, target, snapshot);
+        return revision === requestIdRef.current ? updated : dataRef.current;
+      } catch {
+        setSortFailed(true);
+        return dataRef.current;
+      } finally {
+        sortLock.current = false;
+        setSortPending(false);
+      }
+    });
   const setContinuousData: React.Dispatch<React.SetStateAction<TData[]>> = (
     nextValue
   ) => {
@@ -416,12 +473,20 @@ export function ProTable<
     rowCount,
     manualSorting: true,
   });
+  const getWorkspaceHost = useRowActionWorkspaces(
+    table.getRowModel().rows.map((row) => row.id),
+    Boolean(motionProfile && actions?.render)
+  );
+  workspaceHostRef.current = getWorkspaceHost;
 
   const fetchData = async (
     showRefreshFeedback = false,
     options: TableRefreshOptions = {}
   ) => {
     const requestId = ++requestIdRef.current;
+    requestAbortRef.current?.abort();
+    const controller = new AbortController();
+    requestAbortRef.current = controller;
     const filters = Object.fromEntries(
       columnFilters.map((item) => [item.id, item.value])
     ) as TValue;
@@ -430,6 +495,7 @@ export function ProTable<
     if (validationError) {
       setIsLoading(false);
       setFetchError(null);
+      if (options.throwOnError) throw new Error(validationError);
       return;
     }
     setIsLoading(true);
@@ -441,9 +507,23 @@ export function ProTable<
           page: pagination.pageIndex + 1,
           size: pagination.pageSize,
         },
-        filters
+        filters,
+        { signal: controller.signal }
       );
+      if (requestId !== requestIdRef.current && options.throwOnError) {
+        throw new Error("Table synchronization was superseded");
+      }
       if (requestId === requestIdRef.current) {
+        const lastPage = Math.max(
+          0,
+          Math.ceil(response.total / pagination.pageSize) - 1
+        );
+        if (paginationEnabled && pagination.pageIndex > lastPage) {
+          setRowCount(response.total);
+          setPagination((current) => ({ ...current, pageIndex: lastPage }));
+          setRowSelection({});
+          return;
+        }
         const previousData = dataRef.current;
         const query = `${serializeColumnFilters(columnFilters)}\n${serializePagination(pagination)}`;
         const reason = resolveTableOperation(
@@ -512,6 +592,10 @@ export function ProTable<
         }
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        if (options.throwOnError) throw error;
+        return;
+      }
       console.error("Fetch data error:", error);
       if (requestId === requestIdRef.current) {
         const candidate = error as {
@@ -534,6 +618,7 @@ export function ProTable<
         }
         setFetchError(code === 403 || code === 40_005 ? "forbidden" : "error");
       }
+      if (options.throwOnError) throw error;
     } finally {
       if (requestId === requestIdRef.current) {
         setIsLoading(false);
@@ -541,6 +626,7 @@ export function ProTable<
     }
   };
   const reset = async () => {
+    setFilterResetKey((value) => value + 1);
     setSorting([]);
     setColumnFilters(toColumnFilters(resetFilters || {}));
     if (!preferenceKey) setColumnVisibility({});
@@ -549,6 +635,7 @@ export function ProTable<
     table.resetGlobalFilter(true);
   };
   const resetFiltersOnly = () => {
+    setFilterResetKey((value) => value + 1);
     setColumnFilters(toColumnFilters(resetFilters || {}));
     setRowSelection({});
     setPagination((current) => ({ ...current, pageIndex: 0 }));
@@ -596,6 +683,7 @@ export function ProTable<
     });
   };
   const applyView = (view: SavedTableView) => {
+    setFilterResetKey((value) => value + 1);
     const filters = {
       ...Object.fromEntries(
         Object.entries(initialFilters || {}).filter(
@@ -641,6 +729,7 @@ export function ProTable<
   useEffect(
     () => () => {
       requestIdRef.current += 1;
+      requestAbortRef.current?.abort();
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     },
@@ -685,7 +774,10 @@ export function ProTable<
       paginationSnapshot !== initialPaginationSnapshot);
 
   useEffect(() => {
-    if (restoringExternalState) requestIdRef.current += 1;
+    if (restoringExternalState) {
+      requestIdRef.current += 1;
+      setFilterResetKey((value) => value + 1);
+    }
     if (previousInitialFiltersRef.current === initialFiltersSnapshot) {
       return;
     }
@@ -759,6 +851,7 @@ export function ProTable<
       data-operation={operation.reason}
       data-refreshing={isLoading && data.length > 0}
       data-selection-active={selectedCount > 0 && Boolean(actions?.batchRender)}
+      data-sort-pending={sortPending || undefined}
       data-tablet-layout={
         preferenceScope && mobileCardsEnabled
           ? onSort
@@ -766,9 +859,19 @@ export function ProTable<
             : tablet
           : undefined
       }
+      ref={rootRef}
     >
+      {sortFailed && (
+        <p className="text-destructive text-sm" role="alert">
+          {t(
+            "table.sortFailed",
+            "The order was not confirmed. The original order is retained; retry when safe."
+          )}
+        </p>
+      )}
       {!header?.hidden && (
         <DataToolbar
+          filterResetKey={filterResetKey}
           filters={Object.fromEntries(
             columnFilters.map((item) => [item.id, item.value])
           )}
@@ -857,7 +960,7 @@ export function ProTable<
         createPortal(
           <AnimatePresence initial={false}>
             {selectedCount > 0 ? (
-              <motion.div
+              <BatchActionBar
                 animate={{ opacity: 1, y: 0 }}
                 className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center sm:inset-x-6 sm:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
                 exit={
@@ -897,7 +1000,14 @@ export function ProTable<
                   <Button
                     aria-label={t("table.clearSelection", "Clear selection")}
                     className="ml-0 rounded-full sm:ml-1"
-                    onClick={() => table.resetRowSelection()}
+                    onClick={() => {
+                      const checkbox =
+                        rootRef.current?.querySelector<HTMLElement>(
+                          '[role="checkbox"][data-state="checked"]'
+                        );
+                      table.resetRowSelection();
+                      checkbox?.focus({ preventScroll: true });
+                    }}
                     size="icon-sm"
                     title={t("table.clearSelection", "Clear selection")}
                     variant="ghost"
@@ -905,16 +1015,16 @@ export function ProTable<
                     <X />
                   </Button>
                 </div>
-              </motion.div>
+              </BatchActionBar>
             ) : null}
           </AnimatePresence>,
           document.body
         )}
 
-      {mobileCardsEnabled ? (
+      {mobileCardsEnabled && (!motionProfile || compact) ? (
         <ProTableWrapper
           data={data}
-          onSort={onSort}
+          onSort={guardedSort}
           setData={setContinuousData}
         >
           <div
@@ -928,7 +1038,6 @@ export function ProTable<
               mode="popLayout"
             >
               {table.getRowModel().rows.map((row) => {
-                const rowActions = actions?.render?.(row.original) || [];
                 const label = mobile?.getAriaLabel
                   ? mobile.getAriaLabel(row.original)
                   : t("table.recordLabel", "Record {{number}}", {
@@ -950,7 +1059,9 @@ export function ProTable<
                     onCheckedChange={(value) => row.toggleSelected(!!value)}
                   />
                 ) : null;
-                const rowActionsMenu = (
+                const rowActionsMenu = motionProfile ? (
+                  <RowActionOutlet host={getWorkspaceHost(row.id)} />
+                ) : (
                   <MobileRowActions
                     data={row.original}
                     moreLabel={
@@ -966,6 +1077,7 @@ export function ProTable<
                 if (onSort) {
                   return (
                     <SortableMobileCard
+                      disabled={sortPending}
                       dragLabel={t("table.reorderRow", "Reorder")}
                       feedback={feedback}
                       footerEnd={rowActionsMenu}
@@ -1022,7 +1134,7 @@ export function ProTable<
                     }}
                   >
                     <div className="admin-pro-table-card__body p-4">{body}</div>
-                    {(actions?.batchRender || rowActions.length > 0) && (
+                    {(actions?.batchRender || actions?.render) && (
                       <div className="admin-pro-table-card__footer flex min-h-12 items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
                         {selection || <span />}
                         {rowActionsMenu}
@@ -1091,72 +1203,105 @@ export function ProTable<
         </ProTableWrapper>
       ) : null}
 
-      <div
-        className={cn(
-          "admin-pro-table-desktop relative min-w-0 overflow-hidden rounded-xl border bg-card",
-          mobileCardsEnabled && "hidden lg:block"
-        )}
-      >
-        <div aria-hidden="true" className="admin-pro-table-progress" />
-        <ProTableWrapper
-          data={data}
-          onSort={onSort}
-          setData={setContinuousData}
+      {!(motionProfile && compact && mobileCardsEnabled) && (
+        <div
+          className={cn(
+            "admin-pro-table-desktop relative min-w-0 overflow-hidden rounded-xl border bg-card",
+            mobileCardsEnabled && "hidden lg:block"
+          )}
         >
-          <Table className="w-full">
-            <TableHeader className="bg-[color-mix(in_srgb,var(--muted)_45%,var(--card))]">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      className={cn(
-                        "!z-auto",
-                        getTableHeaderClass(header.column.id)
-                      )}
-                      key={header.id}
-                    >
-                      <ColumnHeader
-                        header={header}
-                        text={{
-                          asc: texts?.asc,
-                          desc: texts?.desc,
-                          hide: texts?.hide,
-                        }}
-                      />
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody
-              className="admin-pro-table-content"
-              data-page-direction={pageDirection}
-              ref={desktopResultRef}
-            >
-              {onSort ? (
-                <AnimatePresence
-                  custom={operation}
-                  initial={false}
-                  mode="popLayout"
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <SortableRow
-                      className="h-13"
-                      feedback={rowFeedback[row.id]}
-                      id={row.id}
-                      isSortable
-                      key={row.id}
-                      motionEnabled={adminMotionEnabled}
-                      mutationLayout={
-                        adminMotionEnabled &&
-                        ["create", "delete"].includes(operation.reason || "")
-                      }
-                      selected={row.getIsSelected()}
-                    >
-                      {row
-                        .getVisibleCells()
-                        .filter((cell) => cell.column.id !== "sortable")
-                        .map((cell) => (
+          <div aria-hidden="true" className="admin-pro-table-progress" />
+          <ProTableWrapper
+            data={data}
+            onSort={guardedSort}
+            setData={setContinuousData}
+          >
+            <Table className="w-full">
+              <TableHeader className="bg-[color-mix(in_srgb,var(--muted)_45%,var(--card))]">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        className={cn(
+                          "!z-auto",
+                          getTableHeaderClass(header.column.id)
+                        )}
+                        key={header.id}
+                      >
+                        <ColumnHeader
+                          header={header}
+                          text={{
+                            asc: texts?.asc,
+                            desc: texts?.desc,
+                            hide: texts?.hide,
+                          }}
+                        />
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody
+                className="admin-pro-table-content"
+                data-page-direction={pageDirection}
+                ref={desktopResultRef}
+              >
+                {onSort ? (
+                  <AnimatePresence
+                    custom={operation}
+                    initial={false}
+                    mode="popLayout"
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <SortableRow
+                        className="h-13"
+                        disabled={sortPending}
+                        feedback={rowFeedback[row.id]}
+                        id={row.id}
+                        isSortable
+                        key={row.id}
+                        motionEnabled={adminMotionEnabled}
+                        mutationLayout={
+                          adminMotionEnabled &&
+                          ["create", "delete"].includes(operation.reason || "")
+                        }
+                        selected={row.getIsSelected()}
+                      >
+                        {row
+                          .getVisibleCells()
+                          .filter((cell) => cell.column.id !== "sortable")
+                          .map((cell) => (
+                            <TableCell
+                              className={getTableCellClass(cell.column.id)}
+                              key={cell.id}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                      </SortableRow>
+                    ))}
+                  </AnimatePresence>
+                ) : (
+                  <AnimatePresence
+                    custom={operation}
+                    initial={false}
+                    mode="popLayout"
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <AnimatedTableRow
+                        feedback={rowFeedback[row.id]}
+                        id={row.id}
+                        key={row.id}
+                        layoutEnabled={["create", "delete"].includes(
+                          operation.reason || ""
+                        )}
+                        motionEnabled={adminMotionEnabled}
+                        selected={row.getIsSelected()}
+                      >
+                        {row.getVisibleCells().map((cell) => (
                           <TableCell
                             className={getTableCellClass(cell.column.id)}
                             key={cell.id}
@@ -1167,114 +1312,103 @@ export function ProTable<
                             )}
                           </TableCell>
                         ))}
-                    </SortableRow>
-                  ))}
-                </AnimatePresence>
-              ) : (
-                <AnimatePresence
-                  custom={operation}
-                  initial={false}
-                  mode="popLayout"
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <AnimatedTableRow
-                      feedback={rowFeedback[row.id]}
-                      id={row.id}
-                      key={row.id}
-                      layoutEnabled={["create", "delete"].includes(
-                        operation.reason || ""
-                      )}
-                      motionEnabled={adminMotionEnabled}
-                      selected={row.getIsSelected()}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          className={getTableCellClass(cell.column.id)}
-                          key={cell.id}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </AnimatedTableRow>
-                  ))}
-                </AnimatePresence>
-              )}
-              {table.getRowModel().rows.length ? null : isLoading ? (
-                Array.from(
-                  { length: Math.min(pagination.pageSize, 6) },
-                  (_, rowIndex) => (
-                    <TableRow className="h-13" key={`skeleton-${rowIndex}`}>
-                      {table.getVisibleLeafColumns().map((column) => (
-                        <TableCell key={column.id}>
-                          <Skeleton className="h-4 w-[72%] min-w-12" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
+                      </AnimatedTableRow>
+                    ))}
+                  </AnimatePresence>
+                )}
+                {table.getRowModel().rows.length ? null : isLoading ? (
+                  Array.from(
+                    { length: Math.min(pagination.pageSize, 6) },
+                    (_, rowIndex) => (
+                      <TableRow className="h-13" key={`skeleton-${rowIndex}`}>
+                        {table.getVisibleLeafColumns().map((column) => (
+                          <TableCell key={column.id}>
+                            <Skeleton className="h-4 w-[72%] min-w-12" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )
                   )
-                )
-              ) : fetchError ? (
-                <TableRow>
-                  <TableCell
-                    className="py-20"
-                    colSpan={table.getVisibleLeafColumns().length}
-                  >
-                    <div
-                      className="flex flex-col items-center gap-3 text-center"
-                      role="alert"
+                ) : fetchError ? (
+                  <TableRow>
+                    <TableCell
+                      className="py-20"
+                      colSpan={table.getVisibleLeafColumns().length}
                     >
                       <div
-                        className={cn(
-                          "grid size-10 place-items-center rounded-full",
-                          fetchError === "forbidden"
-                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                            : "bg-destructive/10 text-destructive"
-                        )}
+                        className="flex flex-col items-center gap-3 text-center"
+                        role="alert"
                       >
-                        {fetchError === "forbidden" ? (
-                          <ShieldX className="size-5" />
-                        ) : (
-                          <TriangleAlert className="size-5" />
-                        )}
-                      </div>
-                      <p className="font-medium text-sm">
-                        {fetchError === "forbidden"
-                          ? texts?.permissionDenied ||
-                            t(
-                              "table.permissionDenied",
-                              "You do not have permission to view this data"
-                            )
-                          : texts?.fetchError ||
-                            t("table.loadError", "Unable to load data")}
-                      </p>
-                      {fetchError === "error" ? (
-                        <Button
-                          onClick={() => fetchData(true)}
-                          size="sm"
-                          variant="outline"
+                        <div
+                          className={cn(
+                            "grid size-10 place-items-center rounded-full",
+                            fetchError === "forbidden"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              : "bg-destructive/10 text-destructive"
+                          )}
                         >
-                          {texts?.retry || t("table.retry", "Try again")}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <TableRow>
-                  <TableCell
-                    className="py-24"
-                    colSpan={table.getVisibleLeafColumns().length}
-                  >
-                    {empty || <Empty />}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </ProTableWrapper>
-      </div>
+                          {fetchError === "forbidden" ? (
+                            <ShieldX className="size-5" />
+                          ) : (
+                            <TriangleAlert className="size-5" />
+                          )}
+                        </div>
+                        <p className="font-medium text-sm">
+                          {fetchError === "forbidden"
+                            ? texts?.permissionDenied ||
+                              t(
+                                "table.permissionDenied",
+                                "You do not have permission to view this data"
+                              )
+                            : texts?.fetchError ||
+                              t("table.loadError", "Unable to load data")}
+                        </p>
+                        {fetchError === "error" ? (
+                          <Button
+                            onClick={() => fetchData(true)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {texts?.retry || t("table.retry", "Try again")}
+                          </Button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      className="py-24"
+                      colSpan={table.getVisibleLeafColumns().length}
+                    >
+                      {empty || <Empty />}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ProTableWrapper>
+        </div>
+      )}
+      {motionProfile &&
+        actions?.render &&
+        table.getRowModel().rows.map((row) => {
+          const host = getWorkspaceHost(row.id);
+          return host
+            ? createPortal(
+                <MemoizedDataRowActions
+                  data={row.original}
+                  moreLabel={
+                    texts?.moreActions || t("table.moreActions", "More actions")
+                  }
+                  render={actions.render}
+                  visibleCount={actions.visibleCount}
+                />,
+                host,
+                row.id
+              )
+            : null;
+        })}
       {paginationEnabled && rowCount > 0 && (
         <Pagination
           motionEnabled={adminMotionEnabled}
@@ -1283,6 +1417,17 @@ export function ProTable<
         />
       )}
     </div>
+  );
+}
+
+function BatchActionBar(props: React.ComponentProps<typeof motion.div>) {
+  const present = useIsPresent();
+  return (
+    <motion.div
+      {...props}
+      aria-hidden={!present || undefined}
+      inert={!present}
+    />
   );
 }
 

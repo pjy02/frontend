@@ -149,7 +149,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenCalledWith(
         { page: 4, size: 20 },
-        { start_date: "2026-09-03", end_date: "2026-09-03", user_id: 7 }
+        { start_date: "2026-09-03", end_date: "2026-09-03", user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     const search = new URLSearchParams(history.location.search);
@@ -162,7 +163,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenCalledWith(
         { page: 1, size: 10 },
-        { start_date: localLogDate(), end_date: localLogDate() }
+        { start_date: localLogDate(), end_date: localLogDate() },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     mocks.load.mockClear();
@@ -177,7 +179,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenCalledWith(
         { page: 1, size: 10 },
-        { start_date: "2099-01-01", end_date: "2099-02-01" }
+        { start_date: "2099-01-01", end_date: "2099-02-01" },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
   });
@@ -192,14 +195,16 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 1, size: 10 },
-        { end_date: "2026-09-30", user_id: 7 }
+        { end_date: "2026-09-30", user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 2, size: 10 },
-        { end_date: "2026-09-30", user_id: 7 }
+        { end_date: "2026-09-30", user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     fireEvent.click(
@@ -213,7 +218,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 2, size: 10 },
-        { end_date: "2026-09-30", user_id: 7 }
+        { end_date: "2026-09-30", user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     expect(
@@ -240,7 +246,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 2, size: 10 },
-        { start_date: "2026-08-01", end_date: "2026-08-31", user_id: 9 }
+        { start_date: "2026-08-01", end_date: "2026-08-31", user_id: 9 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     expect(
@@ -253,7 +260,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 3, size: 10 },
-        { start_date: "2026-09-01", end_date: "2026-09-30", user_id: 7 }
+        { start_date: "2026-09-01", end_date: "2026-09-30", user_id: 7 },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     expect(
@@ -269,7 +277,8 @@ describe("LogPage with real table and router", () => {
     await waitFor(() =>
       expect(mocks.load).toHaveBeenLastCalledWith(
         { page: 1, size: 10 },
-        { start_date: localLogDate(), end_date: localLogDate() }
+        { start_date: localLogDate(), end_date: localLogDate() },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
   });

@@ -14,6 +14,8 @@ export type TableOperation =
 export interface TableRefreshOptions {
   reason?: TableOperation;
   rowIds?: readonly (string | number)[];
+  /** Opt-in for mutation callers: a failed read must not masquerade as sync success. */
+  throwOnError?: boolean;
 }
 
 export function resolveTableOperation(

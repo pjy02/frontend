@@ -17,11 +17,22 @@ export function useDashboardScroll(ready: boolean, accountKey: string | null) {
     select: (location) => location.state.__TSR_key,
   });
   const saved = useElementScrollRestoration({ getElement: () => window });
+  // Account/layout readiness may arrive after a gesture. Only a different
+  // history entry can re-arm restoration, not a late account key.
+  const intent = useRef({ historyKey, cancelled: false });
+  if (intent.current.historyKey !== historyKey)
+    intent.current = { historyKey, cancelled: false };
   const key = accountKey && historyKey ? `${accountKey}:${historyKey}` : null;
   const entry = (key && positions.get(key)) || saved;
-  const pending = useRef({ key, entry: entry ? { ...entry } : undefined });
+  const pending = useRef({
+    key,
+    entry: !intent.current.cancelled && entry ? { ...entry } : undefined,
+  });
   if (pending.current.key !== key)
-    pending.current = { key, entry: entry ? { ...entry } : undefined };
+    pending.current = {
+      key,
+      entry: !intent.current.cancelled && entry ? { ...entry } : undefined,
+    };
   useEffect(() => {
     const remember = () => {
       if (
@@ -35,6 +46,7 @@ export function useDashboardScroll(ready: boolean, accountKey: string | null) {
       if (positions.size > 64) positions.delete(positions.keys().next().value!);
     };
     const cancel = () => {
+      intent.current.cancelled = true;
       pending.current.entry = undefined;
     };
     const cancelKey = (event: KeyboardEvent) => {

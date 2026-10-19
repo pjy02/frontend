@@ -26,6 +26,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -54,18 +59,19 @@ export default function AppleForm() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getAuthMethodConfig", "apple"],
     queryFn: async () => {
       const { data } = await getAuthMethodConfig({
         method: "apple",
       });
 
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<AppleFormData>({
     resolver: zodResolver(appleSchema),
     defaultValues: {
@@ -79,7 +85,12 @@ export default function AppleForm() {
       },
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   useEffect(() => {
     if (data && !safety.dirty && !safety.busy) {
@@ -97,6 +108,7 @@ export default function AppleForm() {
   }, [data, form]);
 
   async function onSubmit(values: AppleFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateAuthMethodConfig({
@@ -121,7 +133,10 @@ export default function AppleForm() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:apple" />
@@ -137,169 +152,174 @@ export default function AppleForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>{t("apple.title", "Apple Sign-In")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="apple-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="enabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("apple.enable", "Enable")}</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "apple.enableDescription",
-                        "When enabled, users can sign in with their Apple ID"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="apple-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="enabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("apple.enable", "Enable")}</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.enableDescription",
+                          "When enabled, users can sign in with their Apple ID"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="config.team_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("apple.teamId", "Team ID")}</FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="ABCDE1FGHI"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t("apple.teamIdDescription", "Apple Developer Team ID")}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="config.team_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("apple.teamId", "Team ID")}</FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="ABCDE1FGHI"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.teamIdDescription",
+                          "Apple Developer Team ID"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="config.key_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("apple.keyId", "Key ID")}</FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="ABC1234567"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "apple.keyIdDescription",
-                        "Your private key ID from Apple Developer Portal"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="config.key_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("apple.keyId", "Key ID")}</FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="ABC1234567"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.keyIdDescription",
+                          "Your private key ID from Apple Developer Portal"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="config.client_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("apple.clientId", "Service ID")}</FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="com.your.app.service"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "apple.clientIdDescription",
-                        "Apple Service ID, available from Apple Developer Portal"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="config.client_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("apple.clientId", "Service ID")}</FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="com.your.app.service"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.clientIdDescription",
+                          "Apple Service ID, available from Apple Developer Portal"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="config.client_secret"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("apple.clientSecret", "Private Key")}
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        className="h-20"
-                        onChange={field.onChange}
-                        placeholder={
-                          "-----BEGIN PRIVATE KEY-----\nMIGTAgEA...\n-----END PRIVATE KEY-----"
-                        }
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "apple.clientSecretDescription",
-                        "Private key content (.p8 file) for authenticating with Apple"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="config.client_secret"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("apple.clientSecret", "Private Key")}
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-20"
+                          onChange={field.onChange}
+                          placeholder={
+                            "-----BEGIN PRIVATE KEY-----\nMIGTAgEA...\n-----END PRIVATE KEY-----"
+                          }
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.clientSecretDescription",
+                          "Private key content (.p8 file) for authenticating with Apple"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="config.redirect_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("apple.redirectUri", "Redirect URL")}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        onValueChange={field.onChange}
-                        placeholder="https://your-domain.com"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "apple.redirectUriDescription",
-                        "API address for redirect URL after successful Apple authentication. Do not end with /"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                <FormField
+                  control={form.control}
+                  name="config.redirect_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t("apple.redirectUri", "Redirect URL")}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          onValueChange={field.onChange}
+                          placeholder="https://your-domain.com"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "apple.redirectUriDescription",
+                          "API address for redirect URL after successful Apple authentication. Do not end with /"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -309,10 +329,13 @@ export default function AppleForm() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="apple-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="apple-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save")}
           </Button>
         </SheetFooter>

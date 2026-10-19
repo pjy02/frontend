@@ -62,8 +62,8 @@ function MetadataSection({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border bg-muted/15 p-4">
-      <h3 className="mb-3 flex items-center gap-2 font-medium text-sm">
+    <section className="admin-detail-section">
+      <h3 className="admin-subsection-title mb-3 flex items-center gap-2">
         <span className="text-muted-foreground">{icon}</span>
         {title}
       </h3>
@@ -175,7 +175,7 @@ export function RequestSource({
           </WorkspaceDialogDescription>
         </WorkspaceDialogHeader>
 
-        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+        <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
           <MetadataSection
             icon={<Globe2 className="size-4" />}
             title={t("requestSource.request", "Request")}

@@ -12,7 +12,6 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Switch } from "@workspace/ui/components/switch";
 import { AreaCodeSelect } from "@workspace/ui/composed/area-code-select";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
-import { Icon } from "@workspace/ui/composed/icon";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -86,10 +85,10 @@ export default function UserForm<T extends Record<string, any>>({
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
+    if (bool === false) throw new Error("Write was not confirmed");
 
     if (bool) {
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
     }
   }
 
@@ -424,11 +423,10 @@ export default function UserForm<T extends Record<string, any>>({
           </Button>
           <Button
             disabled={loading}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit)}
           >
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}{" "}
             {t("confirm", "Confirm")}
           </Button>
         </SheetFooter>

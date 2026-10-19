@@ -113,8 +113,8 @@ export default function UnmatchedPaymentLogPage() {
         "Review confirmed payments that could not settle an order. Refunds must be handled outside this page."
       )}
       filterTypes={{ search: "string", user_id: "number" }}
-      load={(pagination, filters) =>
-        getLogPaymentUnmatchedList({ ...pagination, ...filters })
+      load={(pagination, filters, { signal }) =>
+        getLogPaymentUnmatchedList({ ...pagination, ...filters }, { signal })
       }
       mobile={{
         getAriaLabel: (log) =>

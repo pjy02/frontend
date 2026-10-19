@@ -9,7 +9,8 @@ import {
 } from "@workspace/ui/composed/enhanced-input";
 import { cn } from "@workspace/ui/lib/utils";
 import { CircleMinusIcon, CirclePlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FieldConfig extends Omit<EnhancedInputProps, "type"> {
   name: string;
@@ -114,6 +115,8 @@ interface ArrayInputProps<T> {
   onChange: (value: T[]) => void;
   fields: FieldConfig[];
   isReverse?: boolean;
+  /** Opt-in for controlled Admin configuration resets; legacy consumers are unchanged. */
+  resetOnEmpty?: boolean;
   className?: string;
 }
 
@@ -124,7 +127,13 @@ export function ArrayInput<T extends Record<string, any>>({
   fields,
   isReverse = false,
   className,
+  resetOnEmpty = false,
 }: ArrayInputProps<T>) {
+  const { t } = useTranslation("components");
+  const root = useRef<HTMLDivElement>(null);
+  const nextKey = useRef(0);
+  const keys = useRef<number[]>([]);
+  const focusIndex = useRef<number | null>(null);
   const initializeDefaultItem = (): T =>
     fields.reduce((acc, field) => {
       acc[field.name as keyof T] = undefined as T[keyof T];
@@ -134,6 +143,18 @@ export function ArrayInput<T extends Record<string, any>>({
   const [displayItems, setDisplayItems] = useState<T[]>(() =>
     value.length > 0 ? value : [initializeDefaultItem()]
   );
+  while (keys.current.length < displayItems.length)
+    keys.current.push(nextKey.current++);
+  useLayoutEffect(() => {
+    const index = focusIndex.current;
+    if (index === null) return;
+    focusIndex.current = null;
+    root.current?.children[index]
+      ?.querySelector<HTMLElement>(
+        'input:not(:disabled),textarea:not(:disabled),[role="combobox"]:not(:disabled),button:not(:disabled)'
+      )
+      ?.focus({ preventScroll: true });
+  }, [displayItems]);
 
   const isItemModified = (item: T): boolean =>
     fields.some((field) => {
@@ -152,13 +173,19 @@ export function ArrayInput<T extends Record<string, any>>({
 
   const createField = () => {
     if (isReverse) {
+      keys.current.unshift(nextKey.current++);
+      focusIndex.current = 0;
       setDisplayItems([initializeDefaultItem(), ...displayItems]);
     } else {
+      keys.current.push(nextKey.current++);
+      focusIndex.current = displayItems.length;
       setDisplayItems([...displayItems, initializeDefaultItem()]);
     }
   };
 
   const deleteField = (index: number) => {
+    keys.current.splice(index, 1);
+    focusIndex.current = Math.min(index, displayItems.length - 2);
     const newDisplayItems = displayItems.filter((_, i) => i !== index);
     setDisplayItems(newDisplayItems);
 
@@ -168,14 +195,18 @@ export function ArrayInput<T extends Record<string, any>>({
 
   useEffect(() => {
     if (value.length > 0) {
+      keys.current.length = Math.min(keys.current.length, value.length);
       setDisplayItems(value);
+    } else if (resetOnEmpty) {
+      keys.current = keys.current.slice(0, 1);
+      setDisplayItems([initializeDefaultItem()]);
     }
-  }, [value]);
+  }, [value, resetOnEmpty]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" ref={root}>
       {displayItems.map((item, index) => (
-        <div className="flex items-center gap-4" key={index}>
+        <div className="flex items-center gap-4" key={keys.current[index]}>
           <ObjectInput
             className={className}
             fields={fields}
@@ -185,6 +216,7 @@ export function ArrayInput<T extends Record<string, any>>({
           <div className="flex min-w-20 items-center">
             {displayItems.length > 1 && (
               <Button
+                aria-label={t("form.removeItem", "Remove item")}
                 className="p-0 text-destructive text-lg"
                 onClick={() => deleteField(index)}
                 size="icon"
@@ -196,6 +228,7 @@ export function ArrayInput<T extends Record<string, any>>({
             )}
             {(isReverse ? index === 0 : index === displayItems.length - 1) && (
               <Button
+                aria-label={t("form.addItem", "Add item")}
                 className="p-0 text-lg text-primary"
                 onClick={createField}
                 size="icon"

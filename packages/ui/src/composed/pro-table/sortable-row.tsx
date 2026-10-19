@@ -13,6 +13,7 @@ interface SortableRowProps {
   id: string;
   children: React.ReactNode;
   isSortable: boolean;
+  disabled?: boolean;
   className?: string;
   feedback?: RowFeedback;
   motionEnabled: boolean;
@@ -25,6 +26,7 @@ export function SortableRow({
   id,
   children,
   isSortable,
+  disabled = false,
   className,
   feedback,
   motionEnabled,
@@ -40,7 +42,7 @@ export function SortableRow({
         mutationLayout && !args.isSorting && !args.wasDragging
           ? args.previousItems.includes(args.id)
           : defaultAnimateLayoutChanges(args),
-      disabled: !isSortable,
+      disabled: !isSortable || disabled,
       transition: presets
         ? {
             duration: presets.dataLayout.durationMs,

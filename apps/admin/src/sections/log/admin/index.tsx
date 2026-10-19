@@ -94,8 +94,8 @@ export default function AdminActionLogPage() {
         "Audit administrator changes, affected objects and request sources."
       )}
       filterTypes={{ search: "string", user_id: "number" }}
-      load={(pagination, filters) =>
-        getLogAdminList({ ...pagination, ...filters })
+      load={(pagination, filters, { signal }) =>
+        getLogAdminList({ ...pagination, ...filters }, { signal })
       }
       mobile={{
         getAriaLabel: (log) =>

@@ -125,16 +125,25 @@ export function ProtocolForm() {
       },
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   const request = async (
     pagination: { page: number; size: number },
-    _filter: Record<string, unknown>
+    _filter: Record<string, unknown>,
+    { signal }: { signal: AbortSignal }
   ) => {
-    const { data } = await getSubscribeApplicationList({
-      page: pagination.page,
-      size: pagination.size,
-    });
+    const { data } = await getSubscribeApplicationList(
+      {
+        page: pagination.page,
+        size: pagination.size,
+      },
+      { signal }
+    );
 
     return {
       list: data.data?.list || [],
@@ -292,7 +301,7 @@ export function ProtocolForm() {
       toast.success(t("actions.deleteSuccess", "Deleted successfully"));
     } catch (error) {
       console.error("Failed to delete client:", error);
-      toast.error(t("actions.deleteFailed", "Delete failed"));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -317,7 +326,7 @@ export function ProtocolForm() {
       );
     } catch (error) {
       console.error("Failed to batch delete clients:", error);
-      toast.error(t("actions.deleteFailed", "Delete failed"));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -340,8 +349,7 @@ export function ProtocolForm() {
         });
         toast.success(t("actions.createSuccess", "Created successfully"));
       }
-      form.reset(form.getValues());
-      setOpen(false);
+      await safety.completeSave();
       tableRef.current?.refresh({
         reason: editingClient ? "edit" : "create",
         rowIds: editingClient ? [editingClient.id] : undefined,
@@ -349,6 +357,7 @@ export function ProtocolForm() {
     } catch (error) {
       console.error("Failed to save client:", error);
       toast.error(t("actions.saveFailed", "Save failed"));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -939,10 +948,12 @@ export function ProtocolForm() {
             >
               {t("actions.cancel", "Cancel")}
             </Button>
-            <Button disabled={loading} onClick={safety.handleSubmit(onSubmit)}>
-              {loading && (
-                <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-              )}
+            <Button
+              disabled={loading}
+              loading={loading || safety.submitting}
+              loadingLabel={t("components:actions.processing")}
+              onClick={safety.handleSubmit(onSubmit)}
+            >
               {editingClient
                 ? t("actions.update", "Update")
                 : t("actions.add", "Add")}

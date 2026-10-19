@@ -92,7 +92,7 @@ async function check(width, language, initial, kind = "admin") {
     const count = () => page.evaluate(() => window.__themeAnimations.length);
     const select = async (next, keyboard = false, interrupt = false) => {
       await trigger.evaluate((node) => { window.__themeTrigger = node; });
-      if (keyboard) { await trigger.focus(); await page.keyboard.press("Enter"); }
+      if (keyboard) { await page.mouse.move(1, 1); await trigger.focus(); await page.keyboard.press("Enter"); }
       else if (interrupt) {
         // Send an actual pointer into the snapshot, not a forced DOM click.
         const rect = await trigger.boundingBox();
@@ -141,9 +141,15 @@ async function check(width, language, initial, kind = "admin") {
       }
     };
     const opposite = initial === "light" ? "dark" : "light";
-    if (kind === "unsupported") {
+    const touchFallback = await page.evaluate(() => navigator.maxTouchPoints > 0);
+    if (kind === "unsupported" || touchFallback) {
       await select(opposite, true); await settled(opposite);
       assert.equal(await count(), 0);
+      if (touchFallback) {
+        await select(initial); await settled(initial);
+        assert.equal(await count(), 0, "Touch-capable devices keep live pointer-down hit testing; never replay actions");
+        result.touchSafetyFallback = true;
+      }
     } else {
       let before = await count();
       await select(opposite);
@@ -180,10 +186,10 @@ async function check(width, language, initial, kind = "admin") {
           await page.locator(".recharts-surface").first().waitFor();
           await page.evaluate(() => { window.__themeChart = document.querySelector(".recharts-surface"); });
           before = await count();
-          await select(initial); await inspectReveal(before, "dashboard", false); await finish(); await settled(initial);
+          await select(initial, true); await inspectReveal(before, "dashboard", false); await finish(); await settled(initial);
           assert(await page.evaluate(() => window.__themeChart === document.querySelector(".recharts-surface")), "Chart canvas must survive theme switching");
           before = await count();
-          await select(opposite); await inspectReveal(before, "cancel-route", false);
+          await select(opposite, true); await inspectReveal(before, "cancel-route", false);
           if (width < 1024) {
             await page.locator('[data-slot="sidebar-trigger"]').first().focus();
             await page.keyboard.press("Enter");

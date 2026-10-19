@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MotionProvider } from "./motion-provider";
 import { adminMotionProfile } from "./motion-tokens";
 import { AdminPageTransition } from "./page-transition";
+import { AdminRouteContent } from "./route-content";
 
 const animation = vi.hoisted(() => ({ stop: vi.fn(), start: vi.fn() }));
 const originalAnimate = Object.getOwnPropertyDescriptor(
@@ -51,6 +52,80 @@ function Field({ mount }: { mount: () => void }) {
 }
 
 describe("navigation continuity", () => {
+  it("waits for cold content, ignores an obsolete destination, and skips history-entry motion", async () => {
+    let ready = false;
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    function Cold() {
+      if (!ready) throw pending;
+      return <h1>Old destination</h1>;
+    }
+    const view = render(
+      <MotionProvider>
+        <AdminPageTransition transitionKey="cold" waitForContent>
+          <AdminRouteContent>
+            <Cold />
+          </AdminRouteContent>
+        </AdminPageTransition>
+      </MotionProvider>
+    );
+    expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+    expect(animation.start).not.toHaveBeenCalled();
+    view.rerender(
+      <MotionProvider>
+        <AdminPageTransition transitionKey="latest" waitForContent>
+          <AdminRouteContent>
+            <h1>Latest destination</h1>
+          </AdminRouteContent>
+        </AdminPageTransition>
+      </MotionProvider>
+    );
+    expect(animation.start).toHaveBeenCalledOnce();
+    await act(async () => {
+      ready = true;
+      release();
+    });
+    expect(screen.queryByText("Old destination")).toBeNull();
+    expect(animation.start).toHaveBeenCalledOnce();
+    view.rerender(
+      <MotionProvider>
+        <AdminPageTransition skip transitionKey="back" waitForContent>
+          <AdminRouteContent>Restored list</AdminRouteContent>
+        </AdminPageTransition>
+      </MotionProvider>
+    );
+    expect(animation.start).toHaveBeenCalledOnce();
+  });
+  it("starts a cold page entrance only after its content commits", async () => {
+    let ready = false;
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    function Cold() {
+      if (!ready) throw pending;
+      return <h1>Ready content</h1>;
+    }
+    render(
+      <MotionProvider>
+        <AdminPageTransition transitionKey="cold" waitForContent>
+          <AdminRouteContent>
+            <Cold />
+          </AdminRouteContent>
+        </AdminPageTransition>
+      </MotionProvider>
+    );
+    expect(animation.start).not.toHaveBeenCalled();
+    await act(async () => {
+      ready = true;
+      release();
+    });
+    await screen.findByText("Ready content");
+    expect(animation.start).toHaveBeenCalledOnce();
+    expect(animation.start.mock.calls[0]?.[1]).toMatchObject({ fill: "none" });
+  });
   it("does not replay an unchanged route when the profile is reconfigured", () => {
     const view = render(
       <MotionProvider>

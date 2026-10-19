@@ -5,6 +5,8 @@ import { buttonVariants } from "@workspace/ui/components/button";
 
 import { cn } from "@workspace/ui/lib/utils";
 import type * as React from "react";
+import { useOverlayFocus } from "../hooks/use-overlay-focus";
+import { usePresenceInert } from "../hooks/use-presence-inert";
 
 function AlertDialog({
   ...props
@@ -46,8 +48,13 @@ function AlertDialogOverlay({
 
 function AlertDialogContent({
   className,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
+  ref,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  const focus = useOverlayFocus();
+  const contentRef = usePresenceInert(ref);
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
@@ -57,6 +64,15 @@ function AlertDialogContent({
           className
         )}
         data-slot="alert-dialog-content"
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          focus.restore(event);
+        }}
+        onOpenAutoFocus={(event) => {
+          focus.remember();
+          onOpenAutoFocus?.(event);
+        }}
+        ref={contentRef}
         {...props}
       />
     </AlertDialogPortal>

@@ -107,8 +107,14 @@ import {
 } from "./dashboard-preferences";
 import { DataFreshness, refreshDashboardSources } from "./data-freshness";
 import { ProjectSupport } from "./project-support";
+import { createRankingPrefetch } from "./ranking-prefetch";
 import SystemLogsDialog from "./system-logs-dialog";
 import SystemVersionCard from "./system-version-card";
+import {
+  createTrafficRanking,
+  type TrafficRankingDataset,
+  type TrafficRankingItem,
+} from "./traffic-ranking-data";
 import { getTrafficRankWidth, getUserEmail } from "./traffic-ranking-utils";
 import { useDashboardScroll } from "./use-dashboard-scroll";
 
@@ -116,39 +122,6 @@ type DashboardRange = "month" | "total";
 type TrafficType = "nodes" | "users";
 type TrafficPeriod = "today" | "yesterday";
 type TrafficLimit = 5 | 8 | 10 | 20;
-
-type TrafficSourceItem = {
-  id: number;
-  name?: string;
-  uid?: number;
-  sid: number;
-  upload: number;
-  download: number;
-};
-
-type TrafficRankingItem = {
-  id: number;
-  name: string;
-  uid?: number;
-  sid: number;
-  upload: number;
-  download: number;
-  total: number;
-  previousUpload: number;
-  previousDownload: number;
-  previousTotal: number;
-  absoluteChange: number;
-  growth: number;
-  share: number;
-  rankChange?: number;
-  isNew: boolean;
-};
-
-type TrafficRankingDataset = {
-  items: TrafficRankingItem[];
-  currentTotal: number;
-  previousTotal: number;
-};
 
 function getDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -202,116 +175,6 @@ function DashboardChartTooltipContent(
       <ChartTooltipContent {...props} />
     </div>
   );
-}
-
-function createTrafficRanking(
-  server: API.ServerTotalDataResponse | undefined,
-  type: TrafficType,
-  period: TrafficPeriod
-): TrafficRankingDataset {
-  if (type === "nodes") {
-    const today = (server?.server_traffic_ranking_today || []).map((item) => ({
-      id: item.server_id,
-      name: item.name,
-      sid: item.server_id,
-      upload: item.upload,
-      download: item.download,
-    }));
-    const yesterday = (server?.server_traffic_ranking_yesterday || []).map(
-      (item) => ({
-        id: item.server_id,
-        name: item.name,
-        sid: item.server_id,
-        upload: item.upload,
-        download: item.download,
-      })
-    );
-    return createTrafficRankingDataset(
-      period === "today" ? today : yesterday,
-      period === "today" ? yesterday : today
-    );
-  }
-
-  const today = (server?.user_traffic_ranking_today || []).map((item) => ({
-    id: item.sid,
-    name: `UID ${item.uid}`,
-    sid: item.sid,
-    uid: item.uid,
-    upload: item.upload,
-    download: item.download,
-  }));
-  const yesterday = (server?.user_traffic_ranking_yesterday || []).map(
-    (item) => ({
-      id: item.sid,
-      name: `UID ${item.uid}`,
-      sid: item.sid,
-      uid: item.uid,
-      upload: item.upload,
-      download: item.download,
-    })
-  );
-  return createTrafficRankingDataset(
-    period === "today" ? today : yesterday,
-    period === "today" ? yesterday : today
-  );
-}
-
-function createTrafficRankingDataset(
-  current: TrafficSourceItem[],
-  previous: TrafficSourceItem[]
-): TrafficRankingDataset {
-  const sortedCurrent = [...current].sort(
-    (left, right) =>
-      right.upload + right.download - (left.upload + left.download)
-  );
-  const sortedPrevious = [...previous].sort(
-    (left, right) =>
-      right.upload + right.download - (left.upload + left.download)
-  );
-  const previousById = new Map(sortedPrevious.map((item) => [item.id, item]));
-  const previousRankById = new Map(
-    sortedPrevious.map((item, index) => [item.id, index + 1])
-  );
-  const currentTotal = sortedCurrent.reduce(
-    (sum, item) => sum + item.upload + item.download,
-    0
-  );
-  const previousTotal = sortedPrevious.reduce(
-    (sum, item) => sum + item.upload + item.download,
-    0
-  );
-
-  return {
-    currentTotal,
-    previousTotal,
-    items: sortedCurrent.map((item, index) => {
-      const previousItem = previousById.get(item.id);
-      const total = item.upload + item.download;
-      const previousItemTotal = previousItem
-        ? previousItem.upload + previousItem.download
-        : 0;
-      const absoluteChange = total - previousItemTotal;
-      const previousRank = previousRankById.get(item.id);
-      return {
-        ...item,
-        name: item.name || `#${item.id}`,
-        total,
-        previousUpload: previousItem?.upload || 0,
-        previousDownload: previousItem?.download || 0,
-        previousTotal: previousItemTotal,
-        absoluteChange,
-        growth: previousItemTotal
-          ? (absoluteChange / previousItemTotal) * 100
-          : total
-            ? 100
-            : 0,
-        share: currentTotal ? (total / currentTotal) * 100 : 0,
-        rankChange:
-          previousRank === undefined ? undefined : previousRank - (index + 1),
-        isNew: previousRank === undefined,
-      };
-    }),
-  };
 }
 
 type MetricCardProps = {
@@ -454,16 +317,18 @@ export default function Statistics() {
       ].map((item) => item.uid)
     )
   );
+  const prefetchEmail = useMemo(() => createRankingPrefetch(4), []);
   const rankedUserQueries = useQueries({
     queries: rankedUserIds.map((uid) => ({
       gcTime: 30 * 60 * 1000,
-      queryFn: async () => {
-        const { data: response } = await getUserDetail(
-          { id: uid },
-          { skipErrorHandler: true }
-        );
-        return response.data ?? null;
-      },
+      queryFn: ({ signal }) =>
+        prefetchEmail(async () => {
+          const { data: response } = await getUserDetail(
+            { id: uid },
+            { skipErrorHandler: true, signal }
+          );
+          return response.data ?? null;
+        }, signal),
       queryKey: ["getUserDetail", uid],
       retry: 1,
       staleTime: 5 * 60 * 1000,
@@ -1410,16 +1275,20 @@ function SystemHealthCard({
     ? "neutral"
     : error
       ? "danger"
-      : offline > 0
-        ? "warning"
-        : "success";
+      : total === 0
+        ? "neutral"
+        : offline > 0
+          ? "warning"
+          : "success";
   const label = loading
     ? t("overview.checking", "Checking")
     : error
       ? t("overview.unavailable", "Unavailable")
-      : offline > 0
-        ? t("overview.needsAttention", "Needs attention")
-        : t("overview.operational", "Operational");
+      : total === 0
+        ? t("overview.notConfigured", "Not configured")
+        : offline > 0
+          ? t("overview.needsAttention", "Needs attention")
+          : t("overview.operational", "Operational");
 
   return (
     <Card
@@ -1443,7 +1312,16 @@ function SystemHealthCard({
             key={tone}
             transition={presets.state.transition}
           >
-            <StatusChip tone={tone}>{label}</StatusChip>
+            <StatusChip dot={false} tone={tone}>
+              {error || offline > 0 ? (
+                <CircleAlert aria-hidden="true" className="size-3.5" />
+              ) : total === 0 || loading ? (
+                <CircleHelp aria-hidden="true" className="size-3.5" />
+              ) : (
+                <CircleCheck aria-hidden="true" className="size-3.5" />
+              )}
+              {label}
+            </StatusChip>
           </motion.div>
         </AnimatePresence>
       </CardHeader>
@@ -1460,7 +1338,7 @@ function SystemHealthCard({
               <div className="space-y-2">
                 <div className="flex items-end justify-between">
                   <div>
-                    {error ? (
+                    {error || total === 0 ? (
                       <span className="font-semibold text-2xl tabular-nums">
                         —
                       </span>
@@ -1481,7 +1359,11 @@ function SystemHealthCard({
                     {error ? "—" : <AnimatedNumber value={total} />}
                   </span>
                 </div>
-                <Progress className="h-2" value={error ? 0 : onlineRate} />
+                <Progress
+                  aria-label={t("overview.availability", "availability")}
+                  className="h-2"
+                  value={error || total === 0 ? null : onlineRate}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <HealthValue
@@ -1810,10 +1692,8 @@ function TrafficRanking({
   const download = data.items.reduce((sum, item) => sum + item.download, 0);
   const growth = data.previousTotal
     ? ((data.currentTotal - data.previousTotal) / data.previousTotal) * 100
-    : data.currentTotal
-      ? 100
-      : 0;
-  const shareBase = systemTotal || data.currentTotal;
+    : null;
+  const shareBase = systemTotal ?? data.currentTotal;
   const visibleShare = shareBase ? (visibleTotal / shareBase) * 100 : 0;
   const currentLabel =
     period === "today" ? t("today", "Today") : t("yesterday", "Yesterday");
@@ -2016,13 +1896,20 @@ function TrafficRanking({
                           })}
                         </div>
                         <div className="mt-1 flex items-center gap-2">
-                          <AnimatedNumber
-                            animateOnMount={false}
-                            className="font-semibold text-base tabular-nums"
-                            format={formatBytes}
-                            value={data.previousTotal}
+                          {data.previousAvailable ? (
+                            <AnimatedNumber
+                              animateOnMount={false}
+                              className="font-semibold text-base tabular-nums"
+                              format={formatBytes}
+                              value={data.previousTotal}
+                            />
+                          ) : (
+                            <span>—</span>
+                          )}
+                          <GrowthChip
+                            missing={!data.previousAvailable}
+                            value={growth}
                           />
-                          <GrowthChip value={growth} />
                         </div>
                         <div className="mt-1 text-muted-foreground text-xs">
                           {t(
@@ -2131,8 +2018,22 @@ function TrafficSummaryValue({
   );
 }
 
-function GrowthChip({ value }: { value: number }) {
+function GrowthChip({
+  value,
+  missing = false,
+}: {
+  value: number | null;
+  missing?: boolean;
+}) {
   const { t } = useTranslation("dashboard");
+  if (value === null)
+    return (
+      <StatusChip dot={false} tone="neutral">
+        {missing
+          ? t("overview.cannotCompare", "Cannot compare")
+          : t("overview.noComparisonBase", "No comparison base")}
+      </StatusChip>
+    );
   // More/less traffic is a trend, not a service success/failure signal.
   const tone: StatusChipTone = value > 0 ? "info" : "neutral";
   const TrendIcon = value > 0 ? ArrowUp : value < 0 ? ArrowDown : null;
@@ -2223,9 +2124,12 @@ export function TrafficRankingRow({
     userEmail ||
     (trafficType === "users" ? t("overview.userFallback", "User") : item.name);
   const accessibleName = userEmail || item.name;
-  const changeLabel = `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
-    Math.abs(item.absoluteChange)
-  )}`;
+  const missing = item.comparison === "missing";
+  const changeLabel = missing
+    ? t("overview.cannotCompare", "Cannot compare")
+    : `${item.absoluteChange > 0 ? "+" : item.absoluteChange < 0 ? "−" : ""}${formatBytes(
+        Math.abs(item.absoluteChange)
+      )}`;
   const tooltipDataKey = `${trafficType}-${item.id}`;
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -2265,14 +2169,20 @@ export function TrafficRankingRow({
           uploadShare={uploadShare}
           width={tooltipCurrentWidth}
         />
-        <TrafficTooltipComparisonBar
-          downloadShare={previousDownloadShare}
-          label={previousLabel}
-          muted
-          total={item.previousTotal}
-          uploadShare={previousUploadShare}
-          width={tooltipPreviousWidth}
-        />
+        {missing ? (
+          <p className="text-muted-foreground text-xs">
+            {previousLabel} · {t("overview.cannotCompare", "Cannot compare")}
+          </p>
+        ) : (
+          <TrafficTooltipComparisonBar
+            downloadShare={previousDownloadShare}
+            label={previousLabel}
+            muted
+            total={item.previousTotal}
+            uploadShare={previousUploadShare}
+            width={tooltipPreviousWidth}
+          />
+        )}
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <TrafficTooltipValue
@@ -2288,28 +2198,16 @@ export function TrafficRankingRow({
         <TrafficTooltipValue
           label={`${previousLabel} · ${t("overview.upload", "Upload")}`}
           tone="upload"
-          value={formatBytes(item.previousUpload)}
+          value={missing ? "—" : formatBytes(item.previousUpload)}
         />
         <TrafficTooltipValue
           label={`${previousLabel} · ${t("overview.download", "Download")}`}
           tone="download"
-          value={formatBytes(item.previousDownload)}
+          value={missing ? "—" : formatBytes(item.previousDownload)}
         />
         <TrafficTooltipValue
-          label={t("traffic", "Total traffic")}
-          value={formatBytes(item.total)}
-        />
-        <TrafficTooltipValue
-          label={t("overview.share", "Traffic share")}
+          label={t("overview.rankingShare", "Share of returned ranking")}
           value={`${item.share.toFixed(2)}%`}
-        />
-        <TrafficTooltipValue
-          label={currentLabel}
-          value={formatBytes(item.total)}
-        />
-        <TrafficTooltipValue
-          label={previousLabel}
-          value={formatBytes(item.previousTotal)}
         />
         <TrafficTooltipValue
           label={t("overview.absoluteChange", "Absolute change")}
@@ -2318,11 +2216,13 @@ export function TrafficRankingRow({
         <TrafficTooltipValue
           label={t("overview.rankChange", "Rank change")}
           value={
-            item.isNew
-              ? t("overview.newToRanking", "New")
-              : item.rankChange
-                ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
-                : "—"
+            missing
+              ? "—"
+              : item.isNew
+                ? t("overview.newToRanking", "New")
+                : item.rankChange
+                  ? `${item.rankChange > 0 ? "+" : ""}${item.rankChange}`
+                  : "—"
           }
         />
       </div>
@@ -2330,7 +2230,7 @@ export function TrafficRankingRow({
         <span className="text-muted-foreground">
           {t("overview.growth", "Growth")}
         </span>
-        <GrowthChip value={item.growth} />
+        <GrowthChip missing={missing} value={item.growth} />
       </div>
     </div>
   );
@@ -2464,22 +2364,23 @@ export function TrafficRankingRow({
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs tabular-nums">
                   <span>
-                    {previousLabel} {formatBytes(item.previousTotal)}
+                    {previousLabel}{" "}
+                    {missing ? "—" : formatBytes(item.previousTotal)}
                   </span>
-                  <span
-                    className={cn(
-                      "font-medium",
-                      item.absoluteChange > 0
-                        ? "text-[var(--admin-info)]"
-                        : item.absoluteChange < 0
-                          ? "text-muted-foreground"
+                  {!missing && (
+                    <span
+                      className={cn(
+                        "font-medium",
+                        item.absoluteChange > 0
+                          ? "text-[var(--admin-info)]"
                           : "text-muted-foreground"
-                    )}
-                  >
-                    {changeLabel}
-                  </span>
-                  <GrowthChip value={item.growth} />
-                  <RankChangeChip item={item} />
+                      )}
+                    >
+                      {changeLabel}
+                    </span>
+                  )}
+                  <GrowthChip missing={missing} value={item.growth} />
+                  {!missing && <RankChangeChip item={item} />}
                 </div>
               </div>
             </div>
@@ -2495,7 +2396,7 @@ export function TrafficRankingRow({
       <Button
         aria-label={t("overview.openTrafficLog", "Open traffic log")}
         asChild
-        className="size-8 rounded-full"
+        className="size-11 rounded-full lg:size-8"
         size="icon"
         variant="ghost"
       >

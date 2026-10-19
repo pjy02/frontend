@@ -1,4 +1,6 @@
 {
+  "savedSyncFailed": "审核已保存，但刷新失败，请勿重复审核。",
+  "retryRefresh": "重试刷新",
   "actions": "操作",
   "amount": "提现金额",
   "approve": "通过",

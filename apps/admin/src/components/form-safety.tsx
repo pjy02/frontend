@@ -19,7 +19,6 @@ import {
   useWatch,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 
 /** Names only: values, including credentials, never leave the form's memory. */
 export function changedFormFields(
@@ -66,6 +65,19 @@ export function changedFormFields(
   return [prefix];
 }
 
+// Leave protection needs only a boolean. Stop at the first difference; build the
+// complete path list and resolve DOM labels only when a review is actually open.
+function hasFormChanges(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return false;
+  if (!(left && right) || typeof left !== "object" || typeof right !== "object")
+    return true;
+  if (Array.isArray(left) !== Array.isArray(right)) return true;
+  const a = left as Record<string, unknown>;
+  const b = right as Record<string, unknown>;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].some((key) => hasFormChanges(a[key], b[key]));
+}
+
 export function formErrorEntries(
   errors: unknown,
   prefix = ""
@@ -95,7 +107,7 @@ function RouteBlocker({
   return null;
 }
 
-function FormNavigationGuard(props: {
+export function FormNavigationGuard(props: {
   dirty: boolean;
   confirm: () => Promise<boolean>;
 }) {
@@ -103,28 +115,38 @@ function FormNavigationGuard(props: {
   return router ? <RouteBlocker {...props} /> : null;
 }
 
+export type FormLeaveGuard = (() => Promise<boolean>) & { cancel: () => void };
+
 export function useFormSafety<T extends FieldValues>({
   form,
   open,
   onOpenChange,
-  review = true,
+  review = false,
+  externalBusy = false,
+  navigationGuard = true,
 }: {
   form: UseFormReturn<T>;
   open: boolean;
   onOpenChange: (open: boolean) => void | Promise<void>;
-  review?: boolean;
+  review?: boolean | ((values: T) => boolean);
+  externalBusy?: boolean;
+  navigationGuard?: boolean;
 }) {
   const { t } = useTranslation("components");
   const values = useWatch({ control: form.control });
-  const changed = changedFormFields(
-    form.formState.defaultValues || {},
-    values
-  ).filter(Boolean);
-  const dirty = open && changed.length > 0;
+  const [departing, setDeparting] = useState(false);
+  const dirty =
+    open &&
+    !departing &&
+    hasFormChanges(form.formState.defaultValues || {}, values);
   const anchor = useRef<HTMLDivElement>(null);
   const [confirmation, setConfirmation] = useState<"discard" | "review" | null>(
     null
   );
+  const lastConfirmation = useRef<"discard" | "review">("discard");
+  if (confirmation) lastConfirmation.current = confirmation;
+  const confirmationKind = confirmation || lastConfirmation.current;
+  const lastReviewChanges = useRef<string[]>([]);
   const resolver = useRef<((accepted: boolean) => void) | null>(null);
   const mounted = useRef(true);
   const openRef = useRef(open);
@@ -134,11 +156,44 @@ export function useFormSafety<T extends FieldValues>({
   const running = useRef(false);
   const closingApproved = useRef(false);
   const [submitting, setSubmitting] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [failure, setFailure] = useState(false);
+  const syncRetry = useRef<(() => Promise<unknown>) | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const syncLock = useRef(false);
   const errors = formErrorEntries(form.formState.errors);
   const previousErrors = useRef(errors);
   if (errors.length) previousErrors.current = errors;
-  const busy = submitting || form.formState.isSubmitting;
+  const busy = locked || syncing || externalBusy;
+  const externalBusyRef = useRef(externalBusy);
+  externalBusyRef.current = externalBusy;
+  const synchronize = async (read: () => Promise<unknown>) => {
+    if (syncLock.current) return;
+    syncLock.current = true;
+    syncRetry.current = read;
+    setSyncing(true);
+    try {
+      await read();
+      syncRetry.current = null;
+      if (mounted.current) setSyncFailed(false);
+    } catch {
+      if (mounted.current) setSyncFailed(true);
+    } finally {
+      syncLock.current = false;
+      if (mounted.current) setSyncing(false);
+    }
+  };
+  const discardOnReopen = useRef(false);
+  const previousOpen = useRef(open);
+  useEffect(() => {
+    if (open && !previousOpen.current) {
+      if (discardOnReopen.current) form.reset();
+      discardOnReopen.current = false;
+      setDeparting(false);
+    }
+    previousOpen.current = open;
+  }, [open, form]);
 
   useEffect(() => {
     mounted.current = true;
@@ -151,14 +206,14 @@ export function useFormSafety<T extends FieldValues>({
     };
   }, []);
   useEffect(() => {
-    if (!dirty) return;
+    if (!(dirty || (open && busy))) return;
     const preventUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", preventUnload);
     return () => window.removeEventListener("beforeunload", preventUnload);
-  }, [dirty]);
+  }, [dirty, open, busy]);
   useEffect(() => {
     if (!open) {
       for (const frame of frames.current) cancelAnimationFrame(frame);
@@ -191,21 +246,38 @@ export function useFormSafety<T extends FieldValues>({
   const confirmDiscard = async () => {
     // An approved save/discard may close a routed editor before state settles.
     // Read a ref here: the router can call the old render's blocker.
-    if (closingApproved.current) return true;
-    if (running.current || form.formState.isSubmitting) return false;
+    if (closingApproved.current || discardOnReopen.current) return true;
+    if (
+      running.current ||
+      externalBusyRef.current ||
+      form.formState.isSubmitting
+    )
+      return false;
     if (!(await ask("discard"))) return false;
-    form.reset();
+    // Keep the last painted input through Presence's exit. Reset only if this
+    // same editor is opened again, not while its close animation is visible.
+    discardOnReopen.current = true;
+    setDeparting(true);
     return true;
   };
   const requestOpenChange = async (next: boolean) => {
     if (next) return onOpenChange(true);
-    if (running.current || form.formState.isSubmitting) return;
+    if (
+      running.current ||
+      externalBusyRef.current ||
+      form.formState.isSubmitting
+    )
+      return;
     if (!dirty || (await confirmDiscard())) await closeWithApproval();
   };
   const closeWithApproval = async () => {
     closingApproved.current = true;
     try {
       await onOpenChange(false);
+    } catch (error) {
+      discardOnReopen.current = false;
+      setDeparting(false);
+      throw error;
     } finally {
       closingApproved.current = false;
     }
@@ -329,14 +401,19 @@ export function useFormSafety<T extends FieldValues>({
     (submit: SubmitHandler<T>, invalid?: SubmitErrorHandler<T>) =>
     async (event?: React.BaseSyntheticEvent) => {
       event?.preventDefault();
-      if (running.current) return;
+      if (running.current || externalBusyRef.current || syncRetry.current)
+        return;
       running.current = true;
-      setSubmitting(true);
+      setLocked(true);
       setFailure(false);
       try {
         await form.handleSubmit(
           async (data, sourceEvent) => {
-            if (review && !(await ask("review"))) return;
+            const needsReview =
+              typeof review === "function" ? review(data) : review;
+            if (needsReview && !(await ask("review"))) return;
+            if (!(mounted.current && openRef.current)) return;
+            setSubmitting(true);
             await submit(data, sourceEvent);
           },
           async (validationErrors, sourceEvent) => {
@@ -352,26 +429,48 @@ export function useFormSafety<T extends FieldValues>({
       } catch {
         if (mounted.current) {
           setFailure(true);
-          toast.error(
-            t(
-              "formSafety.saveFailed",
-              "Save failed. Your input has been kept; please retry."
-            )
-          );
         }
       } finally {
         running.current = false;
-        if (mounted.current) setSubmitting(false);
+        if (mounted.current) {
+          setSubmitting(false);
+          setLocked(false);
+        }
       }
     };
-  const changes = [...new Set(changed.map(fieldLabel))];
+  if (confirmation === "review") {
+    lastReviewChanges.current = [
+      ...new Set(
+        changedFormFields(form.formState.defaultValues || {}, form.getValues())
+          .filter(Boolean)
+          .map(fieldLabel)
+      ),
+    ];
+  }
+  const changes = lastReviewChanges.current;
   return {
     dirty,
     busy,
-    canLeave: async () => {
-      if (running.current || form.formState.isSubmitting) return false;
-      return !dirty || (await confirmDiscard());
-    },
+    submitting,
+    syncFailed,
+    synchronize,
+    canLeave: Object.assign(
+      async () => {
+        if (
+          running.current ||
+          externalBusyRef.current ||
+          form.formState.isSubmitting
+        )
+          return false;
+        return !dirty || (await confirmDiscard());
+      },
+      {
+        cancel: () => {
+          discardOnReopen.current = false;
+          setDeparting(false);
+        },
+      }
+    ) as FormLeaveGuard,
     requestOpenChange,
     completeSave,
     handleSubmit,
@@ -420,14 +519,41 @@ export function useFormSafety<T extends FieldValues>({
             )}
           </p>
         )}
+        {syncFailed && (
+          <div
+            className="mb-4 flex items-center justify-between gap-3 text-sm"
+            role="alert"
+          >
+            <span>
+              {t(
+                "actions.savedSyncFailed",
+                "Saved. Refresh failed; do not submit again."
+              )}
+            </span>
+            <Button
+              loading={syncing}
+              onClick={() => {
+                if (syncRetry.current && !syncing)
+                  return synchronize(syncRetry.current);
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("table.retry", "Try again")}
+            </Button>
+          </div>
+        )}
       </div>
     ),
     dialogs: (
       <>
-        <FormNavigationGuard
-          confirm={confirmDiscard}
-          dirty={dirty || (open && busy)}
-        />
+        {navigationGuard && (
+          <FormNavigationGuard
+            confirm={confirmDiscard}
+            dirty={dirty || (open && busy)}
+          />
+        )}
         <AlertDialog
           onOpenChange={(next) => {
             if (!next) decide(false);
@@ -450,12 +576,12 @@ export function useFormSafety<T extends FieldValues>({
           >
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {confirmation === "review"
+                {confirmationKind === "review"
                   ? t("formSafety.reviewTitle", "Review changes before saving")
                   : t("formSafety.discardTitle", "Discard unsaved changes?")}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {confirmation === "review"
+                {confirmationKind === "review"
                   ? t(
                       "formSafety.reviewHint",
                       "Only field names are shown. Passwords, keys and tokens are not displayed or stored as drafts."
@@ -466,7 +592,7 @@ export function useFormSafety<T extends FieldValues>({
                     )}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {confirmation === "review" && (
+            {confirmationKind === "review" && (
               <ul
                 className="list-inside list-disc space-y-1 text-sm"
                 data-form-change-summary
@@ -487,9 +613,11 @@ export function useFormSafety<T extends FieldValues>({
               </Button>
               <Button
                 onClick={() => decide(true)}
-                variant={confirmation === "review" ? "default" : "destructive"}
+                variant={
+                  confirmationKind === "review" ? "default" : "destructive"
+                }
               >
-                {confirmation === "review"
+                {confirmationKind === "review"
                   ? t("formSafety.confirmSave", "Confirm save")
                   : t("formSafety.discard", "Discard changes")}
               </Button>

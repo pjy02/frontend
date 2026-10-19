@@ -66,7 +66,10 @@ export default function EmailTaskManager() {
   return (
     <Sheet onOpenChange={setOpen} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon
@@ -87,7 +90,7 @@ export default function EmailTaskManager() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="xl">
         <SheetHeader>
@@ -307,12 +310,15 @@ export default function EmailTaskManager() {
                   ],
                 },
               ]}
-              request={async (pagination, filters) => {
-                const response = await getBatchSendEmailTaskList({
-                  ...filters,
-                  page: pagination.page,
-                  size: pagination.size,
-                });
+              request={async (pagination, filters, { signal }) => {
+                const response = await getBatchSendEmailTaskList(
+                  {
+                    ...filters,
+                    page: pagination.page,
+                    size: pagination.size,
+                  },
+                  { signal }
+                );
                 return {
                   list: response.data?.data?.list || [],
                   total: response.data?.data?.total || 0,

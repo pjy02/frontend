@@ -1,12 +1,32 @@
 {
+  "form": { "addItem": "添加项目", "removeItem": "移除项目" },
+  "read": {
+    "loading": "正在读取数据",
+    "failed": "暂时无法加载数据",
+    "failedDescription": "尚未成功读取数据，请重试后再编辑或保存。",
+    "stale": "刷新失败，正在显示上次读取的数据。",
+    "refreshing": "正在刷新，保留当前内容",
+    "retry": "重试",
+    "unconfigured": "尚未配置，可填写下方内容完成配置。",
+    "empty": "暂无数据",
+    "emptyDescription": "本次未返回记录，可刷新重新检查。",
+    "estimateFailed": "暂时无法计算",
+    "calculating": "正在计算…"
+  },
   "accessibility": {
+    "toggleSidebar": "切换侧栏",
     "skipToContent": "跳到主要内容"
   },
   "actions": {
+    "savedStale": "已保存 · 待同步",
+    "notConfirmed": "修改未确认",
     "cancel": "取消",
     "completed": "已完成",
     "confirm": "确认",
-    "processing": "处理中"
+    "processing": "处理中",
+    "writeFailed": "修改未确认成功，已保留原状态和输入，请确认后重试。",
+    "savedSyncFailed": "已保存，但刷新失败，请勿重复提交。",
+    "retryRefresh": "重试刷新"
   },
   "admin": {
     "consoleDescription": "管理控制台",
@@ -137,6 +157,7 @@
     "retry": "重试"
   },
   "table": {
+    "sortFailed": "排序未确认成功，已保留原顺序，请确认后重试。",
     "applyFilters": "应用筛选",
     "batchActions": "批量操作",
     "clearSelection": "清除选择",

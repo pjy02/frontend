@@ -122,6 +122,7 @@ function fixture() {
     reduced: false,
     duration: 420,
     easing: "cubic-bezier(0.2,0,0,1)",
+    interactionSafe: () => true,
   };
   const controller = createThemeTransition(commit, () => settings);
   controllers.push(controller);
@@ -170,7 +171,7 @@ describe("Admin theme reveal", () => {
         pseudoElement: "::view-transition-new(root)",
       }),
     ]);
-    expect(document.documentElement.dataset.themeCapture).toBeUndefined();
+    expect(document.documentElement.dataset.themeCapture).toBe("true");
     f.animations[0]!.resolve();
     await waitFor(() =>
       expect(document.documentElement.dataset.themeReveal).toBeUndefined()
@@ -230,9 +231,11 @@ describe("Admin theme reveal", () => {
     "detached",
     "same",
     "system",
+    "interaction",
   ])("uses a direct update for %s without snapshots", async (mode) => {
     const f = fixture();
     if (mode === "reduced") f.settings.reduced = true;
+    if (mode === "interaction") f.settings.interactionSafe = () => false;
     if (mode === "unsupported")
       Object.defineProperty(document, "startViewTransition", {
         value: undefined,
@@ -286,31 +289,29 @@ describe("Admin theme reveal", () => {
     await pending;
     expect(f.commit).not.toHaveBeenCalled();
   });
-  it("interrupts a real snapshot hit only inside the original theme icon", async () => {
+  it("measures the actual icon at commit time rather than keeping stale geometry", async () => {
     const f = fixture();
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const hiddenIcon = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg"
+    );
+    f.trigger.append(hiddenIcon);
+    vi.spyOn(hiddenIcon, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(100, 40, 0, 0)
+    );
+    f.trigger.append(icon);
+    vi.spyOn(icon, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(100, 40, 20, 20)
+    );
     const changed = f.controller.change("dark", f.trigger);
     await waitFor(() => expect(f.start).toHaveBeenCalledTimes(1));
     await f.entries[0]!.run();
     await changed;
-    const event = {
-      target: document.documentElement,
-      isPrimary: true,
-      button: 0,
-      ctrlKey: false,
-      clientX: 918,
-      clientY: 28,
-    } as unknown as PointerEvent;
-    expect(
-      f.controller.interruptPointer({ ...event, clientX: 10 } as PointerEvent)
-    ).toBeUndefined();
-    expect(
-      f.controller.interruptPointer({
-        ...event,
-        isPrimary: false,
-      } as PointerEvent)
-    ).toBeUndefined();
-    expect(f.entries[0]!.transition.skipTransition).not.toHaveBeenCalled();
-    expect(f.controller.interruptPointer(event)).toBe(f.trigger);
+    expect(f.animate.mock.calls[0]?.[0][0]).toMatchObject({
+      clipPath: "circle(0px at 110px 50px)",
+    });
+    f.controller.cancelVisual();
     expect(f.entries[0]!.transition.skipTransition).toHaveBeenCalled();
   });
 });

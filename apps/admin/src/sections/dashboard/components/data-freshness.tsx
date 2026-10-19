@@ -45,6 +45,13 @@ export function DataFreshness({
     query.dataUpdatedAt > 0
       ? new Date(query.dataUpdatedAt).toLocaleString(i18n?.language)
       : null;
+  const shortTime =
+    query.dataUpdatedAt > 0
+      ? new Date(query.dataUpdatedAt).toLocaleTimeString(i18n?.language, {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
   const text =
     state === "stale"
       ? t("freshness.stale", "Refresh failed · showing previous data")
@@ -68,8 +75,12 @@ export function DataFreshness({
         <span>
           {" "}
           ·{" "}
-          <time dateTime={new Date(query.dataUpdatedAt).toISOString()}>
-            {time}
+          <time
+            dateTime={new Date(query.dataUpdatedAt).toISOString()}
+            title={time}
+          >
+            <span className="sm:hidden">{shortTime}</span>
+            <span className="hidden sm:inline">{time}</span>
           </time>
         </span>
       )}

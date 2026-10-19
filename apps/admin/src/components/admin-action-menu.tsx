@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile";
+import { handoffOverlayFocus } from "@workspace/ui/hooks/use-overlay-focus";
 import { cn } from "@workspace/ui/lib/utils";
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent } from "motion/react";
@@ -38,6 +39,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type TouchEvent as ReactTouchEvent,
+  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -61,6 +63,8 @@ type AdminActionMenuContextValue = {
   mobileDirection: 1 | -1;
   mobilePath: string[];
   setMobilePath: (path: string[]) => void;
+  triggerRef: RefObject<HTMLElement | null>;
+  rememberMobileScroll: RefObject<(() => void) | null>;
 };
 
 const AdminActionMenuContext =
@@ -122,8 +126,12 @@ function AdminActionMenu({
   const [mobilePath, setMobilePath] = useState<string[]>([]);
   const open = controlledOpen ?? internalOpen;
   const mode: MenuMode = isMobile ? "mobile" : "desktop";
+  const triggerRef = useRef<HTMLElement>(null);
+  const rememberMobileScroll = useRef<(() => void) | null>(null);
 
   const updateMobilePath = (nextPath: string[]) => {
+    // Capture before React replaces the level and the browser clamps scrollTop.
+    rememberMobileScroll.current?.();
     setMobileDirection(nextPath.length >= mobilePath.length ? 1 : -1);
     setMobilePath(nextPath);
   };
@@ -157,6 +165,8 @@ function AdminActionMenu({
       mobileDirection,
       mobilePath,
       setMobilePath: updateMobilePath,
+      triggerRef,
+      rememberMobileScroll,
     }),
     [backLabel, mode, mobileDirection, mobilePath, open, updateOpen]
   );
@@ -193,6 +203,7 @@ function AdminActionMenu({
             )}
             collisionPadding={8}
             data-admin-action-menu-level="root"
+            onCloseAutoFocus={keepDialogFocus}
           >
             {children}
           </DropdownMenuContent>
@@ -203,11 +214,12 @@ function AdminActionMenu({
 }
 
 function AdminActionMenuTrigger({ children }: { children: ReactElement }) {
-  const { mode } = useAdminActionMenuContext();
+  const { mode, triggerRef } = useAdminActionMenuContext();
+  const trigger = <Slot ref={triggerRef}>{children}</Slot>;
   return mode === "mobile" ? (
-    <DrawerTrigger asChild>{children}</DrawerTrigger>
+    <DrawerTrigger asChild>{trigger}</DrawerTrigger>
   ) : (
-    <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+    <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
   );
 }
 
@@ -241,7 +253,19 @@ function AdminMobileActionPanel({
   const pathKey = mobilePath.join("/") || "root";
   const panelRef = useRef<HTMLDivElement>(null);
   const previousPath = useRef(mobilePath);
+  const scrollPositions = useRef(new Map<string, number>());
   const [height, setHeight] = useState<number>();
+
+  useLayoutEffect(() => {
+    const remember = () => {
+      if (panelRef.current)
+        scrollPositions.current.set(pathKey, panelRef.current.scrollTop);
+    };
+    context.rememberMobileScroll.current = remember;
+    return () => {
+      context.rememberMobileScroll.current = null;
+    };
+  }, [context.rememberMobileScroll, pathKey]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -260,13 +284,17 @@ function AdminMobileActionPanel({
         ? null
         : new ResizeObserver(measure);
     observer?.observe(level);
-    if (panelRef.current) panelRef.current.scrollTop = 0;
-    return () => observer?.disconnect();
+    const panel = panelRef.current;
+    if (panel) panel.scrollTop = scrollPositions.current.get(pathKey) ?? 0;
+    return () => {
+      observer?.disconnect();
+    };
   }, [pathKey, open]);
 
   useEffect(() => {
     if (!open) {
       previousPath.current = [];
+      scrollPositions.current.clear();
       return;
     }
     const returningTo =
@@ -375,6 +403,7 @@ function AdminMobileActionPanel({
       )}
       data-slot="admin-mobile-action-panel"
       inert={!open}
+      onCloseAutoFocus={keepDialogFocus}
       onEscapeKeyDown={(event) => {
         event.preventDefault();
         if (mobilePath.length) context.setMobilePath(mobilePath.slice(0, -1));
@@ -384,6 +413,9 @@ function AdminMobileActionPanel({
       <div
         className="admin-action-menu-mobile-scroll min-h-0 overflow-y-auto overscroll-contain px-2 pb-2"
         onKeyDown={handleKeyDown}
+        onScroll={(event) =>
+          scrollPositions.current.set(pathKey, event.currentTarget.scrollTop)
+        }
         ref={panelRef}
       >
         <motion.div
@@ -429,6 +461,16 @@ function AdminMobileActionPanel({
       </div>
     </DrawerContent>
   );
+}
+
+/** A newly opened confirmation owns focus; do not bounce through the menu trigger. */
+function keepDialogFocus(event: Event) {
+  if (
+    document.querySelector(
+      '[data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"]'
+    )
+  )
+    event.preventDefault();
 }
 
 /** Exiting levels must not retain tabbable controls or respond to touch. */
@@ -523,7 +565,7 @@ function AdminActionMenuItem({
   tooltip,
   variant = "default",
 }: AdminActionMenuItemProps) {
-  const { mode, mobilePath } = useAdminActionMenuContext();
+  const { mode, mobilePath, triggerRef } = useAdminActionMenuContext();
   const levelPath = useContext(AdminActionMenuLevelContext);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchMovedRef = useRef(false);
@@ -541,6 +583,7 @@ function AdminActionMenuItem({
   const runAction = async () => {
     if (running.current || disabled || busy || !onAction) return;
     running.current = true;
+    handoffOverlayFocus(triggerRef.current);
     try {
       const result = onAction();
       if (result && typeof result.then === "function") {
@@ -753,6 +796,8 @@ function AdminActionMenuSub({
   label,
 }: AdminActionMenuSubProps) {
   const generatedId = useId();
+  const [subOpen, setSubOpen] = useState(false);
+  const subTrigger = useRef<HTMLDivElement>(null);
   const { backLabel, mode, mobilePath, setMobilePath } =
     useAdminActionMenuContext();
   const parentPath = useContext(AdminActionMenuLevelContext);
@@ -761,10 +806,11 @@ function AdminActionMenuSub({
   if (mode === "desktop") {
     return (
       <AdminActionMenuLevelContext.Provider value={ownPath}>
-        <DropdownMenuSub>
+        <DropdownMenuSub onOpenChange={setSubOpen} open={subOpen}>
           <DropdownMenuSubTrigger
             className={cn(itemClassName, className)}
             disabled={disabled}
+            ref={subTrigger}
           >
             <span
               aria-hidden="true"
@@ -779,6 +825,14 @@ function AdminActionMenuSub({
               className="admin-action-menu-content w-max min-w-40 max-w-[220px] rounded-[10px] p-1.5"
               collisionPadding={8}
               data-admin-action-menu-level="sub"
+              onEscapeKeyDown={(event) => {
+                // Radix's default Escape closes the entire root menu. Admin
+                // hierarchies instead return one level, just like the mobile panel.
+                event.preventDefault();
+                event.stopPropagation();
+                setSubOpen(false);
+                subTrigger.current?.focus({ preventScroll: true });
+              }}
               sideOffset={4}
             >
               {children}

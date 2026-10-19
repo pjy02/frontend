@@ -28,8 +28,9 @@ export const adminMotionProfile: MotionProfile = {
   state: state(120),
   success: spatial(300, 0, 0.7, enter),
   // Retention after a successful request, not time allocated to the request.
-  successHold: state(420),
+  successHold: state(180),
   loading: state(720),
+  loadingReveal: state(120),
   menuEnter: spatial(160, 4, 0.98, enter),
   menuExit: spatial(120, 2, 0.99, exit),
   menuLevel: spatial(180, 20),

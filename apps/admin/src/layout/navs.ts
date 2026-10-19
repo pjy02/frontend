@@ -253,35 +253,35 @@ export function useNavs() {
 }
 
 export function findNavByUrl(navs: NavItem[], url: string) {
-  function matchDynamicRoute(pattern: string, path: string): boolean {
-    const regexPattern = pattern
-      .replace(/:[^/]+/g, "[^/]+")
-      .replace(/\//g, "\\/");
-    const regex = new RegExp(`^${regexPattern}$`);
-    return regex.test(path);
-  }
-
-  function findNav(
-    items: NavItem[],
-    currentUrl: string,
-    path: NavItem[] = []
-  ): NavItem[] {
+  const current = url.split(/[?#]/)[0]!.replace(/\/+$/, "") || "/";
+  let result: NavItem[] = [];
+  let score = -1;
+  const visit = (items: NavItem[], parents: NavItem[] = []) => {
     for (const item of items) {
-      const normalizedItemUrl = item.url?.replace(/\/+$/, "");
-      if (
-        item.url === currentUrl ||
-        (item.url && matchDynamicRoute(item.url, currentUrl)) ||
-        (normalizedItemUrl && currentUrl.startsWith(`${normalizedItemUrl}/`))
-      ) {
-        return [...path, item];
+      const path = [...parents, item];
+      const target = item.url?.replace(/\/+$/, "") || "";
+      if (target) {
+        const parts = target.split("/");
+        const actual = current.split("/");
+        const matches = parts.every(
+          (part, index) =>
+            actual[index] !== undefined &&
+            (part.startsWith(":") || part === actual[index])
+        );
+        // Dashboard is a destination, never a catch-all prefix.
+        if (matches && (target !== "/dashboard" || current === target)) {
+          const specificity =
+            parts.length * 100 +
+            parts.filter((part) => !part.startsWith(":")).length;
+          if (specificity > score) {
+            score = specificity;
+            result = path;
+          }
+        }
       }
-      if (item.items) {
-        const result = findNav(item.items, currentUrl, [...path, item]);
-        if (result.length) return result;
-      }
+      if (item.items) visit(item.items, path);
     }
-    return [];
-  }
-
-  return findNav(navs, url);
+  };
+  visit(navs);
+  return result;
 }

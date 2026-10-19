@@ -17,6 +17,7 @@ import { useMotionProfile } from "./motion-profile";
 const TabsStateContext = createContext<{
   value?: string;
   preserveContent: boolean;
+  transitionMode?: "fade" | "directional";
 }>({ preserveContent: false });
 
 function Tabs({
@@ -25,12 +26,18 @@ function Tabs({
   defaultValue,
   onValueChange,
   preserveContent = false,
+  transitionMode = "fade",
   ...props
-}: ComponentProps<typeof TabsPrimitive.Root> & { preserveContent?: boolean }) {
+}: ComponentProps<typeof TabsPrimitive.Root> & {
+  preserveContent?: boolean;
+  transitionMode?: "fade" | "directional";
+}) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const activeValue = value ?? internalValue;
   return (
-    <TabsStateContext.Provider value={{ value: activeValue, preserveContent }}>
+    <TabsStateContext.Provider
+      value={{ value: activeValue, preserveContent, transitionMode }}
+    >
       <TabsPrimitive.Root
         className={cn("flex flex-col gap-2", className)}
         data-slot="tabs"
@@ -60,7 +67,7 @@ function TabsList({
     const list = listRef.current;
     if (!(list && profile)) return;
     let positioned = false;
-    const update = () => {
+    const update = (animate = false) => {
       const active = list.querySelector<HTMLElement>(
         ':scope > [data-slot="tabs-trigger"][data-state="active"]'
       );
@@ -75,11 +82,11 @@ function TabsList({
       list.style.setProperty("--admin-tabs-width", `${active.offsetWidth}px`);
       list.style.setProperty("--admin-tabs-height", `${active.offsetHeight}px`);
       list.dataset.indicatorReady = "true";
-      list.dataset.indicatorAnimated = String(positioned);
+      list.dataset.indicatorAnimated = String(positioned && animate);
       positioned = true;
     };
     update();
-    const observer = new MutationObserver(update);
+    const observer = new MutationObserver(() => update(true));
     observer.observe(list, {
       subtree: true,
       attributes: true,
@@ -88,15 +95,18 @@ function TabsList({
       characterData: true,
     });
     const resize =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => update());
     resize?.observe(list);
     for (const trigger of list.querySelectorAll('[data-slot="tabs-trigger"]'))
       resize?.observe(trigger);
-    window.addEventListener("resize", update);
+    const resizeWindow = () => update();
+    window.addEventListener("resize", resizeWindow);
     return () => {
       observer.disconnect();
       resize?.disconnect();
-      window.removeEventListener("resize", update);
+      window.removeEventListener("resize", resizeWindow);
       delete list.dataset.indicatorReady;
       delete list.dataset.indicatorAnimated;
       for (const name of ["x", "y", "width", "height"])
@@ -161,6 +171,7 @@ function TabsContent({
     <TabsPrimitive.Content
       className={cn("flex-1 outline-none", className)}
       data-slot="tabs-content"
+      data-transition-mode={context.transitionMode}
       forceMount={forceMount || retained || undefined}
       hidden={retained ? !active : undefined}
       value={value}

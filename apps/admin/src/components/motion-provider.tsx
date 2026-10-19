@@ -2,11 +2,13 @@ import {
   MotionProfileProvider,
   useMotionProfile,
 } from "@workspace/ui/components/motion-profile";
+import { TooltipProvider } from "@workspace/ui/components/tooltip";
 import {
   type MotionProfile,
   motionCssVariables,
 } from "@workspace/ui/lib/motion-profile";
 import { type ReactNode, useLayoutEffect } from "react";
+import { AdminViewport } from "./admin-viewport";
 import { adminMotionProfile } from "./motion-tokens";
 
 function MotionStyles({ profile }: { profile: MotionProfile }) {
@@ -48,7 +50,10 @@ export function MotionProvider({
   return (
     <MotionProfileProvider profile={profile}>
       <MotionStyles profile={profile} />
-      {children}
+      <AdminViewport />
+      <TooltipProvider delayDuration={300} skipDelayDuration={400}>
+        {children}
+      </TooltipProvider>
     </MotionProfileProvider>
   );
 }

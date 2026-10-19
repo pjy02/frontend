@@ -11,6 +11,7 @@ import { Separator } from "@workspace/ui/components/separator";
 import { SidebarTrigger } from "@workspace/ui/components/sidebar";
 import { LanguageSwitch } from "@workspace/ui/composed/language-switch";
 import { Fragment, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { AdminThemeSwitch } from "@/components/theme-switch";
 import { AdminSearch } from "./admin-search";
 import { findNavByUrl, useNavs } from "./navs";
@@ -18,6 +19,7 @@ import TimezoneSwitch from "./timezone-switch";
 import { UserNav } from "./user-nav";
 
 export function Header() {
+  const { t } = useTranslation("components");
   const pathname = useLocation({ select: (location) => location.pathname });
   const navs = useNavs();
   const items = useMemo(() => findNavByUrl(navs, pathname), [navs, pathname]);
@@ -25,7 +27,10 @@ export function Header() {
   return (
     <header className="admin-header">
       <div className="admin-header__start flex min-w-0 items-center gap-2">
-        <SidebarTrigger className="size-9 rounded-full" />
+        <SidebarTrigger
+          aria-label={t("accessibility.toggleSidebar", "Toggle sidebar")}
+          className="size-9 rounded-full"
+        />
         <Separator
           className="mx-1 hidden h-5 sm:block"
           orientation="vertical"
@@ -36,14 +41,15 @@ export function Header() {
               <Fragment key={`${item.title}-${item.url || index}`}>
                 {index !== items.length - 1 ? (
                   <BreadcrumbItem className="min-w-0">
-                    <BreadcrumbLink asChild>
-                      <Link
-                        className="max-w-36 truncate"
-                        to={item.url || "/dashboard"}
-                      >
-                        {item.title}
-                      </Link>
-                    </BreadcrumbLink>
+                    {item.url ? (
+                      <BreadcrumbLink asChild>
+                        <Link className="max-w-36 truncate" to={item.url}>
+                          {item.title}
+                        </Link>
+                      </BreadcrumbLink>
+                    ) : (
+                      <span className="max-w-36 truncate">{item.title}</span>
+                    )}
                   </BreadcrumbItem>
                 ) : (
                   <BreadcrumbItem className="min-w-0">

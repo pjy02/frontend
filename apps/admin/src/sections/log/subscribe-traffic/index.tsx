@@ -85,15 +85,18 @@ export default function SubscribeTrafficLogPage() {
         user_id: "number",
         user_subscribe_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterUserSubscribeTrafficLog({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          user_id: filter.user_id,
-          user_subscribe_id: filter.user_subscribe_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterUserSubscribeTrafficLog(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            user_id: filter.user_id,
+            user_subscribe_id: filter.user_subscribe_id,
+          },
+          { signal }
+        )
       }
       params={[
         { key: "user_id", placeholder: t("column.userId", "User ID") },

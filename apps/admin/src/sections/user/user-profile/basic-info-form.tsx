@@ -25,7 +25,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import * as z from "zod";
-import { useFormSafety } from "@/components/form-safety";
+import { type FormLeaveGuard, useFormSafety } from "@/components/form-safety";
 import { useGlobalStore } from "@/stores/global";
 import {
   buildBasicInfoUpdate,
@@ -67,10 +67,12 @@ export function BasicInfoForm({
   user,
   refetch,
   onLeaveGuardChange,
+  open = true,
 }: {
   user: API.User;
   refetch: () => Promise<unknown>;
-  onLeaveGuardChange?: (guard: (() => Promise<boolean>) | null) => void;
+  onLeaveGuardChange?: (guard: FormLeaveGuard | null) => void;
+  open?: boolean;
 }) {
   const { t } = useTranslation("user");
   const saveInFlight = useRef(false);
@@ -93,7 +95,9 @@ export function BasicInfoForm({
   const { isDirty, isSubmitting } = form.formState;
   const safety = useFormSafety({
     form,
-    open: true,
+    open,
+    navigationGuard: !onLeaveGuardChange,
+    review: (data) => Boolean(data.password) || data.is_admin !== user.is_admin,
     onOpenChange: () => {
       /* The owning profile controls its workspace. */
     },
@@ -103,7 +107,7 @@ export function BasicInfoForm({
     return () => onLeaveGuardChange?.(null);
   }, [onLeaveGuardChange, safety.canLeave]);
   useEffect(() => {
-    if (!(isDirty || isSubmitting)) {
+    if (!(isDirty || isSubmitting || safety.syncFailed) && open) {
       form.reset(initialUserValues(user));
     }
   }, [user, form.reset, isDirty, isSubmitting]);
@@ -124,9 +128,7 @@ export function BasicInfoForm({
       );
       form.reset(data);
       toast.success(t("updateSuccess", "Updated successfully"));
-      await refetch();
-    } catch {
-      // The request layer reports the failure; keep the edited values for retry.
+      await safety.synchronize(refetch);
     } finally {
       saveInFlight.current = false;
     }
@@ -136,12 +138,15 @@ export function BasicInfoForm({
     <Form {...form}>
       <form onSubmit={safety.handleSubmit(onSubmit)}>
         {safety.summary}
-        <fieldset className="min-w-0" disabled={form.formState.isSubmitting}>
+        <fieldset
+          className="min-w-0"
+          disabled={safety.busy || safety.syncFailed}
+        >
           <Card className="admin-user-profile-section">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t("basicInfoTitle", "Basic Info")}</CardTitle>
               <Button
-                loading={form.formState.isSubmitting}
+                loading={safety.submitting}
                 loadingLabel={t("saving", "Saving...")}
                 size="sm"
                 type="submit"

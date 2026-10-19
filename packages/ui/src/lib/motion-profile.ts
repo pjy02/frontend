@@ -6,6 +6,7 @@ export type MotionRole =
   | "success"
   | "successHold"
   | "loading"
+  | "loadingReveal"
   | "menuEnter"
   | "menuExit"
   | "menuLevel"

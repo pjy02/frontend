@@ -91,14 +91,17 @@ export default function LoginLogPage() {
         end_date: "string",
         user_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterLoginLog({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          user_id: filter.user_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterLoginLog(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            user_id: filter.user_id,
+          },
+          { signal }
+        )
       }
       params={[{ key: "user_id", placeholder: t("column.userId", "User ID") }]}
       title={t("title.login", "Login Log")}

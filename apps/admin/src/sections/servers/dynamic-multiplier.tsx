@@ -11,8 +11,15 @@ import {
   postSystemSetNodeMultiplier as setNodeMultiplier,
 } from "@workspace/ui/services/admin/admin";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useFormSafety } from "@/components/form-safety";
+import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
 import {
   Sheet,
   SheetContent,
@@ -26,32 +33,51 @@ import {
 export default function DynamicMultiplier() {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
-  const [timeSlots, setTimeSlots] = useState<API.TimePeriod[]>([]);
+  const [saving, setSaving] = useState(false);
+  const form = useForm<{ periods: API.TimePeriod[] }>({
+    defaultValues: { periods: [] },
+  });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
+  const timeSlots = form.watch("periods");
+  const setTimeSlots = (periods: API.TimePeriod[]) =>
+    form.setValue("periods", periods, { shouldDirty: true });
 
-  const { data: periodsResp, refetch: refetchPeriods } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getNodeMultiplier"],
     queryFn: async () => {
       const { data } = await getNodeMultiplier();
-      return (data.data?.periods || []) as API.TimePeriod[];
+      return (requireReadData(data.data)?.periods ?? []) as API.TimePeriod[];
     },
     enabled: open,
   });
+  const { data: periodsResp, refetch: refetchPeriods } = readQuery;
 
   useEffect(() => {
-    if (periodsResp) {
-      setTimeSlots(periodsResp);
+    if (periodsResp && !safety.dirty && !safety.busy) {
+      form.reset({ periods: periodsResp });
     }
   }, [periodsResp]);
 
   async function savePeriods() {
-    await setNodeMultiplier({ periods: timeSlots });
-    await refetchPeriods();
-    toast.success(t("server_config.saveSuccess", "Saved successfully"));
-    setOpen(false);
+    if (!readReady(readQuery)) return;
+    setSaving(true);
+    try {
+      await setNodeMultiplier({ periods: timeSlots });
+      toast.success(t("server_config.saveSuccess", "Saved successfully"));
+      await safety.completeSave();
+      refetchPeriods();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
         <button
           aria-label={t(
@@ -106,49 +132,66 @@ export default function DynamicMultiplier() {
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="min-h-0 flex-1 px-6">
-          <div className="space-y-4 pt-4">
-            <ArrayInput<API.TimePeriod>
-              fields={[
-                {
-                  name: "start_time",
-                  prefix: t("server_config.fields.start_time", "Start time"),
-                  type: "time",
-                  step: "1",
-                },
-                {
-                  name: "end_time",
-                  prefix: t("server_config.fields.end_time", "End time"),
-                  type: "time",
-                  step: "1",
-                },
-                {
-                  name: "multiplier",
-                  prefix: t("server_config.fields.multiplier", "Multiplier"),
-                  type: "number",
-                  placeholder: "0",
-                },
-              ]}
-              onChange={setTimeSlots}
-              value={timeSlots}
-            />
-          </div>
+          {safety.summary}
+          <ReadBoundary configuration query={readQuery}>
+            <fieldset className="min-w-0 space-y-4 pt-4" disabled={safety.busy}>
+              <ArrayInput<API.TimePeriod>
+                fields={[
+                  {
+                    name: "start_time",
+                    prefix: t("server_config.fields.start_time", "Start time"),
+                    type: "time",
+                    step: "1",
+                  },
+                  {
+                    name: "end_time",
+                    prefix: t("server_config.fields.end_time", "End time"),
+                    type: "time",
+                    step: "1",
+                  },
+                  {
+                    name: "multiplier",
+                    prefix: t("server_config.fields.multiplier", "Multiplier"),
+                    type: "number",
+                    placeholder: "0",
+                  },
+                ]}
+                onChange={setTimeSlots}
+                resetOnEmpty
+                value={timeSlots}
+              />
+            </fieldset>
+          </ReadBoundary>
         </ScrollArea>
 
         <SheetFooter className="flex-row justify-between pt-3">
           <Button
-            onClick={() => setTimeSlots(periodsResp || [])}
+            disabled={!readReady(readQuery) || safety.busy}
+            onClick={() => form.reset({ periods: periodsResp || [] })}
             variant="outline"
           >
             {t("server_config.fields.reset", "Reset")}
           </Button>
           <div className="flex gap-2">
-            <Button onClick={() => setOpen(false)} variant="outline">
+            <Button
+              disabled={safety.busy}
+              onClick={() => safety.requestOpenChange(false)}
+              variant="outline"
+            >
               {t("actions.cancel", "Cancel")}
             </Button>
-            <Button onClick={savePeriods}>{t("actions.save", "Save")}</Button>
+            <Button
+              disabled={!readReady(readQuery) || safety.busy}
+              loading={saving || safety.submitting}
+              loadingLabel={t("components:actions.processing")}
+              onClick={safety.handleSubmit(savePeriods)}
+            >
+              {t("actions.save", "Save")}
+            </Button>
           </div>
         </SheetFooter>
       </SheetContent>
+      {safety.dialogs}
     </Sheet>
   );
 }

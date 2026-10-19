@@ -33,6 +33,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -51,17 +56,18 @@ export default function EmailSettingsForm() {
   const [loading, setLoading] = useState(false);
   const [testEmail, setTestEmail] = useState<string>();
 
-  const { data, refetch, isFetching } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getAuthMethodConfig", "email"],
     queryFn: async () => {
       const { data } = await getAuthMethodConfig({
         method: "email",
       });
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch, isFetching } = readQuery;
   const form = useForm<EmailSettingsFormData>({
     resolver: zodResolver(emailSettingsSchema),
     defaultValues: {
@@ -93,7 +99,12 @@ export default function EmailSettingsForm() {
       },
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   useEffect(() => {
     if (data && !safety.dirty && !safety.busy) {
@@ -102,6 +113,7 @@ export default function EmailSettingsForm() {
   }, [data, form]);
 
   async function onSubmit(values: EmailSettingsFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateAuthMethodConfig({
@@ -125,7 +137,10 @@ export default function EmailSettingsForm() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:email-outline" />
@@ -143,841 +158,851 @@ export default function EmailSettingsForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>{t("email.title", "Email Settings")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="email-settings-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <Tabs className="space-y-2" defaultValue="basic">
-                <TabsList className="flex h-full w-full flex-wrap *:flex-auto md:flex-nowrap">
-                  <TabsTrigger value="basic">
-                    {t("email.basicSettings", "Basic Settings")}
-                  </TabsTrigger>
-                  <TabsTrigger value="smtp">
-                    {t("email.smtpSettings", "SMTP Settings")}
-                  </TabsTrigger>
-                  <TabsTrigger value="verify">
-                    {t("email.verifyTemplate", "Verify Template")}
-                  </TabsTrigger>
-                  <TabsTrigger value="expiration">
-                    {t("email.expirationTemplate", "Expiration Template")}
-                  </TabsTrigger>
-                  <TabsTrigger value="maintenance">
-                    {t("email.maintenanceTemplate", "Maintenance Template")}
-                  </TabsTrigger>
-                  <TabsTrigger value="traffic">
-                    {t("email.trafficTemplate", "Traffic Template")}
-                  </TabsTrigger>
-                </TabsList>
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="email-settings-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <Tabs className="space-y-2" defaultValue="basic">
+                  <TabsList className="flex h-full w-full flex-wrap *:flex-auto md:flex-nowrap">
+                    <TabsTrigger value="basic">
+                      {t("email.basicSettings", "Basic Settings")}
+                    </TabsTrigger>
+                    <TabsTrigger value="smtp">
+                      {t("email.smtpSettings", "SMTP Settings")}
+                    </TabsTrigger>
+                    <TabsTrigger value="verify">
+                      {t("email.verifyTemplate", "Verify Template")}
+                    </TabsTrigger>
+                    <TabsTrigger value="expiration">
+                      {t("email.expirationTemplate", "Expiration Template")}
+                    </TabsTrigger>
+                    <TabsTrigger value="maintenance">
+                      {t("email.maintenanceTemplate", "Maintenance Template")}
+                    </TabsTrigger>
+                    <TabsTrigger value="traffic">
+                      {t("email.trafficTemplate", "Traffic Template")}
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent className="space-y-2" value="basic">
-                  <FormField
-                    control={form.control}
-                    name="enabled"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("email.enable", "Enable")}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            className="!mt-0 float-end"
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.enableDescription",
-                            "When enabled, users can sign in with email"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.enable_verify"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.emailVerification", "Email Verification")}
-                        </FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            className="!mt-0 float-end"
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailVerificationDescription",
-                            "Require email verification for new users"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.enable_domain_suffix"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.emailSuffixWhitelist",
-                            "Email Suffix Whitelist"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            className="!mt-0 float-end"
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailSuffixWhitelistDescription",
-                            "Only allow emails from whitelisted domains"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.domain_suffix_list"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.whitelistSuffixes", "Whitelist Suffixes")}
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className="h-32"
-                            onChange={field.onChange}
-                            placeholder={t(
-                              "email.whitelistSuffixesPlaceholder",
-                              "gmail.com, outlook.com"
+                  <TabsContent className="space-y-2" value="basic">
+                    <FormField
+                      control={form.control}
+                      name="enabled"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("email.enable", "Enable")}</FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              className="!mt-0 float-end"
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.enableDescription",
+                              "When enabled, users can sign in with email"
                             )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.whitelistSuffixesDescription",
-                            "One domain suffix per line"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-
-                <TabsContent className="space-y-2" value="smtp">
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.host"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.smtpServerAddress", "SMTP Server Address")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.smtpServerAddressDescription",
-                            "The SMTP server hostname"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.port"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.smtpServerPort", "SMTP Server Port")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={(value) =>
-                              field.onChange(Number(value))
-                            }
-                            placeholder="587"
-                            type="number"
-                            value={field.value?.toString()}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.smtpServerPortDescription",
-                            "The SMTP server port (usually 25, 465, or 587)"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.ssl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.smtpEncryptionMethod",
-                            "SSL/TLS Encryption"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            className="!mt-0 float-end"
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.smtpEncryptionMethodDescription",
-                            "Enable SSL/TLS encryption for SMTP connection"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.user"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.smtpAccount", "SMTP Account")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.smtpAccountDescription",
-                            "The SMTP authentication username"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.pass"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.smtpPassword", "SMTP Password")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            type="password"
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.smtpPasswordDescription",
-                            "The SMTP authentication password"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.from"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.senderAddress", "Sender Address")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.senderAddressDescription",
-                            "The email address that appears in the From field"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="config.platform_config.reply_to"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t("email.replyToAddress", "Reply-To Address")}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.replyToAddressDescription",
-                            "Optional. Where user replies go. Keep the From address on a verified/aligned domain (SPF/DKIM) for deliverability and put your real reply inbox here."
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="space-y-2 border-t pt-4">
-                    <FormLabel>
-                      {t("email.sendTestEmail", "Send Test Email")}
-                    </FormLabel>
-                    <div className="flex items-center gap-2">
-                      <EnhancedInput
-                        onValueChange={(value) => setTestEmail(value as string)}
-                        placeholder="test@example.com"
-                        type="email"
-                        value={testEmail}
-                      />
-                      <Button
-                        disabled={!testEmail || isFetching}
-                        onClick={async () => {
-                          if (!testEmail) return;
-                          try {
-                            await testEmailSend({ email: testEmail });
-                            toast.success(
-                              t("email.sendSuccess", "Email sent successfully")
-                            );
-                          } catch {
-                            toast.error(
-                              t("email.sendFailure", "Email send failed")
-                            );
-                          }
-                        }}
-                        type="button"
-                      >
-                        {t("email.sendTestEmail", "Send Test Email")}
-                      </Button>
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      {t(
-                        "email.sendTestEmailDescription",
-                        "Send a test email to verify your SMTP configuration"
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </p>
-                  </div>
-                </TabsContent>
+                    />
 
-                <TabsContent className="space-y-2" value="verify">
-                  <FormField
-                    control={form.control}
-                    name="config.verify_email_subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.verifyEmailSubject",
-                            "Verify Email Subject"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailSubjectDescription",
-                            "Supports the same template variables as the email body"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="config.verify_email_template"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.verifyEmailTemplate",
-                            "Verify Email Template"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <HTMLEditor
-                            onChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          <p className="font-medium text-muted-foreground text-sm">
+                    <FormField
+                      control={form.control}
+                      name="config.enable_verify"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.emailVerification", "Email Verification")}
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              className="!mt-0 float-end"
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormDescription>
                             {t(
-                              "email.templateVariables.title",
-                              "Template Variables"
+                              "email.emailVerificationDescription",
+                              "Require email verification for new users"
                             )}
-                          </p>
-                          <div className="space-y-2 text-muted-foreground text-xs">
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.Type}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.type.description",
-                                  "Email type (1: Register, 2: Reset Password)"
-                                )}
-                              </span>
-                            </div>
-                            <div className="pl-6 text-orange-600 dark:text-orange-400">
-                              💡{" "}
-                              {t(
-                                "email.templateVariables.type.conditionalSyntax",
-                                "Use conditional syntax to display different content"
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.enable_domain_suffix"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.emailSuffixWhitelist",
+                              "Email Suffix Whitelist"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              className="!mt-0 float-end"
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.emailSuffixWhitelistDescription",
+                              "Only allow emails from whitelisted domains"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.domain_suffix_list"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.whitelistSuffixes", "Whitelist Suffixes")}
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              className="h-32"
+                              onChange={field.onChange}
+                              placeholder={t(
+                                "email.whitelistSuffixesPlaceholder",
+                                "gmail.com, outlook.com"
                               )}
-                              <br />
-                              <code className="rounded bg-orange-50 px-1 text-xs dark:bg-orange-900/20">
-                                {"{{if eq .Type 1}}...{{else}}...{{end}}"}
-                              </code>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteLogo}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteLogo.description",
-                                  "Site logo URL"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteName}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteName.description",
-                                  "Site name"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.Expire}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.expire.description",
-                                  "Code expiration time"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.Code}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.code.description",
-                                  "Verification code"
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-
-                <TabsContent className="space-y-2" value="expiration">
-                  <FormField
-                    control={form.control}
-                    name="config.expiration_email_subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.expirationEmailSubject",
-                            "Expiration Email Subject"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailSubjectDescription",
-                            "Supports the same template variables as the email body"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="config.expiration_email_template"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.expirationEmailTemplate",
-                            "Expiration Email Template"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <HTMLEditor
-                            onChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          <p className="font-medium text-muted-foreground text-sm">
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
                             {t(
-                              "email.templateVariables.title",
-                              "Template Variables"
+                              "email.whitelistSuffixesDescription",
+                              "One domain suffix per line"
                             )}
-                          </p>
-                          <div className="space-y-2 text-muted-foreground text-xs">
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteLogo}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteLogo.description",
-                                  "Site logo URL"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteName}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteName.description",
-                                  "Site name"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.ExpireDate}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.expireDate.description",
-                                  "Subscription expiration date"
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
 
-                <TabsContent className="space-y-2" value="maintenance">
-                  <FormField
-                    control={form.control}
-                    name="config.maintenance_email_subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.maintenanceEmailSubject",
-                            "Maintenance Email Subject"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailSubjectDescription",
-                            "Supports the same template variables as the email body"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="config.maintenance_email_template"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.maintenanceEmailTemplate",
-                            "Maintenance Email Template"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <HTMLEditor
-                            onChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          <p className="font-medium text-muted-foreground text-sm">
+                  <TabsContent className="space-y-2" value="smtp">
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.host"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
                             {t(
-                              "email.templateVariables.title",
-                              "Template Variables"
+                              "email.smtpServerAddress",
+                              "SMTP Server Address"
                             )}
-                          </p>
-                          <div className="space-y-2 text-muted-foreground text-xs">
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteLogo}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteLogo.description",
-                                  "Site logo URL"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteName}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteName.description",
-                                  "Site name"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.MaintenanceDate}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.maintenanceDate.description",
-                                  "Maintenance date"
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.MaintenanceTime}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.maintenanceTime.description",
-                                  "Maintenance time"
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.smtpServerAddressDescription",
+                              "The SMTP server hostname"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <TabsContent className="space-y-2" value="traffic">
-                  <FormField
-                    control={form.control}
-                    name="config.traffic_exceed_email_subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.trafficExceedEmailSubject",
-                            "Traffic Exceed Email Subject"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedInput
-                            onValueChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            "email.emailSubjectDescription",
-                            "Supports the same template variables as the email body"
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="config.traffic_exceed_email_template"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t(
-                            "email.trafficExceedEmailTemplate",
-                            "Traffic Exceed Email Template"
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <HTMLEditor
-                            onChange={field.onChange}
-                            placeholder={t(
-                              "email.inputPlaceholder",
-                              "Please enter"
-                            )}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          <p className="font-medium text-muted-foreground text-sm">
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.port"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.smtpServerPort", "SMTP Server Port")}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={(value) =>
+                                field.onChange(Number(value))
+                              }
+                              placeholder="587"
+                              type="number"
+                              value={field.value?.toString()}
+                            />
+                          </FormControl>
+                          <FormDescription>
                             {t(
-                              "email.templateVariables.title",
-                              "Template Variables"
+                              "email.smtpServerPortDescription",
+                              "The SMTP server port (usually 25, 465, or 587)"
                             )}
-                          </p>
-                          <div className="space-y-2 text-muted-foreground text-xs">
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteLogo}}"}
-                              </code>
-                              <span>
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.ssl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.smtpEncryptionMethod",
+                              "SSL/TLS Encryption"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              className="!mt-0 float-end"
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.smtpEncryptionMethodDescription",
+                              "Enable SSL/TLS encryption for SMTP connection"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.user"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.smtpAccount", "SMTP Account")}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.smtpAccountDescription",
+                              "The SMTP authentication username"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.pass"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.smtpPassword", "SMTP Password")}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              type="password"
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.smtpPasswordDescription",
+                              "The SMTP authentication password"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.from"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.senderAddress", "Sender Address")}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.senderAddressDescription",
+                              "The email address that appears in the From field"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="config.platform_config.reply_to"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("email.replyToAddress", "Reply-To Address")}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.replyToAddressDescription",
+                              "Optional. Where user replies go. Keep the From address on a verified/aligned domain (SPF/DKIM) for deliverability and put your real reply inbox here."
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-2 border-t pt-4">
+                      <FormLabel>
+                        {t("email.sendTestEmail", "Send Test Email")}
+                      </FormLabel>
+                      <div className="flex items-center gap-2">
+                        <EnhancedInput
+                          onValueChange={(value) =>
+                            setTestEmail(value as string)
+                          }
+                          placeholder="test@example.com"
+                          type="email"
+                          value={testEmail}
+                        />
+                        <Button
+                          disabled={!testEmail || isFetching}
+                          onClick={async () => {
+                            if (!testEmail) return;
+                            try {
+                              await testEmailSend({ email: testEmail });
+                              toast.success(
+                                t(
+                                  "email.sendSuccess",
+                                  "Email sent successfully"
+                                )
+                              );
+                            } catch {
+                              toast.error(
+                                t("email.sendFailure", "Email send failed")
+                              );
+                            }
+                          }}
+                          type="button"
+                        >
+                          {t("email.sendTestEmail", "Send Test Email")}
+                        </Button>
+                      </div>
+                      <p className="text-muted-foreground text-xs">
+                        {t(
+                          "email.sendTestEmailDescription",
+                          "Send a test email to verify your SMTP configuration"
+                        )}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent className="space-y-2" value="verify">
+                    <FormField
+                      control={form.control}
+                      name="config.verify_email_subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.verifyEmailSubject",
+                              "Verify Email Subject"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.emailSubjectDescription",
+                              "Supports the same template variables as the email body"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="config.verify_email_template"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.verifyEmailTemplate",
+                              "Verify Email Template"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <HTMLEditor
+                              onChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <div className="mt-4 space-y-2 border-t pt-4">
+                            <p className="font-medium text-muted-foreground text-sm">
+                              {t(
+                                "email.templateVariables.title",
+                                "Template Variables"
+                              )}
+                            </p>
+                            <div className="space-y-2 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.Type}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.type.description",
+                                    "Email type (1: Register, 2: Reset Password)"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="pl-6 text-orange-600 dark:text-orange-400">
+                                💡{" "}
                                 {t(
-                                  "email.templateVariables.siteLogo.description",
-                                  "Site logo URL"
+                                  "email.templateVariables.type.conditionalSyntax",
+                                  "Use conditional syntax to display different content"
                                 )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
-                                {"{{.SiteName}}"}
-                              </code>
-                              <span>
-                                {t(
-                                  "email.templateVariables.siteName.description",
-                                  "Site name"
-                                )}
-                              </span>
+                                <br />
+                                <code className="rounded bg-orange-50 px-1 text-xs dark:bg-orange-900/20">
+                                  {"{{if eq .Type 1}}...{{else}}...{{end}}"}
+                                </code>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteLogo}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteLogo.description",
+                                    "Site logo URL"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteName}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteName.description",
+                                    "Site name"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.Expire}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.expire.description",
+                                    "Code expiration time"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.Code}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.code.description",
+                                    "Verification code"
+                                  )}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-              </Tabs>
-            </form>
-          </Form>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent className="space-y-2" value="expiration">
+                    <FormField
+                      control={form.control}
+                      name="config.expiration_email_subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.expirationEmailSubject",
+                              "Expiration Email Subject"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.emailSubjectDescription",
+                              "Supports the same template variables as the email body"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="config.expiration_email_template"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.expirationEmailTemplate",
+                              "Expiration Email Template"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <HTMLEditor
+                              onChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <div className="mt-4 space-y-2 border-t pt-4">
+                            <p className="font-medium text-muted-foreground text-sm">
+                              {t(
+                                "email.templateVariables.title",
+                                "Template Variables"
+                              )}
+                            </p>
+                            <div className="space-y-2 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteLogo}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteLogo.description",
+                                    "Site logo URL"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteName}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteName.description",
+                                    "Site name"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.ExpireDate}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.expireDate.description",
+                                    "Subscription expiration date"
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent className="space-y-2" value="maintenance">
+                    <FormField
+                      control={form.control}
+                      name="config.maintenance_email_subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.maintenanceEmailSubject",
+                              "Maintenance Email Subject"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.emailSubjectDescription",
+                              "Supports the same template variables as the email body"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="config.maintenance_email_template"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.maintenanceEmailTemplate",
+                              "Maintenance Email Template"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <HTMLEditor
+                              onChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <div className="mt-4 space-y-2 border-t pt-4">
+                            <p className="font-medium text-muted-foreground text-sm">
+                              {t(
+                                "email.templateVariables.title",
+                                "Template Variables"
+                              )}
+                            </p>
+                            <div className="space-y-2 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteLogo}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteLogo.description",
+                                    "Site logo URL"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteName}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteName.description",
+                                    "Site name"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.MaintenanceDate}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.maintenanceDate.description",
+                                    "Maintenance date"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.MaintenanceTime}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.maintenanceTime.description",
+                                    "Maintenance time"
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent className="space-y-2" value="traffic">
+                    <FormField
+                      control={form.control}
+                      name="config.traffic_exceed_email_subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.trafficExceedEmailSubject",
+                              "Traffic Exceed Email Subject"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <EnhancedInput
+                              onValueChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              "email.emailSubjectDescription",
+                              "Supports the same template variables as the email body"
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="config.traffic_exceed_email_template"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(
+                              "email.trafficExceedEmailTemplate",
+                              "Traffic Exceed Email Template"
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <HTMLEditor
+                              onChange={field.onChange}
+                              placeholder={t(
+                                "email.inputPlaceholder",
+                                "Please enter"
+                              )}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <div className="mt-4 space-y-2 border-t pt-4">
+                            <p className="font-medium text-muted-foreground text-sm">
+                              {t(
+                                "email.templateVariables.title",
+                                "Template Variables"
+                              )}
+                            </p>
+                            <div className="space-y-2 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteLogo}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteLogo.description",
+                                    "Site logo URL"
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+                                  {"{{.SiteName}}"}
+                                </code>
+                                <span>
+                                  {t(
+                                    "email.templateVariables.siteName.description",
+                                    "Site name"
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -987,10 +1012,13 @@ export default function EmailSettingsForm() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="email-settings-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="email-settings-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save")}
           </Button>
         </SheetFooter>

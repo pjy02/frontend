@@ -235,6 +235,7 @@ describe("admin interaction feedback", () => {
           onConfirm={async () => {
             await Promise.resolve();
           }}
+          successFeedback="brief"
           title="Confirm operation"
           trigger={<Button>Open</Button>}
         />

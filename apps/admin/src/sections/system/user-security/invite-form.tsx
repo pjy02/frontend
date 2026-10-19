@@ -25,6 +25,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormSafety } from "@/components/form-safety";
 import {
+  ReadBoundary,
+  readReady,
+  requireReadData,
+} from "@/components/read-boundary";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
@@ -47,15 +52,16 @@ export default function InviteConfig() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data, refetch } = useQuery({
+  const readQuery = useQuery({
     queryKey: ["getInviteConfig"],
     queryFn: async () => {
       const { data } = await getInviteConfig();
-      return data.data;
+      return requireReadData(data.data);
     },
     enabled: open,
   });
 
+  const { data, refetch } = readQuery;
   const form = useForm<InviteFormData>({
     resolver: zodResolver(
       inviteSchema.extend({
@@ -82,6 +88,7 @@ export default function InviteConfig() {
   }, [data, form]);
 
   async function onSubmit(values: InviteFormData) {
+    if (!readReady(readQuery)) return;
     setLoading(true);
     try {
       await updateInviteConfig(values as API.InviteConfig);
@@ -99,7 +106,10 @@ export default function InviteConfig() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon
@@ -120,115 +130,117 @@ export default function InviteConfig() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="lg">
         <SheetHeader>
           <SheetTitle>{t("invite.title", "Invitation Settings")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100dvh-48px-36px-36px-24px-env(safe-area-inset-top))] px-6">
-          <Form {...form}>
-            <form
-              className="space-y-2 pt-4"
-              id="invite-form"
-              onSubmit={safety.handleSubmit(onSubmit)}
-            >
-              {safety.summary}
-              <FormField
-                control={form.control}
-                name="forced_invite"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(
-                        "invite.forcedInvite",
-                        "Require Invitation to Register"
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "invite.forcedInviteDescription",
-                        "When enabled, users must register through an invitation link"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="referral_percentage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(
-                        "invite.referralPercentage",
-                        "Referral Reward Percentage"
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <EnhancedInput
-                        max={100}
-                        min={0}
-                        onValueBlur={(value) => field.onChange(Number(value))}
-                        placeholder={t(
-                          "invite.inputPlaceholder",
-                          "Please enter"
+        <ScrollArea className="min-h-0 flex-1 px-6">
+          <ReadBoundary configuration query={readQuery}>
+            <Form {...form}>
+              <form
+                className="space-y-2 pt-4"
+                id="invite-form"
+                onSubmit={safety.handleSubmit(onSubmit)}
+              >
+                {safety.summary}
+                <FormField
+                  control={form.control}
+                  name="forced_invite"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "invite.forcedInvite",
+                          "Require Invitation to Register"
                         )}
-                        suffix="%"
-                        type="number"
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "invite.referralPercentageDescription",
-                        "Percentage of reward given to referrers"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "invite.forcedInviteDescription",
+                          "When enabled, users must register through an invitation link"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="only_first_purchase"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(
-                        "invite.onlyFirstPurchase",
-                        "First Purchase Reward Only"
-                      )}
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        className="!mt-0 float-end"
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        "invite.onlyFirstPurchaseDescription",
-                        "When enabled, referrers only receive rewards for the first purchase by referred users"
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                <FormField
+                  control={form.control}
+                  name="referral_percentage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "invite.referralPercentage",
+                          "Referral Reward Percentage"
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <EnhancedInput
+                          max={100}
+                          min={0}
+                          onValueBlur={(value) => field.onChange(Number(value))}
+                          placeholder={t(
+                            "invite.inputPlaceholder",
+                            "Please enter"
+                          )}
+                          suffix="%"
+                          type="number"
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "invite.referralPercentageDescription",
+                          "Percentage of reward given to referrers"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="only_first_purchase"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t(
+                          "invite.onlyFirstPurchase",
+                          "First Purchase Reward Only"
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          className="!mt-0 float-end"
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          "invite.onlyFirstPurchaseDescription",
+                          "When enabled, referrers only receive rewards for the first purchase by referred users"
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </ReadBoundary>
         </ScrollArea>
         <SheetFooter className="flex-row justify-end gap-2 pt-3">
           <Button
@@ -238,10 +250,13 @@ export default function InviteConfig() {
           >
             {t("common.cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="invite-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
+          <Button
+            disabled={loading || !readReady(readQuery)}
+            form="invite-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
+            type="submit"
+          >
             {t("common.save", "Save Settings")}
           </Button>
         </SheetFooter>

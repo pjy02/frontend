@@ -77,16 +77,19 @@ export default function TrafficDetailsPage() {
         user_id: "number",
         subscribe_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterTrafficLogDetails({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          server_id: filter.server_id,
-          user_id: filter.user_id,
-          subscribe_id: filter.subscribe_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterTrafficLogDetails(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            server_id: filter.server_id,
+            user_id: filter.user_id,
+            subscribe_id: filter.subscribe_id,
+          },
+          { signal }
+        )
       }
       params={[
         { key: "server_id", placeholder: t("column.serverId", "Server ID") },

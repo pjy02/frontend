@@ -24,5 +24,6 @@
   "ticketList": "工单列表",
   "title": "标题",
   "updatedAt": "更新时间",
-  "user": "用户"
+  "user": "用户",
+  "newMessages": "有新消息 · 查看最新"
 }

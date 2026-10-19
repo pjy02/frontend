@@ -2,6 +2,7 @@
 
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { useMotionProfile } from "@workspace/ui/components/motion-profile";
+import { Progress } from "@workspace/ui/components/progress";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MotionProvider, useAdminMotion } from "./motion-provider";
 import { adminMotionProfile } from "./motion-tokens";
@@ -36,11 +37,20 @@ describe("MotionProvider", () => {
     const view = render(
       <MotionProvider>
         <Probe />
+        <Progress aria-label="CPU" value={9} />
       </MotionProvider>
     );
 
     expect(screen.getByText("full")).toBeTruthy();
     expect(document.documentElement.dataset.motion).toBe("full");
+    const progress = screen.getByRole("progressbar", { name: "CPU" });
+    const indicator = progress.querySelector<HTMLElement>(
+      '[data-slot="progress-indicator"]'
+    );
+    expect(progress.getAttribute("aria-valuenow")).toBe("9");
+    expect(indicator?.style.transitionDuration).toBe(
+      `${adminMotionProfile.state.duration}ms`
+    );
     expect(
       document.documentElement.style.getPropertyValue(
         "--admin-motion-menu-enter-duration"
@@ -54,6 +64,8 @@ describe("MotionProvider", () => {
 
     expect(screen.getByText("reduced")).toBeTruthy();
     expect(document.documentElement.dataset.motion).toBe("reduced");
+    expect(indicator?.style.transitionDuration).toBe("0ms");
+    expect(indicator?.style.transform).toBe("translateX(-91%)");
     expect(
       document.documentElement.style.getPropertyValue(
         "--admin-motion-menu-enter-duration"

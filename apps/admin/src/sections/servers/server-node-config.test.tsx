@@ -163,7 +163,7 @@ describe("server node configuration", () => {
     render(<ServerNodeConfig server={server} />);
     fireEvent.click(screen.getByRole("button", { name: "Node Config" }));
 
-    expect(screen.getByText("Unable to load configuration")).toBeTruthy();
+    expect(screen.getByText("Unable to load data")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)

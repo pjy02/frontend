@@ -45,7 +45,8 @@ interface LogPageProps<
   filterTypes: Record<string, FilterValueType>;
   load: (
     pagination: { page: number; size: number },
-    filters: TFilters
+    filters: TFilters,
+    context: { signal: AbortSignal }
   ) => Promise<unknown>;
 }
 
@@ -223,8 +224,8 @@ export function LogPage<
         onFiltersChange={syncFilters}
         onPaginationChange={syncPagination}
         params={logParams}
-        request={async (pagination, filters) =>
-          normalizeLogResponse<TData>(await load(pagination, filters))
+        request={async (pagination, filters, context) =>
+          normalizeLogResponse<TData>(await load(pagination, filters, context))
         }
         resetFilters={{ start_date: localLogDate(), end_date: localLogDate() }}
         validateFilters={(filters) => {

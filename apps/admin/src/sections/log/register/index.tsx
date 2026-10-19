@@ -83,14 +83,17 @@ export default function RegisterLogPage() {
         end_date: "string",
         user_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterRegisterLog({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          user_id: filter.user_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterRegisterLog(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            user_id: filter.user_id,
+          },
+          { signal }
+        )
       }
       params={[{ key: "user_id", placeholder: t("column.userId", "User ID") }]}
       title={t("title.register", "Register Log")}

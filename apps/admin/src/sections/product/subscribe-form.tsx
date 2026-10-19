@@ -31,7 +31,6 @@ import { Combobox } from "@workspace/ui/composed/combobox";
 import { ArrayInput } from "@workspace/ui/composed/dynamic-Inputs";
 import { JSONEditor } from "@workspace/ui/composed/editor/index";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
-import { Icon } from "@workspace/ui/composed/icon";
 import {
   evaluateWithPrecision,
   unitConversion,
@@ -63,6 +62,7 @@ interface SubscribeFormProps<T> {
   title: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void | Promise<void>;
+  onAfterClose?: () => void | Promise<void>;
 }
 
 const defaultValues = {
@@ -92,6 +92,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
   title,
   open: controlledOpen,
   onOpenChange,
+  onAfterClose,
 }: Readonly<SubscribeFormProps<T>>) {
   const { common } = useGlobalStore();
   const { currency } = common;
@@ -248,7 +249,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
   );
 
   useEffect(() => {
-    if (safety.dirty || safety.busy) return;
+    if (!open || safety.dirty || safety.busy) return;
     form?.reset(
       assign(
         defaultValues,
@@ -272,6 +273,7 @@ export default function SubscribeForm<T extends Record<string, any>>({
 
   async function handleSubmit(data: { [x: string]: any }) {
     const bool = await onSubmit(data as T);
+    if (bool === false) throw new Error("Write was not confirmed");
     if (bool) {
       await safety.completeSave();
     }
@@ -297,7 +299,12 @@ export default function SubscribeForm<T extends Record<string, any>>({
           </Button>
         </WorkspaceDialogTrigger>
       ) : null}
-      <WorkspaceDialogContent size="xl">
+      <WorkspaceDialogContent
+        onCloseAutoFocus={() => {
+          onAfterClose?.();
+        }}
+        size="xl"
+      >
         <WorkspaceDialogHeader>
           <WorkspaceDialogTitle>{title}</WorkspaceDialogTitle>
         </WorkspaceDialogHeader>
@@ -947,31 +954,37 @@ export default function SubscribeForm<T extends Record<string, any>>({
 
                                 return (
                                   <AccordionItem key={tag} value={String(tag)}>
-                                    <AccordionTrigger>
-                                      <div className="flex items-center gap-2">
+                                    <AccordionTrigger
+                                      trailing={
                                         <Checkbox
+                                          aria-label={tag}
                                           checked={value.includes(tagId as any)}
                                           onCheckedChange={(checked) =>
                                             checked
-                                              ? form.setValue(field.name, [
-                                                  ...value,
-                                                  tagId,
-                                                ] as any)
+                                              ? form.setValue(
+                                                  field.name,
+                                                  [...value, tagId] as any,
+                                                  { shouldDirty: true }
+                                                )
                                               : form.setValue(
                                                   field.name,
                                                   value.filter(
                                                     (v: any) => v !== tagId
-                                                  )
+                                                  ),
+                                                  { shouldDirty: true }
                                                 )
                                           }
                                         />
-                                        <Label>
+                                      }
+                                    >
+                                      <span className="flex items-center gap-2">
+                                        <span>
                                           {tag}
                                           <span className="ml-2 text-muted-foreground text-xs">
                                             ({nodesWithTag.length})
                                           </span>
-                                        </Label>
-                                      </div>
+                                        </span>
+                                      </span>
                                     </AccordionTrigger>
                                     <AccordionContent>
                                       <ul className="space-y-1">
@@ -1072,6 +1085,8 @@ export default function SubscribeForm<T extends Record<string, any>>({
           </Button>
           <Button
             disabled={loading || safety.busy}
+            loading={loading || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             onClick={safety.handleSubmit(handleSubmit, (errors) => {
               const keys = Object.keys(errors);
               for (const key of keys) {
@@ -1086,9 +1101,6 @@ export default function SubscribeForm<T extends Record<string, any>>({
               }
             })}
           >
-            {(loading || safety.busy) && (
-              <Icon className="mr-2 animate-spin" icon="mdi:loading" />
-            )}
             {t("form.confirm")}
           </Button>
         </WorkspaceDialogFooter>

@@ -82,14 +82,17 @@ export default function ResetSubscribeLogPage() {
         end_date: "string",
         user_subscribe_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterResetSubscribeLog({
-          ...pagination,
-          start_date: filter.start_date,
-          end_date: filter.end_date,
-          search: filter.search,
-          user_subscribe_id: filter.user_subscribe_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterResetSubscribeLog(
+          {
+            ...pagination,
+            start_date: filter.start_date,
+            end_date: filter.end_date,
+            search: filter.search,
+            user_subscribe_id: filter.user_subscribe_id,
+          },
+          { signal }
+        )
       }
       params={[
         {

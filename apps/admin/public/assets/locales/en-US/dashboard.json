@@ -4,10 +4,10 @@
     "description": "Choose the optional sections shown on this device.",
     "projectSupport": "Project support",
     "projectSupportDescription": "Show the current PPanel project supporters.",
-    "localHint": "Settings are saved for this administrator in this browser. Phone/tablet and desktop layouts are independent.",
+    "localHint": "Saved for this administrator in this browser. Narrow (<1024px) and wide (≥1024px) layouts are independent.",
     "device": "Layout device",
-    "desktop": "Desktop",
-    "mobile": "Phone / tablet",
+    "desktop": "Wide · ≥1024px",
+    "mobile": "Narrow · <1024px",
     "presets": "Presets",
     "preset": {
       "operations": "Operations",
@@ -125,7 +125,11 @@
     "viewServers": "View servers",
     "viewTickets": "View tickets",
     "yesterdayComparison": "Yesterday / change",
-    "trafficShareScope": "Traffic share is relative to all ranking records returned by the API."
+    "trafficShareScope": "Traffic share is relative to all ranking records returned by the API.",
+    "notConfigured": "Not configured",
+    "cannotCompare": "Cannot compare",
+    "noComparisonBase": "No comparison base",
+    "rankingShare": "Share of returned ranking"
   },
   "projectSupport": {
     "description": "Organizations and services currently supporting PPanel.",

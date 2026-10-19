@@ -3,6 +3,8 @@ import { cn } from "@workspace/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, LoaderCircle } from "lucide-react";
 import type * as React from "react";
+import { useLoadingFeedback } from "../hooks/use-loading-feedback";
+import { useMotionProfile } from "./motion-profile";
 
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium text-sm outline-none transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -59,19 +61,55 @@ function Button({
   const Comp = asChild ? Slot : "button";
   const status = loading ? "loading" : success ? "success" : "idle";
   const statusActive = status !== "idle" && !asChild;
+  const profile = useMotionProfile();
+  const stable = Boolean(profile) && !asChild;
+  const loadingVisible = useLoadingFeedback(
+    loading,
+    profile?.presets.loadingReveal.durationMs ?? 0
+  );
+  const visualStatus =
+    success && !loading ? "success" : loadingVisible ? "loading" : "idle";
 
   return (
     <Comp
       aria-busy={loading || undefined}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        stable && "admin-button--stable"
+      )}
       data-size={size || "default"}
       data-slot="button"
       data-status={status}
+      data-ui-button=""
       data-variant={variant || "default"}
-      disabled={asChild ? undefined : disabled || statusActive}
+      data-visual-status={stable ? visualStatus : undefined}
+      disabled={
+        asChild ? undefined : disabled || loading || (!stable && success)
+      }
       {...props}
     >
-      {statusActive ? (
+      {stable ? (
+        <>
+          <span
+            aria-hidden={statusActive || undefined}
+            className="admin-button-content admin-button-content--stable"
+          >
+            {children}
+          </span>
+          <span aria-live="polite" className="admin-button-status">
+            {visualStatus === "loading" ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" />
+            ) : visualStatus === "success" ? (
+              <Check aria-hidden="true" />
+            ) : null}
+            {statusActive && (
+              <span className="sr-only">
+                {loading ? loadingLabel : successLabel}
+              </span>
+            )}
+          </span>
+        </>
+      ) : statusActive ? (
         <>
           <span aria-hidden="true" className="admin-button-content">
             {children}

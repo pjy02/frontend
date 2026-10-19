@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "@tanstack/react-router";
+import { Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   SidebarInset,
   SidebarProvider,
@@ -15,7 +15,21 @@ import { SidebarLeft } from "./sidebar-left";
 
 export default function DashboardLayout() {
   const { t } = useTranslation("components");
-  const pathname = useLocation({ select: (location) => location.pathname });
+  // Navigation intent may precede lazy code. Key motion/preferences by the
+  // actually rendered match, not by an URL whose content is still preparing.
+  const pathname = useRouterState({
+    select: (state) =>
+      state.matches.at(-1)?.pathname ?? state.location.pathname,
+  });
+  const router = useRouter();
+  const historyReturn = useRef(false);
+  useEffect(
+    () =>
+      router.history.subscribe(({ action }) => {
+        historyReturn.current = ["BACK", "FORWARD", "GO"].includes(action.type);
+      }),
+    [router]
+  );
   const accountId = useGlobalStore((state) => state.user?.id);
   const mainRef = useRef<HTMLElement>(null);
   const routeWorkspaceRoot = ["/dashboard/servers", "/dashboard/product"].find(
@@ -28,20 +42,21 @@ export default function DashboardLayout() {
     return sidebarState === undefined ? true : sidebarState === "true";
   });
 
-  useEffect(() => {
+  const handleContentReady = () => {
     if (previousPage.current === pageTransitionKey) {
       return;
     }
     previousPage.current = pageTransitionKey;
-    const frame = requestAnimationFrame(() => {
-      // A route-owned workspace manages its own focus; do not steal it.
-      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
-      mainRef.current?.focus({
-        preventScroll: true,
-      });
+    // History restoration and a route-owned workspace keep their own focus/scroll.
+    if (
+      historyReturn.current ||
+      document.querySelector('[role="dialog"][data-state="open"]')
+    )
+      return;
+    mainRef.current?.focus({
+      preventScroll: true,
     });
-    return () => cancelAnimationFrame(frame);
-  }, [pageTransitionKey]);
+  };
 
   return (
     <TablePreferencesProvider
@@ -84,7 +99,12 @@ export default function DashboardLayout() {
             ref={mainRef}
             tabIndex={-1}
           >
-            <AdminPageTransition transitionKey={pageTransitionKey}>
+            <AdminPageTransition
+              onReady={handleContentReady}
+              skip={historyReturn.current}
+              transitionKey={pageTransitionKey}
+              waitForContent
+            >
               <AdminRouteContent>
                 <Outlet />
               </AdminRouteContent>

@@ -43,6 +43,7 @@ const item = {
   previousTotal: 150,
   absoluteChange: 150,
   growth: 100,
+  comparison: "comparable" as const,
   share: 25,
   rankChange: 1,
   isNew: false,
@@ -132,7 +133,7 @@ describe("touch traffic details", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog.textContent).toContain("UID 7");
     expect(dialog.textContent).toContain("SID 4");
-    expect(dialog.textContent).toContain("Traffic share");
+    expect(dialog.textContent).toContain("Share of returned ranking");
     expect(dialog.textContent).toContain("Absolute change");
     const link = screen.getByRole("link", { name: "Traffic logs" });
     expect(link.getAttribute("href")).toContain(
@@ -153,7 +154,13 @@ describe("touch traffic details", () => {
           <TrafficRankingRow
             currentLabel="Today"
             index={0}
-            item={item}
+            item={{
+              ...item,
+              comparison: "missing",
+              growth: null,
+              isNew: true,
+              rankChange: undefined,
+            }}
             leaderTotal={300}
             previousLabel="Yesterday"
             reducedMotion
@@ -168,5 +175,7 @@ describe("touch traffic details", () => {
       screen.getByRole("button", { name: "Traffic details for Node 4" })
     );
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Cannot compare")).toBeTruthy();
+    expect(screen.queryByText("New")).toBeNull();
   });
 });

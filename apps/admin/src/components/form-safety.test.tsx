@@ -62,9 +62,11 @@ function Harness({
     /* No-op successful fixture. */
   },
   close,
+  review = true,
 }: {
   save?: () => Promise<void>;
   close?: () => Promise<void>;
+  review?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const form = useForm({
@@ -77,6 +79,7 @@ function Harness({
       if (!next && close) return close();
       setOpen(next);
     },
+    review,
   });
   return (
     <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
@@ -84,6 +87,9 @@ function Harness({
         <WorkspaceDialogTitle>Editor</WorkspaceDialogTitle>
         <Form {...form}>
           <form
+            data-locked={safety.busy}
+            data-submitting={safety.submitting}
+            data-testid="saving-phase"
             onSubmit={safety.handleSubmit(async () => {
               await save();
               await safety.completeSave();
@@ -197,6 +203,61 @@ const edit = () =>
   });
 
 describe("complex form safety", () => {
+  it("locks during review without claiming a write is in progress", async () => {
+    let finish!: () => void;
+    const save = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    render(<Harness save={save} />);
+    edit();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByRole("alertdialog");
+    expect(screen.getByTestId("saving-phase").getAttribute("data-locked")).toBe(
+      "true"
+    );
+    expect(
+      screen.getByTestId("saving-phase").getAttribute("data-submitting")
+    ).toBe("false");
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm save" }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(
+      screen.getByTestId("saving-phase").getAttribute("data-submitting")
+    ).toBe("true");
+    finish();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+  it("saves an ordinary edit once, without a second review", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    render(<Harness review={false} save={save} />);
+    edit();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+  it("retains discarded inputs during asynchronous exit", async () => {
+    let finish!: () => void;
+    const close = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    render(<Harness close={close} />);
+    edit();
+    fireEvent.click(screen.getByRole("button", { name: "Close editor" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Discard changes" })
+    );
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
+      "Changed"
+    );
+    finish();
+  });
   it("reveals a previously mounted hidden tab before focusing its error and retains the summary region", async () => {
     render(<TabbedErrors />);
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Notes" }), {

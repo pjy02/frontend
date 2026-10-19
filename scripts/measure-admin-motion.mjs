@@ -112,7 +112,9 @@ try {
           await route.fulfill({ response });
         } catch (error) {
           if (!closing) errors.push(String(error));
-          await route.abort().catch(() => {});
+          await route.abort().catch(() => {
+            /* Context may already be closed. */
+          });
         }
       });
       const page = await context.newPage();
@@ -201,13 +203,13 @@ try {
         await page.locator('.admin-pro-table[aria-busy="false"]').waitFor();
         await page.waitForTimeout(700);
         const count = await page
-          .locator('tbody [data-slot="table-row"]')
+          .locator(
+            width < 1280
+              ? ".admin-pro-table-card"
+              : 'tbody [data-slot="table-row"]'
+          )
           .count();
-        assert.equal(
-          count,
-          100,
-          "Measure the real maximum supported page size"
-        );
+        assert(count === 100, "Measure the real maximum supported page size");
         for (let round = 0; round < 3; round += 1) {
           await measure(`table-refresh-100-${round}`, async () => {
             await page
@@ -220,8 +222,8 @@ try {
             await page.locator('.admin-pro-table[aria-busy="false"]').waitFor();
           });
         }
-        assert.deepEqual(errors, []);
-        assert.deepEqual(writes, []);
+        assert(errors.length === 0, JSON.stringify(errors));
+        assert(writes.length === 0, JSON.stringify(writes));
         console.log(`${width}/${reducedMotion}: measured`);
       } finally {
         closing = true;

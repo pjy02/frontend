@@ -26,13 +26,19 @@ const readSwagger = (name: string): SwaggerDocument =>
 const propertyNames = (schema: SwaggerSchema) =>
   Object.keys(schema.properties ?? {});
 
+const definition = (document: SwaggerDocument, name: string): SwaggerSchema => {
+  const schema = document.definitions[name];
+  if (!schema) throw new Error(`Missing Swagger definition: ${name}`);
+  return schema;
+};
+
 describe("generated OpenAPI architecture", () => {
   it("keeps one generated aggregate client for each browser API", () => {
     for (const [project, aggregate] of [
       ["admin", "admin.ts"],
       ["common", "common.ts"],
       ["user", "user.ts"],
-    ]) {
+    ] as const) {
       expect(existsSync(path.join(servicesRoot, project, aggregate))).toBe(
         true
       );
@@ -82,7 +88,7 @@ describe("generated OpenAPI architecture", () => {
   });
 
   it("preserves Reality client fingerprint fields in the API contract", () => {
-    const protocol = readSwagger("admin").definitions["dto.Protocol"];
+    const protocol = definition(readSwagger("admin"), "dto.Protocol");
     expect(protocol).toBeDefined();
     expect(propertyNames(protocol)).toEqual(
       expect.arrayContaining([
@@ -97,15 +103,15 @@ describe("generated OpenAPI architecture", () => {
   });
 
   it("keeps the operational request and global configuration fields", () => {
-    const admin = readSwagger("admin").definitions;
-    const common = readSwagger("common").definitions;
+    const admin = readSwagger("admin");
+    const common = readSwagger("common");
+    const emailTask = definition(admin, "dto.CreateBatchSendEmailTaskRequest");
+    const quotaTask = definition(admin, "dto.CreateQuotaTaskRequest");
+    const logSetting = definition(admin, "dto.LogSetting");
+    const globalConfig = definition(common, "dto.GetGlobalConfigResponse");
 
-    expect(admin["dto.CreateBatchSendEmailTaskRequest"].required).toEqual([
-      "content",
-      "scope",
-      "subject",
-    ]);
-    expect(propertyNames(admin["dto.CreateBatchSendEmailTaskRequest"])).toEqual(
+    expect(emailTask.required).toEqual(["content", "scope", "subject"]);
+    expect(propertyNames(emailTask)).toEqual(
       expect.arrayContaining([
         "additional",
         "content",
@@ -118,7 +124,7 @@ describe("generated OpenAPI architecture", () => {
         "subject",
       ])
     );
-    expect(propertyNames(admin["dto.CreateQuotaTaskRequest"])).toEqual(
+    expect(propertyNames(quotaTask)).toEqual(
       expect.arrayContaining([
         "days",
         "end_time",
@@ -130,11 +136,8 @@ describe("generated OpenAPI architecture", () => {
         "subscribers",
       ])
     );
-    expect(admin["dto.LogSetting"].required).toEqual([
-      "auto_clear",
-      "clear_days",
-    ]);
-    expect(propertyNames(common["dto.GetGlobalConfigResponse"])).toEqual(
+    expect(logSetting.required).toEqual(["auto_clear", "clear_days"]);
+    expect(propertyNames(globalConfig)).toEqual(
       expect.arrayContaining([
         "auth",
         "currency",

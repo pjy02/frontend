@@ -8,7 +8,6 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
-import { Icon } from "@workspace/ui/composed/icon";
 import { Markdown } from "@workspace/ui/composed/markdown";
 import type { Dispatch, SetStateAction } from "react";
 import { useRef } from "react";
@@ -226,8 +225,12 @@ export default function RegisterForm({
                 )}
               />
             )}
-            <Button disabled={loading} type="submit">
-              {loading && <Icon className="animate-spin" icon="mdi:loading" />}
+            <Button
+              disabled={loading}
+              loading={loading}
+              loadingLabel={t("components:actions.processing")}
+              type="submit"
+            >
               {t("register.title", "Register")}
             </Button>
           </form>

@@ -1,9 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@workspace/ui/components/hover-card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -41,9 +42,28 @@ export function SidebarLeft({
   const { t } = useTranslation("components");
   const { site } = common;
   const navs = useNavs();
+  const groupIdPrefix = React.useId();
   const pathname = useLocation({ select: (location) => location.pathname });
   const { state, isMobile, setOpenMobile } = useSidebar();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openCollapsedGroup, setOpenCollapsedGroup] = useState<string | null>(
+    null
+  );
+  const navigationClosing = React.useRef(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      navs
+        .filter(hasChildren)
+        .map((nav) => [
+          nav.title,
+          nav.items.some(
+            (item) =>
+              item.url &&
+              (pathname === item.url || pathname.startsWith(`${item.url}/`))
+          ) ||
+            (nav.defaultOpen ?? true),
+        ])
+    )
+  );
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [scrollEdges, setScrollEdges] = useState({ up: false, down: false });
   const [activeIndicator, setActiveIndicator] = useState({
@@ -66,35 +86,39 @@ export function SidebarLeft({
     });
   }, []);
 
-  const updateActiveIndicator = React.useCallback(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-    let active = container.querySelector<HTMLElement>(
-      '[data-sidebar="menu-button"][data-active="true"], [data-sidebar="menu-sub-button"][data-active="true"]'
-    );
-    const closedGroup = active?.closest<HTMLElement>(
-      '.admin-sidebar-group-motion[data-open="false"]'
-    );
-    if (closedGroup?.previousElementSibling instanceof HTMLElement) {
-      active = closedGroup.previousElementSibling;
-    }
-    if (!active) {
-      setActiveIndicator((current) => ({ ...current, visible: false }));
-      return;
-    }
+  const updateActiveIndicator = React.useCallback(
+    (animate = true) => {
+      const container = scrollRef.current;
+      if (!container) return;
+      let active = container.querySelector<HTMLElement>(
+        '[data-sidebar="menu-button"][data-active="true"], [data-sidebar="menu-sub-button"][data-active="true"]'
+      );
+      const closedGroup = active?.closest<HTMLElement>(
+        '.admin-sidebar-group-motion[data-open="false"]'
+      );
+      if (closedGroup?.previousElementSibling instanceof HTMLElement) {
+        active = closedGroup.previousElementSibling;
+      }
+      if (!active) {
+        setActiveIndicator((current) => ({ ...current, visible: false }));
+        return;
+      }
 
-    const containerRect = container.getBoundingClientRect();
-    const activeRect = active.getBoundingClientRect();
-    setActiveIndicator((current) => ({
-      x: activeRect.left - containerRect.left + container.scrollLeft,
-      y: activeRect.top - containerRect.top + container.scrollTop,
-      width: activeRect.width,
-      height: activeRect.height,
-      visible: true,
-      animated: current.visible && current.layout === indicatorLayout,
-      layout: indicatorLayout,
-    }));
-  }, [indicatorLayout]);
+      const containerRect = container.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      setActiveIndicator((current) => ({
+        x: activeRect.left - containerRect.left + container.scrollLeft,
+        y: activeRect.top - containerRect.top + container.scrollTop,
+        width: activeRect.width,
+        height: activeRect.height,
+        visible: true,
+        animated:
+          animate && current.visible && current.layout === indicatorLayout,
+        layout: indicatorLayout,
+      }));
+    },
+    [indicatorLayout]
+  );
 
   const normalize = (path: string) =>
     path.endsWith("/") && path !== "/" ? path.replace(/\/+$/, "") : path;
@@ -112,10 +136,14 @@ export function SidebarLeft({
       : Boolean(nav.url && isActiveUrl(nav.url));
 
   const handleNavigate = () => {
+    navigationClosing.current = openCollapsedGroup !== null;
+    setOpenCollapsedGroup(null);
     if (isMobile) {
       setOpenMobile(false);
     }
   };
+
+  React.useEffect(() => setOpenCollapsedGroup(null), [state, isMobile]);
 
   React.useEffect(() => {
     setOpenGroups((current) => {
@@ -140,22 +168,25 @@ export function SidebarLeft({
       updateScrollEdges();
       updateActiveIndicator();
     });
+    return () => cancelAnimationFrame(frame);
+  }, [openGroups, pathname, state, updateActiveIndicator, updateScrollEdges]);
+
+  React.useLayoutEffect(() => {
     const element = scrollRef.current;
     if (!element || typeof ResizeObserver === "undefined") {
-      return () => cancelAnimationFrame(frame);
+      return;
     }
     const observer = new ResizeObserver(() => {
       updateScrollEdges();
-      updateActiveIndicator();
+      updateActiveIndicator(false);
     });
     observer.observe(element);
     const menu = element.querySelector('[data-slot="sidebar-menu"]');
     if (menu) observer.observe(menu);
     return () => {
-      cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [openGroups, pathname, state, updateActiveIndicator, updateScrollEdges]);
+  }, [updateActiveIndicator, updateScrollEdges]);
 
   const renderCollapsedItem = (nav: NavItem) => {
     const NavIcon = nav.icon;
@@ -177,8 +208,12 @@ export function SidebarLeft({
     }
 
     return (
-      <HoverCard closeDelay={160} openDelay={80}>
-        <HoverCardTrigger asChild>
+      <DropdownMenu
+        modal={false}
+        onOpenChange={(open) => setOpenCollapsedGroup(open ? nav.title : null)}
+        open={openCollapsedGroup === nav.title}
+      >
+        <DropdownMenuTrigger asChild>
           <SidebarMenuButton
             aria-label={nav.title}
             className="mx-auto size-10 justify-center rounded-lg"
@@ -187,11 +222,17 @@ export function SidebarLeft({
             {NavIcon ? <NavIcon className="size-[18px]" /> : null}
             <span className="sr-only">{nav.title}</span>
           </SidebarMenuButton>
-        </HoverCardTrigger>
-        <HoverCardContent
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
           align="start"
+          aria-label={nav.title}
           className="z-[60] w-64 overflow-hidden p-0"
           collisionPadding={8}
+          onCloseAutoFocus={(event) => {
+            if (!navigationClosing.current) return;
+            event.preventDefault();
+            navigationClosing.current = false;
+          }}
           side="right"
           sideOffset={10}
         >
@@ -205,27 +246,28 @@ export function SidebarLeft({
             {nav.items?.map((item) => {
               const ItemIcon = item.icon;
               return (
-                <Link
-                  className={cn(
-                    "flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
-                    item.url && isActiveUrl(item.url)
-                      ? "bg-accent font-medium text-accent-foreground"
-                      : "text-foreground hover:bg-muted"
-                  )}
-                  key={item.title}
-                  onClick={handleNavigate}
-                  to={item.url || "/dashboard"}
-                >
-                  {ItemIcon ? (
-                    <ItemIcon className="size-4 text-muted-foreground" />
-                  ) : null}
-                  <span className="truncate">{item.title}</span>
-                </Link>
+                <DropdownMenuItem asChild key={item.title}>
+                  <Link
+                    className={cn(
+                      "flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
+                      item.url && isActiveUrl(item.url)
+                        ? "bg-accent font-medium text-accent-foreground"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                    onClick={handleNavigate}
+                    to={item.url || "/dashboard"}
+                  >
+                    {ItemIcon ? (
+                      <ItemIcon className="size-4 text-muted-foreground" />
+                    ) : null}
+                    <span className="truncate">{item.title}</span>
+                  </Link>
+                </DropdownMenuItem>
               );
             })}
           </div>
-        </HoverCardContent>
-      </HoverCard>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   };
 
@@ -332,9 +374,11 @@ export function SidebarLeft({
                 }
 
                 const isOpen = openGroups[nav.title] ?? false;
+                const groupId = `${groupIdPrefix}-${navs.indexOf(nav)}`;
                 return (
                   <SidebarGroup className="p-0 pb-1" key={nav.title}>
                     <SidebarMenuButton
+                      aria-controls={groupId}
                       aria-expanded={isOpen}
                       className={cn(
                         "relative h-10 rounded-lg px-3",
@@ -363,6 +407,7 @@ export function SidebarLeft({
                     <div
                       className="admin-sidebar-group-motion"
                       data-open={isOpen}
+                      id={groupId}
                     >
                       <div className="admin-sidebar-group-motion__inner">
                         <SidebarGroupContent
@@ -418,7 +463,10 @@ export function SidebarLeft({
           </span>
         </div>
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarRail
+        aria-label={t("accessibility.toggleSidebar", "Toggle sidebar")}
+        title={t("accessibility.toggleSidebar", "Toggle sidebar")}
+      />
     </Sidebar>
   );
 }

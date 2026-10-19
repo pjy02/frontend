@@ -23,7 +23,7 @@ import {
   postMarketingQuotaPreCount as queryQuotaTaskPreCount,
 } from "@workspace/ui/services/admin/admin";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -38,6 +38,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/settings-workspace";
+import {
+  EstimateStatus,
+  useLatestEstimate,
+} from "@/components/use-latest-estimate";
 import { useSubscribe } from "@/stores/subscribe";
 
 export default function QuotaBroadcastForm() {
@@ -74,17 +78,19 @@ export default function QuotaBroadcastForm() {
     },
   });
 
-  const [recipients, setRecipients] = useState<number>(0);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   const { subscribes } = useSubscribe();
 
   // Calculate recipient count
   const calculateRecipients = async () => {
-    setIsCalculating(true);
     try {
       const formData = form.getValues();
       let start_time = 0;
@@ -105,39 +111,29 @@ export default function QuotaBroadcastForm() {
         end_time,
       });
 
-      if (response.data?.data?.count !== undefined) {
-        setRecipients(response.data.data.count);
-      }
+      const count = response.data?.data?.count;
+      if (typeof count !== "number" || !Number.isFinite(count))
+        throw new Error("Recipient count unavailable");
+      return count;
     } catch (error) {
       console.error("Failed to calculate recipients:", error);
-      toast.error(
-        t("failedToCalculateRecipients", "Failed to calculate recipients")
-      );
-      setRecipients(0);
-    } finally {
-      setIsCalculating(false);
+      throw error;
     }
   };
 
   // Watch form values and recalculate recipients only when sheet is open
   const watchedValues = form.watch();
 
-  useEffect(() => {
-    if (!open) return; // Only calculate when sheet is open
-
-    const debounceTimer = setTimeout(() => {
-      calculateRecipients();
-    }, 500); // Add debounce to avoid too frequent API calls
-
-    return () => clearTimeout(debounceTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const estimate = useLatestEstimate(
+    JSON.stringify([
+      watchedValues.subscribers,
+      watchedValues.is_active,
+      watchedValues.start_time,
+      watchedValues.end_time,
+    ]),
     open,
-    watchedValues.subscribers,
-    watchedValues.is_active,
-    watchedValues.start_time,
-    watchedValues.end_time,
-  ]);
+    calculateRecipients
+  );
 
   const onSubmit = async (data: QuotaBroadcastFormData) => {
     setIsSubmitting(true);
@@ -167,13 +163,11 @@ export default function QuotaBroadcastForm() {
       toast.success(
         t("quotaTaskCreatedSuccessfully", "Quota task created successfully")
       );
-      form.reset();
-      setRecipients(0);
-      form.reset(form.getValues());
-      setOpen(false); // Close the sheet after successful submission
+      await safety.completeSave();
     } catch (error) {
       console.error("Failed to create quota task:", error);
       toast.error(t("failedToCreateQuotaTask", "Failed to create quota task"));
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -182,7 +176,10 @@ export default function QuotaBroadcastForm() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:gift" />
@@ -200,7 +197,7 @@ export default function QuotaBroadcastForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="lg">
         <SheetHeader>
@@ -287,13 +284,13 @@ export default function QuotaBroadcastForm() {
                     {t("subscriptionCount", "Subscription Count")}:{" "}
                   </span>
                   <span className="font-medium text-lg text-primary">
-                    {isCalculating ? (
-                      <Icon
-                        className="ml-2 h-4 w-4 animate-spin"
-                        icon="mdi:loading"
+                    {estimate.data === undefined ? (
+                      <EstimateStatus
+                        error={estimate.error}
+                        retry={estimate.retry}
                       />
                     ) : (
-                      recipients.toLocaleString()
+                      estimate.data.toLocaleString()
                     )}
                   </span>
                 </div>
@@ -527,11 +524,10 @@ export default function QuotaBroadcastForm() {
               form.watch("subscribers").length === 0
             }
             form="quota-broadcast-form"
+            loading={isSubmitting || safety.submitting}
+            loadingLabel={t("components:actions.processing")}
             type="submit"
           >
-            {isSubmitting && (
-              <Icon className="mr-2 h-4 w-4 animate-spin" icon="mdi:loading" />
-            )}
             {t("createQuotaTask", "Create Quota Task")}
           </Button>
         </SheetFooter>

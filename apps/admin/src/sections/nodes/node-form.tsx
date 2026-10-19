@@ -121,7 +121,12 @@ export default function NodeForm(props: {
       ...normalizeValues(initialValues),
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   const serverId = form.watch("server_id");
 

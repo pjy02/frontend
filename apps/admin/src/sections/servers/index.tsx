@@ -3,18 +3,17 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { Progress } from "@workspace/ui/components/progress";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import {
   ProTable,
   type ProTableActions,
 } from "@workspace/ui/composed/pro-table/pro-table";
-import { cn } from "@workspace/ui/lib/utils";
 import {
   postServerCreate as createServer,
   postServerOpenApiDelete as deleteServer,
   getServerList as filterServerList,
   getServerNodeConfig,
-  postServerServerSort as resetSortWithServer,
   postServerNodeConfigUpdate as updateServerNodeConfig,
 } from "@workspace/ui/services/admin/admin";
 import {
@@ -41,35 +40,18 @@ import OnlineUsersCell from "./online-users-cell";
 import ServerConfig from "./server-config";
 import ServerInstall from "./server-install";
 import ServerNodeConfig from "./server-node-config";
+import { saveServerOrder } from "./sort-servers";
 
-function PctBar({ value }: { value: number }) {
-  const v = value.toFixed(2);
-  const widthClass =
-    value >= 90
-      ? "w-[90%]"
-      : value >= 80
-        ? "w-4/5"
-        : value >= 70
-          ? "w-[70%]"
-          : value >= 60
-            ? "w-3/5"
-            : value >= 50
-              ? "w-1/2"
-              : value >= 40
-                ? "w-2/5"
-                : value >= 30
-                  ? "w-[30%]"
-                  : value >= 20
-                    ? "w-1/5"
-                    : value >= 10
-                      ? "w-[10%]"
-                      : "w-0";
+function PctBar({ value, label }: { value: number; label: string }) {
+  const percentage = Number.isFinite(value)
+    ? Math.min(100, Math.max(0, value))
+    : null;
   return (
-    <div className="min-w-20 sm:min-w-24">
-      <div className="text-xs leading-none">{v}%</div>
-      <div className="h-1.5 w-full rounded bg-muted">
-        <div className={cn("h-1.5 rounded bg-primary", widthClass)} />
+    <div className="min-w-20 space-y-1.5 sm:min-w-24">
+      <div className="text-xs leading-none">
+        {percentage === null ? "—" : `${percentage.toFixed(2)}%`}
       </div>
+      <Progress aria-label={label} className="h-1.5" value={percentage} />
     </div>
   );
 }
@@ -242,6 +224,7 @@ export default function Servers({ actionRef }: ServersProps) {
             header: t("cpu", "CPU"),
             cell: ({ row }) => (
               <PctBar
+                label={t("cpu", "CPU")}
                 value={(row.original.status?.cpu as unknown as number) ?? 0}
               />
             ),
@@ -251,6 +234,7 @@ export default function Servers({ actionRef }: ServersProps) {
             header: t("memory", "Memory"),
             cell: ({ row }) => (
               <PctBar
+                label={t("memory", "Memory")}
                 value={(row.original.status?.mem as unknown as number) ?? 0}
               />
             ),
@@ -260,6 +244,7 @@ export default function Servers({ actionRef }: ServersProps) {
             header: t("disk", "Disk"),
             cell: ({ row }) => (
               <PctBar
+                label={t("disk", "Disk")}
                 value={(row.original.status?.disk as unknown as number) ?? 0}
               />
             ),
@@ -347,19 +332,28 @@ export default function Servers({ actionRef }: ServersProps) {
                     <span className="text-muted-foreground text-xs">
                       {t("cpu", "CPU")}
                     </span>
-                    <PctBar value={Number(row.status?.cpu || 0)} />
+                    <PctBar
+                      label={t("cpu", "CPU")}
+                      value={Number(row.status?.cpu || 0)}
+                    />
                   </div>
                   <div className="min-w-0 space-y-1.5">
                     <span className="text-muted-foreground text-xs">
                       {t("memory", "Memory")}
                     </span>
-                    <PctBar value={Number(row.status?.mem || 0)} />
+                    <PctBar
+                      label={t("memory", "Memory")}
+                      value={Number(row.status?.mem || 0)}
+                    />
                   </div>
                   <div className="min-w-0 space-y-1.5">
                     <span className="text-muted-foreground text-xs">
                       {t("disk", "Disk")}
                     </span>
-                    <PctBar value={Number(row.status?.disk || 0)} />
+                    <PctBar
+                      label={t("disk", "Disk")}
+                      value={Number(row.status?.disk || 0)}
+                    />
                   </div>
                 </div>
 
@@ -376,47 +370,22 @@ export default function Servers({ actionRef }: ServersProps) {
           },
         }}
         onSort={async (source, target, items) => {
-          const sourceIndex = items.findIndex(
-            (item) => String(item.id) === source
-          );
-          const targetIndex = items.findIndex(
-            (item) => String(item.id) === target
-          );
-
-          const originalSorts = items.map((item) => item.sort);
-
-          const [movedItem] = items.splice(sourceIndex, 1);
-          items.splice(targetIndex, 0, movedItem!);
-
-          const updatedItems = items.map((item, index) => {
-            const originalSort = originalSorts[index];
-            const newSort =
-              originalSort !== undefined ? originalSort : item.sort;
-            return { ...item, sort: newSort };
-          });
-
-          const changedItems = updatedItems.filter(
-            (item, index) => item.sort !== items[index]?.sort
-          );
-
-          if (changedItems.length > 0) {
-            resetSortWithServer({
-              sort: changedItems.map((item) => ({
-                id: item.id,
-                sort: item.sort,
-              })) as API.SortItem[],
-            });
+          const result = await saveServerOrder(source, target, items);
+          if (result.changed) {
             toast.success(t("sorted_success", "Sorted successfully"));
           }
-          return updatedItems;
+          return result.items;
         }}
         params={[{ key: "search" }]}
-        request={async (pagination, filter) => {
-          const { data } = await filterServerList({
-            page: pagination.page,
-            size: pagination.size,
-            search: filter?.search || undefined,
-          });
+        request={async (pagination, filter, { signal }) => {
+          const { data } = await filterServerList(
+            {
+              page: pagination.page,
+              size: pagination.size,
+              search: filter?.search || undefined,
+            },
+            { signal }
+          );
           const list = (data?.data?.list || []) as API.Server[];
           const total = (data?.data?.total ?? list.length) as number;
           return { list, total };

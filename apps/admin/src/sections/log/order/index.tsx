@@ -167,15 +167,18 @@ export default function OrderLogPage() {
         search: "string",
         user_id: "number",
       }}
-      load={(pagination, filter) =>
-        filterOrderLog({
-          page: pagination.page,
-          size: pagination.size,
-          start_date: filter?.start_date,
-          end_date: filter?.end_date,
-          search: filter?.search,
-          user_id: filter?.user_id,
-        })
+      load={(pagination, filter, { signal }) =>
+        filterOrderLog(
+          {
+            page: pagination.page,
+            size: pagination.size,
+            start_date: filter?.start_date,
+            end_date: filter?.end_date,
+            search: filter?.search,
+            user_id: filter?.user_id,
+          },
+          { signal }
+        )
       }
       mobile={{
         getAriaLabel: (order) =>

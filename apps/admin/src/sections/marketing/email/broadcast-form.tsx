@@ -32,7 +32,7 @@ import {
   postMarketingEmailBatchSend as createBatchSendEmailTask,
   postMarketingEmailBatchPreSendCount as getPreSendEmailCount,
 } from "@workspace/ui/services/admin/admin";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -46,6 +46,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/settings-workspace";
+import {
+  EstimateStatus,
+  useLatestEstimate,
+} from "@/components/use-latest-estimate";
 
 export default function EmailBroadcastForm() {
   const { t } = useTranslation("marketing");
@@ -109,11 +113,6 @@ export default function EmailBroadcastForm() {
   type EmailBroadcastFormData = z.infer<typeof emailBroadcastSchema>;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [estimatedRecipients, setEstimatedRecipients] = useState<{
-    users: number;
-    additional: number;
-    total: number;
-  }>({ users: 0, additional: 0, total: 0 });
 
   const form = useForm<EmailBroadcastFormData>({
     resolver: zodResolver(emailBroadcastSchema),
@@ -129,7 +128,12 @@ export default function EmailBroadcastForm() {
       limit: 1000,
     },
   });
-  const safety = useFormSafety({ form, open, onOpenChange: setOpen });
+  const safety = useFormSafety({
+    form,
+    open,
+    onOpenChange: setOpen,
+    review: true,
+  });
 
   // Calculate recipient count
   const calculateRecipients = async () => {
@@ -161,7 +165,9 @@ export default function EmailBroadcastForm() {
         register_end_time,
       });
 
-      const userCount = response.data?.data?.count || 0;
+      const userCount = response.data?.data?.count;
+      if (typeof userCount !== "number" || !Number.isFinite(userCount))
+        throw new Error("Recipient count unavailable");
 
       // Calculate additional email count
       const additionalEmails = formData.additional || "";
@@ -171,47 +177,31 @@ export default function EmailBroadcastForm() {
 
       const total = userCount + additionalCount;
 
-      setEstimatedRecipients({
+      return {
         users: userCount,
         additional: additionalCount,
         total,
-      });
+      };
     } catch (error) {
       console.error("Failed to get recipient count:", error);
-      // Set to 0 if API fails, don't use fallback simulation
-      const additionalEmails = formData.additional || "";
-      const additionalCount = additionalEmails
-        .split("\n")
-        .filter((email: string) => email.trim() !== "").length;
-
-      setEstimatedRecipients({
-        users: 0,
-        additional: additionalCount,
-        total: additionalCount,
-      });
+      throw error;
     }
   };
 
   // Listen to form changes
   const watchedValues = form.watch();
 
-  // Use useEffect to respond to form changes, but only when sheet is open
-  useEffect(() => {
-    if (!open) return; // Only calculate when sheet is open
-
-    const debounceTimer = setTimeout(() => {
-      calculateRecipients();
-    }, 500); // Add debounce to avoid too frequent API calls
-
-    return () => clearTimeout(debounceTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    open, // Add open dependency
-    watchedValues.scope,
-    watchedValues.register_start_time,
-    watchedValues.register_end_time,
-    watchedValues.additional,
-  ]);
+  const estimate = useLatestEstimate(
+    JSON.stringify([
+      watchedValues.scope,
+      watchedValues.register_start_time,
+      watchedValues.register_end_time,
+      watchedValues.additional,
+    ]),
+    open,
+    calculateRecipients
+  );
+  const estimatedRecipients = estimate.data;
 
   const onSubmit = async (data: EmailBroadcastFormData) => {
     setLoading(true);
@@ -291,7 +281,10 @@ export default function EmailBroadcastForm() {
   return (
     <Sheet onOpenChange={safety.requestOpenChange} open={open}>
       <SheetTrigger asChild>
-        <div className="flex cursor-pointer items-center justify-between transition-colors">
+        <button
+          className="flex w-full items-center justify-between text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+        >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Icon className="h-5 w-5 text-primary" icon="mdi:email-send" />
@@ -309,7 +302,7 @@ export default function EmailBroadcastForm() {
             </div>
           </div>
           <Icon className="size-6" icon="mdi:chevron-right" />
-        </div>
+        </button>
       </SheetTrigger>
       <SheetContent size="xl">
         <SheetHeader>
@@ -455,13 +448,22 @@ export default function EmailBroadcastForm() {
                           {t("estimatedRecipients", "Estimated recipients")}:{" "}
                         </span>
                         <span className="font-medium text-lg text-primary">
-                          {estimatedRecipients.total}
+                          {estimatedRecipients ? (
+                            estimatedRecipients.total
+                          ) : (
+                            <EstimateStatus
+                              error={estimate.error}
+                              retry={estimate.retry}
+                            />
+                          )}
                         </span>
-                        <span className="ml-2 text-muted-foreground text-xs">
-                          ({t("users", "users")}: {estimatedRecipients.users},{" "}
-                          {t("additional", "Additional")}:{" "}
-                          {estimatedRecipients.additional})
-                        </span>
+                        {estimatedRecipients && (
+                          <span className="ml-2 text-muted-foreground text-xs">
+                            ({t("users", "users")}: {estimatedRecipients.users},{" "}
+                            {t("additional", "Additional")}:{" "}
+                            {estimatedRecipients.additional})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -665,16 +667,16 @@ export default function EmailBroadcastForm() {
           >
             {t("cancel", "Cancel")}
           </Button>
-          <Button disabled={loading} form="broadcast-form" type="submit">
-            {loading && (
-              <Icon className="mr-2 h-4 w-4 animate-spin" icon="mdi:loading" />
-            )}
-            {loading
-              ? t("processing", "Processing...")
-              : !form.watch("scheduled") ||
-                  form.watch("scheduled")?.trim() === ""
-                ? t("sendNow", "Send Now")
-                : t("scheduleSend", "Schedule Send")}
+          <Button
+            disabled={loading}
+            form="broadcast-form"
+            loading={loading || safety.submitting}
+            loadingLabel={t("processing", "Processing...")}
+            type="submit"
+          >
+            {!form.watch("scheduled") || form.watch("scheduled")?.trim() === ""
+              ? t("sendNow", "Send Now")
+              : t("scheduleSend", "Schedule Send")}
           </Button>
         </SheetFooter>
       </SheetContent>

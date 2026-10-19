@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useRouteTableAction } from "@/components/route-table-context";
 import { LoadingState, NotFoundState } from "@/components/states";
+import { useRouteWorkspaceExit } from "@/components/use-route-workspace-exit";
 import { useSubscribe } from "@/stores/subscribe";
 import SubscribeForm from "./subscribe-form";
 
@@ -29,6 +30,7 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
       search,
       to: "/dashboard/product",
     });
+  const exit = useRouteWorkspaceExit(close);
 
   if (!loaded) {
     return (
@@ -63,11 +65,8 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
     <SubscribeForm<API.SubscribeItem>
       initialValues={product}
       loading={saving}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          return close();
-        }
-      }}
+      onAfterClose={exit.onAfterClose}
+      onOpenChange={exit.onOpenChange}
       onSubmit={async (values) => {
         setSaving(true);
         try {
@@ -86,7 +85,7 @@ export function ProductRouteEditor({ productId }: ProductRouteEditorProps) {
           setSaving(false);
         }
       }}
-      open
+      open={exit.open}
       title={t("editSubscribe")}
     />
   );

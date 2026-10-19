@@ -3,6 +3,7 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { cn } from "@workspace/ui/lib/utils";
 import type * as React from "react";
+import { usePresenceInert } from "../hooks/use-presence-inert";
 
 function Popover({
   ...props
@@ -20,8 +21,10 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  ref,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+  const contentRef = usePresenceInert(ref);
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
@@ -31,6 +34,7 @@ function PopoverContent({
           className
         )}
         data-slot="popover-content"
+        ref={contentRef}
         sideOffset={sideOffset}
         {...props}
       />

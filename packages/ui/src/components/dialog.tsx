@@ -4,6 +4,9 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
+import { useTranslation } from "react-i18next";
+import { useOverlayFocus } from "../hooks/use-overlay-focus";
+import { usePresenceInert } from "../hooks/use-presence-inert";
 
 function Dialog({
   ...props
@@ -49,10 +52,16 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
+  ref,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const focus = useOverlayFocus();
+  const contentRef = usePresenceInert(ref);
+  const { t } = useTranslation("components");
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -62,6 +71,15 @@ function DialogContent({
           className
         )}
         data-slot="dialog-content"
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          focus.restore(event);
+        }}
+        onOpenAutoFocus={(event) => {
+          focus.remember();
+          onOpenAutoFocus?.(event);
+        }}
+        ref={contentRef}
         {...props}
       >
         {children}
@@ -71,7 +89,7 @@ function DialogContent({
             data-slot="dialog-close"
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("actions.close", "Close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

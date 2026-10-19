@@ -20,11 +20,12 @@ interface RevealSettings {
   reduced: boolean;
   duration: number;
   easing: string;
+  /** A stationary pointer over a live control cannot safely hit a root snapshot. */
+  interactionSafe?: () => boolean;
 }
 
 interface RevealSession {
   cancelled: boolean;
-  trigger: HTMLElement;
   transition?: ViewTransition;
   animation?: Animation;
 }
@@ -57,18 +58,22 @@ export function createThemeTransition(
   const change = (next: Theme, trigger: HTMLElement | null) => {
     const ticket = ++version;
     cancelVisual();
-    const rect = trigger?.isConnected
-      ? trigger.getBoundingClientRect()
-      : undefined;
-    const geometry = rect
-      ? themeRevealGeometry(rect, innerWidth, innerHeight)
-      : undefined;
     queue = queue
       .catch(() => {
         /* A failed prior commit must not block a later choice. */
       })
       .then(async () => {
         if (disposed || ticket !== version) return;
+        // Measure after the menu has closed and any earlier DOM commit has settled.
+        const iconRect = Array.from(trigger?.querySelectorAll("svg") ?? [])
+          .map((icon) => icon.getBoundingClientRect())
+          .find((rect) => rect.width > 0 && rect.height > 0);
+        const rect = trigger?.isConnected
+          ? (iconRect ?? trigger.getBoundingClientRect())
+          : undefined;
+        const geometry = rect
+          ? themeRevealGeometry(rect, innerWidth, innerHeight)
+          : undefined;
         const resolved =
           next === "system"
             ? matchMedia("(prefers-color-scheme: dark)").matches
@@ -80,6 +85,7 @@ export function createThemeTransition(
         if (
           current === resolved ||
           motion.reduced ||
+          motion.interactionSafe?.() === false ||
           document.hidden ||
           !geometry ||
           !rect?.width ||
@@ -87,7 +93,7 @@ export function createThemeTransition(
           (window.visualViewport && window.visualViewport.scale !== 1) ||
           typeof document.startViewTransition !== "function" ||
           typeof root.animate !== "function" ||
-          !CSS.supports("clip-path", "circle(1px at 1px 1px)")
+          !globalThis.CSS?.supports("clip-path", "circle(1px at 1px 1px)")
         ) {
           commit(next);
           return;
@@ -95,10 +101,10 @@ export function createThemeTransition(
 
         // A missing/detached trigger takes the direct-update branch above.
         if (!trigger) return;
-        const session: RevealSession = { cancelled: false, trigger };
+        const session: RevealSession = { cancelled: false };
         active = session;
         root.dataset.themeReveal = "true";
-        // Suppress competing color transitions only while snapshots are captured.
+        // Keep color transitions disabled until the reveal has released its snapshot.
         root.dataset.themeCapture = "true";
         let committed = false;
         try {
@@ -115,7 +121,6 @@ export function createThemeTransition(
         const transition = session.transition;
         const animate = async () => {
           await transition.ready;
-          if (active === session) delete root.dataset.themeCapture;
           if (
             session.cancelled ||
             disposed ||
@@ -159,31 +164,6 @@ export function createThemeTransition(
   return {
     change,
     cancelVisual,
-    interruptPointer: (event: PointerEvent) => {
-      // Native root snapshots suppress hit testing of their captured contents.
-      // Only forward the theme trigger, never arbitrary business actions.
-      if (
-        !active ||
-        active.cancelled ||
-        event.target !== root ||
-        !event.isPrimary ||
-        event.button !== 0 ||
-        event.ctrlKey
-      )
-        return;
-      const trigger = active.trigger;
-      if (!trigger.isConnected) return;
-      const rect = trigger.getBoundingClientRect();
-      if (
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom
-      )
-        return;
-      cancelVisual();
-      return trigger;
-    },
     dispose: () => {
       disposed = true;
       version++;

@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  useMutation,
+  useMutationState,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import { useSearch } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -25,6 +31,11 @@ import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
+  SavedSyncError,
+  synchronizeTable,
+  useRowOperationKey,
+} from "@/components/async-switch";
+import {
   CommissionStatusChip,
   DateTimeValue,
   MoneyValue,
@@ -45,7 +56,7 @@ type WithdrawalFilters = {
 };
 
 type ReviewActionsProps = {
-  onReviewed: () => void;
+  onReviewed: () => unknown;
   withdrawal: API.WithdrawalLog;
 };
 
@@ -53,29 +64,105 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
   const { t } = useTranslation("withdrawal");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [reviewing, setReviewing] = useState<1 | 2>();
-
-  const review = async (status: 1 | 2, reviewReason?: string) => {
-    setReviewing(status);
+  const [localConfirmed, setLocalConfirmed] = useState<1 | 2>();
+  const [failure, setFailure] = useState(false);
+  const key = [...useRowOperationKey("withdrawal", withdrawal.id), "review"];
+  const client = useQueryClient();
+  const reviews = useMutationState({
+    filters: { mutationKey: key, exact: true },
+    select: (item) => ({
+      status: item.state.status,
+      data: item.state.data as 1 | 2 | undefined,
+      error: item.state.error,
+      variables: item.state.variables as
+        | { status: 1 | 2; refreshOnly?: boolean }
+        | undefined,
+    }),
+  });
+  const latest = reviews.at(-1);
+  const syncFailed =
+    latest?.error instanceof SavedSyncError ||
+    (latest?.status === "pending" && Boolean(latest.variables?.refreshOnly));
+  const confirmed =
+    localConfirmed ??
+    (latest?.status === "pending" && latest.variables?.refreshOnly
+      ? latest.variables.status
+      : latest?.status === "success"
+        ? latest.data
+        : syncFailed
+          ? (latest.error as SavedSyncError).value
+            ? 1
+            : 2
+          : undefined);
+  const pending = latest?.status === "pending";
+  const reviewing =
+    pending && !latest.variables?.refreshOnly
+      ? latest.variables?.status
+      : undefined;
+  const mutation = useMutation({
+    mutationKey: key,
+    retry: false,
+    mutationFn: async ({
+      status,
+      reviewReason,
+      refreshOnly,
+    }: {
+      status: 1 | 2;
+      reviewReason?: string;
+      refreshOnly?: boolean;
+    }) => {
+      if (!refreshOnly) {
+        await putWithdrawalStatus({
+          id: withdrawal.id,
+          status,
+          ...(reviewReason ? { reason: reviewReason } : {}),
+        });
+        setLocalConfirmed(status);
+        setReason("");
+        setRejectOpen(false);
+        toast.success(
+          status === 1
+            ? t("approveSuccess", "Withdrawal approved")
+            : t("rejectSuccess", "Withdrawal rejected")
+        );
+      }
+      try {
+        await onReviewed();
+      } catch {
+        throw new SavedSyncError(status === 1);
+      }
+      return status;
+    },
+  });
+  const review = async (
+    status: 1 | 2,
+    reviewReason?: string,
+    refreshOnly = false
+  ) => {
+    const current = client
+      .getMutationCache()
+      .findAll({ mutationKey: key, exact: true })
+      .at(-1)?.state;
+    if (
+      current?.status === "pending" ||
+      (!refreshOnly &&
+        (confirmed ||
+          current?.status === "success" ||
+          current?.error instanceof SavedSyncError))
+    )
+      return false;
+    setFailure(false);
     try {
-      await putWithdrawalStatus({
-        id: withdrawal.id,
-        status,
-        ...(reviewReason ? { reason: reviewReason } : {}),
-      });
-      toast.success(
-        status === 1
-          ? t("approveSuccess", "Withdrawal approved")
-          : t("rejectSuccess", "Withdrawal rejected")
-      );
-      setReason("");
-      setRejectOpen(false);
-      onReviewed();
-    } catch {
-      toast.error(t("reviewFailed", "Failed to review withdrawal"));
-    } finally {
-      setReviewing(undefined);
+      await mutation.mutateAsync({ status, reviewReason, refreshOnly });
+    } catch (error) {
+      if (!(error instanceof SavedSyncError)) {
+        setFailure(true);
+        throw error;
+      }
     }
+  };
+  const synchronize = () => {
+    if (confirmed) return review(confirmed, undefined, true);
   };
 
   const handleReject = async (event: FormEvent<HTMLFormElement>) => {
@@ -85,8 +172,45 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
       toast.error(t("reasonRequired", "Please enter a rejection reason"));
       return;
     }
-    await review(2, reviewReason);
+    try {
+      await review(2, reviewReason);
+    } catch {
+      /* Kept open with the reason and inline retry guidance. */
+    }
   };
+
+  if (confirmed)
+    return (
+      <div className="grid gap-2 text-sm">
+        <CommissionStatusChip
+          label={
+            confirmed === 1
+              ? t("status.approved", "Approved")
+              : t("status.rejected", "Rejected")
+          }
+          status={confirmed}
+        />
+        {syncFailed && (
+          <p className="text-muted-foreground text-xs" role="alert">
+            {t(
+              "savedSyncFailed",
+              "Review saved. Refresh failed; do not review again."
+            )}
+          </p>
+        )}
+        {syncFailed && (
+          <Button
+            loading={pending}
+            loadingLabel={t("reviewing", "Reviewing...")}
+            onClick={synchronize}
+            size="sm"
+            variant="outline"
+          >
+            {t("retryRefresh", "Retry refresh")}
+          </Button>
+        )}
+      </div>
+    );
 
   return (
     <>
@@ -97,17 +221,22 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
           "approveDescription",
           "Confirm that this withdrawal has been verified and can be approved."
         )}
+        errorText={t("reviewFailed", "Failed to review withdrawal")}
         onConfirm={() => review(1)}
+        successFeedback="none"
         title={t("approveTitle", "Approve this withdrawal?")}
         trigger={
           <Button disabled={reviewing !== undefined} size="sm">
-            {reviewing === 1
-              ? t("reviewing", "Reviewing...")
-              : t("approve", "Approve")}
+            {t("approve", "Approve")}
           </Button>
         }
       />
-      <Dialog onOpenChange={setRejectOpen} open={rejectOpen}>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!pending) setRejectOpen(open);
+        }}
+        open={rejectOpen}
+      >
         <DialogTrigger asChild>
           <Button
             disabled={reviewing !== undefined}
@@ -135,6 +264,7 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
                 {t("rejectionReason", "Rejection Reason")}
               </label>
               <Textarea
+                disabled={reviewing !== undefined}
                 id="reject-reason"
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
@@ -148,9 +278,15 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
               <span className="text-right text-muted-foreground text-xs">
                 {reason.length}/500
               </span>
+              {failure && (
+                <p className="text-destructive text-sm" role="alert">
+                  {t("reviewFailed", "Failed to review withdrawal")}
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button
+                disabled={reviewing !== undefined}
                 onClick={() => setRejectOpen(false)}
                 type="button"
                 variant="outline"
@@ -159,12 +295,12 @@ export function ReviewActions({ onReviewed, withdrawal }: ReviewActionsProps) {
               </Button>
               <Button
                 disabled={reviewing !== undefined || !reason.trim()}
+                loading={reviewing === 2}
+                loadingLabel={t("reviewing", "Reviewing...")}
                 type="submit"
                 variant="destructive"
               >
-                {reviewing === 2
-                  ? t("reviewing", "Reviewing...")
-                  : t("confirmReject", "Confirm Reject")}
+                {t("confirmReject", "Confirm Reject")}
               </Button>
             </DialogFooter>
           </form>
@@ -229,12 +365,7 @@ export default function WithdrawalPage() {
             return [
               <ReviewActions
                 key={withdrawal.id}
-                onReviewed={() =>
-                  tableRef.current?.refresh({
-                    reason: "edit",
-                    rowIds: [withdrawal.id],
-                  })
-                }
+                onReviewed={() => synchronizeTable(tableRef, withdrawal.id)}
                 withdrawal={withdrawal}
               />,
             ];
@@ -377,7 +508,7 @@ export default function WithdrawalPage() {
             placeholder: t("userId", "User ID"),
           },
         ]}
-        request={async (pagination, filters) => {
+        request={async (pagination, filters, { signal }) => {
           const status = Number(filters.status);
           const userId = Number(filters.user_id);
           const params: API.getWithdrawalListParams = {
@@ -392,7 +523,7 @@ export default function WithdrawalPage() {
             params.user_id = userId;
           }
 
-          const { data } = await getWithdrawalList(params);
+          const { data } = await getWithdrawalList(params, { signal });
           return {
             list: data.data?.list || [],
             total: data.data?.total || 0,

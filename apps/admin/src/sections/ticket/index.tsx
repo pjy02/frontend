@@ -33,11 +33,14 @@ import {
 } from "@/components/admin-action-menu";
 import { DateTimeValue, TicketStatusChip } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
+import { useAdminMotion } from "@/components/motion-provider";
+import { PageHeader } from "@/components/page-header";
 import {
   MAX_TICKET_CONTENT_LENGTH,
   ticketReplySchema,
 } from "@/utils/admin-form-contracts";
 import { UserDetail } from "../user/user-detail";
+import { useTicketFollow } from "./use-ticket-follow";
 
 export default function Page() {
   const { t } = useTranslation("ticket");
@@ -118,21 +121,14 @@ export default function Page() {
     refetchInterval: 5000,
   });
 
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.children[1]?.scrollTo({
-          top: scrollRef.current.children[1].scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    }, 66);
-  }, [ticket?.follow?.length]);
+  const { reducedMotion } = useAdminMotion();
+  const { scrollRef, hasNewMessages, jumpToLatest, onScrollCapture } =
+    useTicketFollow(ticketId, ticket?.follow?.length ?? 0, reducedMotion);
 
   const ref = useRef<ProTableActions>(null);
   return (
     <>
+      <PageHeader title={t("ticketList", "Ticket List")} />
       <ProTable<API.Ticket, { status: number }>
         action={ref}
         actions={{
@@ -187,9 +183,7 @@ export default function Page() {
             ),
           },
         ]}
-        header={{
-          title: t("ticketList", "Ticket List"),
-        }}
+        header={{}}
         mobile={{
           getAriaLabel: (row) => String(row.title || row.id),
           render: (row) => (
@@ -243,11 +237,14 @@ export default function Page() {
             ],
           },
         ]}
-        request={async (pagination, filters) => {
-          const { data } = await getTicketList({
-            ...pagination,
-            ...filters,
-          });
+        request={async (pagination, filters, { signal }) => {
+          const { data } = await getTicketList(
+            {
+              ...pagination,
+              ...filters,
+            },
+            { signal }
+          );
 
           const list = (data.data?.list || []) as API.Ticket[];
 
@@ -285,10 +282,24 @@ export default function Page() {
         open={!!ticketId}
       >
         <DrawerContent className="admin-mobile-workspace-drawer container mx-auto h-[min(92dvh,960px)] max-w-5xl overflow-hidden rounded-t-2xl border *:select-text">
-          <DrawerHeader className="border-b bg-muted/25 px-6 py-5 text-left">
+          <DrawerHeader className="shrink-0 border-b bg-muted/25 px-6 py-5 text-left">
             <DrawerTitle>{ticket?.title}</DrawerTitle>
           </DrawerHeader>
-          <ScrollArea className="h-full overflow-hidden" ref={scrollRef}>
+          {hasNewMessages && (
+            <Button
+              className="mx-auto my-2 min-h-11"
+              onClick={jumpToLatest}
+              size="sm"
+              variant="secondary"
+            >
+              {t("newMessages", "New messages · jump to latest")}
+            </Button>
+          )}
+          <ScrollArea
+            className="min-h-0 flex-1 overflow-hidden"
+            onScrollCapture={onScrollCapture}
+            ref={scrollRef}
+          >
             <div className="flex h-full flex-col gap-4 p-4">
               {/* 显示工单描述作为第一条用户消息 */}
               {ticket?.description && (
@@ -347,7 +358,7 @@ export default function Page() {
             </div>
           </ScrollArea>
           {ticket?.status !== 4 && (
-            <DrawerFooter className="border-t bg-muted/20 px-6 py-4">
+            <DrawerFooter className="shrink-0 border-t bg-muted/20 px-6 py-4">
               {replyError && (
                 <p
                   className="text-destructive text-sm"
@@ -365,7 +376,7 @@ export default function Page() {
                 }}
               >
                 <Button
-                  className="p-0"
+                  className="min-h-11 min-w-11 p-0"
                   disabled={sendingReply}
                   type="button"
                   variant="outline"
@@ -449,6 +460,7 @@ export default function Page() {
                     replyError ? "ticket-reply-error" : undefined
                   }
                   aria-invalid={!!replyError}
+                  className="min-h-11"
                   disabled={sendingReply}
                   maxLength={MAX_TICKET_CONTENT_LENGTH}
                   onChange={(e) => {
@@ -463,6 +475,7 @@ export default function Page() {
                 />
                 <Button
                   aria-label={t("sendReply", "Send reply")}
+                  className="min-h-11 min-w-11"
                   disabled={!message.trim()}
                   loading={sendingReply}
                   loadingLabel={t("sending", "Sending...")}

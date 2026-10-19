@@ -1,4 +1,8 @@
 {
+  "email": "邮箱",
+  "invalidEmail": "请输入有效的邮箱地址",
+  "removeAuthTitle": "移除认证方式？",
+  "removeAuthDescription": "该用户将无法再通过此方式登录。",
   "referralPercentageInvalid": "佣金比例必须在 0 到 100 之间。",
   "saving": "保存中...",
   "accountEnable": "账户启用",

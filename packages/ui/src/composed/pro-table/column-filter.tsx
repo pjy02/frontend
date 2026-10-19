@@ -13,8 +13,10 @@ import {
   DrawerTrigger,
 } from "@workspace/ui/components/drawer";
 import { Input } from "@workspace/ui/components/input";
+import { useMotionProfile } from "@workspace/ui/components/motion-profile";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export interface IParams {
@@ -28,6 +30,7 @@ interface ColumnFilterProps<TData> {
   table: Table<TData>;
   params: IParams[];
   mobileMode?: "inline" | "drawer";
+  resetKey?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: any;
 }
@@ -37,8 +40,10 @@ export function ColumnFilter<TData>({
   params,
   filters,
   mobileMode = "inline",
+  resetKey,
 }: ColumnFilterProps<TData>) {
   const { t } = useTranslation("components");
+  const debounceText = Boolean(useMotionProfile());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFilter = (key: string, value: any) => {
     table.setColumnFilters((prev) => {
@@ -122,7 +127,7 @@ export function ColumnFilter<TData>({
         {isSearch ? (
           <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
         ) : null}
-        <Input
+        <FilterTextInput
           aria-label={
             param.placeholder ||
             (isSearch
@@ -138,13 +143,15 @@ export function ColumnFilter<TData>({
                 ? "h-10 rounded-lg bg-background"
                 : "h-9 rounded-lg bg-background"
           }
-          onChange={(event) => updateFilter(param.key, event.target.value)}
+          debounce={debounceText}
+          onValueChange={(value) => updateFilter(param.key, value)}
           placeholder={
             param.placeholder ||
             (isSearch
               ? t("table.searchPlaceholder", "Search...")
               : t("table.filterPlaceholder", "Filter..."))
           }
+          resetKey={resetKey}
           value={filters?.[param.key] || ""}
         />
       </div>
@@ -240,5 +247,72 @@ export function ColumnFilter<TData>({
     <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
       {params.map((param) => renderFilter(param))}
     </div>
+  );
+}
+
+export function FilterTextInput({
+  value,
+  onValueChange,
+  debounce,
+  resetKey,
+  ...props
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange"> & {
+  value: string;
+  onValueChange: (value: string) => void;
+  debounce: boolean;
+  resetKey?: number;
+}) {
+  const [draft, setDraft] = useState(value);
+  const composing = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const commit = useRef(onValueChange);
+  commit.current = onValueChange;
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => {
+    clear();
+    setDraft(value);
+  }, [value, resetKey]);
+  useEffect(() => clear, []);
+  const schedule = (next: string, immediate = false) => {
+    clear();
+    if (next === value) return;
+    if (!debounce || immediate) commit.current(next);
+    else
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        commit.current(next);
+      }, 300);
+  };
+  return (
+    <Input
+      {...props}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        if (!composing.current) schedule(event.target.value);
+      }}
+      onCompositionEnd={(event) => {
+        composing.current = false;
+        schedule(event.currentTarget.value);
+      }}
+      onCompositionStart={() => {
+        composing.current = true;
+        clear();
+      }}
+      onKeyDown={(event) => {
+        props.onKeyDown?.(event);
+        if (
+          event.key === "Enter" &&
+          !composing.current &&
+          !event.nativeEvent.isComposing
+        ) {
+          event.preventDefault();
+          schedule(event.currentTarget.value, true);
+        }
+      }}
+      value={draft}
+    />
   );
 }
