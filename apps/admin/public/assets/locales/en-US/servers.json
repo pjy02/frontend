@@ -235,7 +235,9 @@
   "backToServers": "Back to servers",
   "serverNotFound": "Server not found",
   "serverNotFoundDescription": "The requested server may have been deleted or is unavailable.",
+  "disabledProtocolHint": "This protocol is off. After configuring it, enable the switch beside its heading to save these changes.",
   "validation": {
+    "disabledProtocolDraft": "{{protocol}} has changes but is not enabled. Enable it to save these settings, or undo its changes.",
     "requiredField": "This field is required",
     "requiredNumberField": "Enter a valid number",
     "requiredSelectField": "Please select an option"

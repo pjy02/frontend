@@ -34,11 +34,17 @@ import {
 import { Switch } from "@workspace/ui/components/switch";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
-import { useEffect, useMemo, useState } from "react";
+import {
+  type BaseSyntheticEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { useFormSafety } from "@/components/form-safety";
+import { changedFormFields, useFormSafety } from "@/components/form-safety";
 import { StatusChip } from "@/components/status-chip";
 import {
   WorkspaceDialog,
@@ -544,7 +550,9 @@ export default function ServerForm(props: ServerFormProps) {
   } = props;
   const { t } = useTranslation("servers");
   const [internalOpen, setInternalOpen] = useState(false);
-  const [accordionValue, setAccordionValue] = useState<string>();
+  const [accordionValue, setAccordionValue] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const revealProtocolError = useRef(false);
   const open = controlledOpen ?? internalOpen;
 
   const setOpen = (nextOpen: boolean) => {
@@ -584,6 +592,20 @@ export default function ServerForm(props: ServerFormProps) {
   const { control } = form;
 
   const protocolsValues = useWatch({ control, name: "protocols" });
+
+  useLayoutEffect(() => {
+    if (!revealProtocolError.current) return;
+    revealProtocolError.current = false;
+    const summary =
+      formRef.current?.querySelector<HTMLElement>('[role="alert"]');
+    const viewport = formRef.current?.closest<HTMLElement>(
+      "[data-radix-scroll-area-viewport]"
+    );
+    // Only scroll the content viewport, not overflow:hidden Dialog ancestors.
+    if (viewport) viewport.scrollTop = 0;
+    else summary?.scrollIntoView({ block: "start", behavior: "instant" });
+    summary?.focus({ preventScroll: true });
+  });
 
   useEffect(() => {
     if (initialValues && !safety.dirty && !safety.busy) {
@@ -791,6 +813,38 @@ export default function ServerForm(props: ServerFormProps) {
     }
   }
 
+  // Expanding a protocol is not enabling it. Never silently discard a draft
+  // just because its independent switch was left off. A pristine empty server
+  // and deliberately disabling an unchanged existing protocol remain valid.
+  function submitForm(event?: BaseSyntheticEvent) {
+    const values = form.getValues();
+    const baseline = form.formState.defaultValues?.protocols || [];
+    let firstDisabled: string | undefined;
+    for (const [index, protocol] of (values.protocols || []).entries()) {
+      if (protocol.enable) continue;
+      const changes = changedFormFields(baseline[index], protocol).filter(
+        (path) => path !== "enable"
+      );
+      if (!changes.length) continue;
+      form.setError(`protocols.${index}.enable`, {
+        type: "manual",
+        message: t(
+          "validation.disabledProtocolDraft",
+          "{{protocol}} has changes but is not enabled. Enable it to save these settings, or undo its changes.",
+          { protocol: String(protocol.type).toUpperCase() }
+        ),
+      });
+      firstDisabled ??= protocol.type;
+    }
+    if (firstDisabled) {
+      event?.preventDefault();
+      revealProtocolError.current = true;
+      setAccordionValue(firstDisabled);
+      return;
+    }
+    return safety.handleSubmit(handleSubmit)(event);
+  }
+
   return (
     <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
       {trigger ? (
@@ -827,7 +881,8 @@ export default function ServerForm(props: ServerFormProps) {
           <Form {...form}>
             <form
               className="grid grid-cols-1 gap-2 px-6 pt-4"
-              onSubmit={safety.handleSubmit(handleSubmit)}
+              onSubmit={submitForm}
+              ref={formRef}
             >
               {safety.summary}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -938,8 +993,13 @@ export default function ServerForm(props: ServerFormProps) {
                         data-form-path={`protocols.${i}`}
                         trailing={
                           <Switch
+                            aria-invalid={
+                              !!form.getFieldState(`protocols.${i}.enable`)
+                                .error
+                            }
                             aria-label={`${type} ${t("enabled", "Enabled")}`}
                             checked={!!isEnabled}
+                            data-form-field={`protocols.${i}.enable`}
                             disabled={Boolean(
                               initialValues?.id &&
                                 isProtocolUsedInNodes(initialValues.id, type) &&
@@ -949,12 +1009,10 @@ export default function ServerForm(props: ServerFormProps) {
                               form.setValue(`protocols.${i}.enable`, checked, {
                                 shouldDirty: true,
                               });
+                              form.clearErrors(`protocols.${i}` as any);
                               if (checked) setAccordionValue(type);
-                              else {
-                                if (accordionValue === type)
-                                  setAccordionValue(undefined);
-                                form.clearErrors(`protocols.${i}` as any);
-                              }
+                              else if (accordionValue === type)
+                                setAccordionValue("");
                             }}
                           />
                         }
@@ -995,6 +1053,14 @@ export default function ServerForm(props: ServerFormProps) {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pt-0 pb-4">
+                        {!isEnabled && (
+                          <p className="mb-3 text-muted-foreground text-sm">
+                            {t(
+                              "disabledProtocolHint",
+                              "This protocol is off. After configuring it, enable the switch beside its heading to save these changes."
+                            )}
+                          </p>
+                        )}
                         <div className="admin-protocol-groups space-y-5 border-t pt-4">
                           {renderGroupCard(
                             t("basic", "Basic Configuration"),
@@ -1071,11 +1137,7 @@ export default function ServerForm(props: ServerFormProps) {
             disabled={loading || safety.busy}
             loading={loading || safety.submitting}
             loadingLabel={t("components:actions.processing")}
-            onClick={safety.handleSubmit(handleSubmit, (errors) => {
-              const key = Object.keys(errors)[0] as keyof typeof errors;
-              if (key) toast.error(String(errors[key]?.message));
-              return false;
-            })}
+            onClick={submitForm}
           >
             {t("confirm", "Confirm")}
           </Button>

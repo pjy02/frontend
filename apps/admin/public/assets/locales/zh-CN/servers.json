@@ -235,7 +235,9 @@
   "backToServers": "返回服务器列表",
   "serverNotFound": "未找到服务器",
   "serverNotFoundDescription": "请求的服务器可能已删除或暂不可用。",
+  "disabledProtocolHint": "当前协议尚未启用。填写配置后，请开启标题右侧的开关，才能保存这些修改。",
   "validation": {
+    "disabledProtocolDraft": "{{protocol}} 已填写或修改配置，但尚未启用。请开启该协议后保存，或撤销该协议的修改。",
     "requiredField": "此项为必填项",
     "requiredNumberField": "请输入有效数字",
     "requiredSelectField": "请选择一项"
