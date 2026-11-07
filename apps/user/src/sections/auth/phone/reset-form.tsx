@@ -40,7 +40,10 @@ export default function ResetForm({
   const formSchema = z.object({
     telephone_area_code: z.string(),
     telephone: z.string(),
-    password: z.string(),
+    password: z
+      .string()
+      .min(8, t("passwordLength", "Password must be 8-128 characters"))
+      .max(128, t("passwordLength", "Password must be 8-128 characters")),
     code: z.string().min(1, t("placeholders.code", "Enter code...")),
     cf_token:
       verify.enable_reset_password_verify && verify.turnstile_site_key
@@ -148,7 +151,10 @@ export default function ResetForm({
               <FormItem>
                 <FormControl>
                   <Input
-                    placeholder="Enter your new password..."
+                    placeholder={t(
+                      "placeholders.newPassword",
+                      "Enter your new password (at least 8 characters)..."
+                    )}
                     type="password"
                     {...field}
                   />

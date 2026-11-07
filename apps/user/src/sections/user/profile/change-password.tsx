@@ -45,7 +45,22 @@ export default function ChangePassword() {
       current_code: z.string().optional(),
       current_area_code: z.string().optional(),
       current_mobile: z.string().optional(),
-      password: z.string().min(6),
+      password: z
+        .string()
+        .min(
+          8,
+          t(
+            "accountSettings.passwordLength",
+            "Password must be 8-128 characters"
+          )
+        )
+        .max(
+          128,
+          t(
+            "accountSettings.passwordLength",
+            "Password must be 8-128 characters"
+          )
+        ),
       repeat_password: z.string(),
     })
     .refine((data) => data.password === data.repeat_password, {
@@ -159,8 +174,8 @@ export default function ChangePassword() {
                   <FormControl>
                     <Input
                       placeholder={t(
-                        "accountSettings.newPassword",
-                        "New Password"
+                        "accountSettings.newPasswordHint",
+                        "New Password (at least 8 characters)"
                       )}
                       type="password"
                       {...field}

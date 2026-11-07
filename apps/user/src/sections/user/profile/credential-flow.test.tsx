@@ -90,15 +90,26 @@ function fill(placeholder: string, value: string) {
     target: { value },
   });
 }
-function fillPassword() {
-  fill("New Password", "new-password");
-  fill("Repeat New Password", "new-password");
+const newPasswordPlaceholder = "New Password (at least 8 characters)";
+function fillPassword(password = "new-password") {
+  fill(newPasswordPlaceholder, password);
+  fill("Repeat New Password", password);
 }
 function submitPassword() {
   fireEvent.submit(document.getElementById("password-form") as HTMLFormElement);
 }
 
 describe("password credential compatibility", () => {
+  it.each([
+    { limit: "shorter than 8", password: "short07" },
+    { limit: "longer than 128", password: "x".repeat(129) },
+  ])("rejects a new password $limit characters", async ({ password }) => {
+    render(<ChangePassword />);
+    fillPassword(password);
+    submitPassword();
+    await screen.findByText("Password must be 8-128 characters");
+    expect(mocks.password).not.toHaveBeenCalled();
+  });
   it("requires the old password and uses it for accounts which have a bound address", async () => {
     bound("email", "old@test.com");
     render(<ChangePassword />);
@@ -191,7 +202,8 @@ describe("password credential compatibility", () => {
       ).toBe(false)
     );
     expect(
-      (screen.getByPlaceholderText("New Password") as HTMLInputElement).value
+      (screen.getByPlaceholderText(newPasswordPlaceholder) as HTMLInputElement)
+        .value
     ).toBe("new-password");
     expect(mocks.logout).not.toHaveBeenCalled();
     submitPassword();

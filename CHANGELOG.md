@@ -19,6 +19,22 @@ This document records all notable changes to ShadCN Admin.
 ---
 
 
+## [1.22.1-dev.2](https://github.com/perfect-panel/frontend/compare/v1.22.1-dev.1...v1.22.1-dev.2) (2026-11-02)
+
+### 🐛 Bug Fixes / 问题修复
+
+* explain password rules and translate backend errors ([404a5a0](https://github.com/perfect-panel/frontend/commit/404a5a080d2f16f435ad2b0a3fe0c35a86c0ade1))
+
+## [1.22.1-dev.1](https://github.com/perfect-panel/frontend/compare/v1.22.0...v1.22.1-dev.1) (2026-10-18)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **ticket:** show users that support has replied ([bee2fe4](https://github.com/perfect-panel/frontend/commit/bee2fe47081d908d901106879a774ab4347964d1))
+
+### 🔧 Chores / 其他变更
+
+* **release:** Release 1.22.0-dev.3 / 发布版本 1.22.0-dev.3 [skip ci] ([ee62b33](https://github.com/perfect-panel/frontend/commit/ee62b33e70d189be7d9f484b512e073255545a1b))
+
 ## [1.22.0](https://github.com/perfect-panel/frontend/compare/v1.21.0...v1.22.0) (2026-10-01)
 
 ### ✨ Features / 新功能

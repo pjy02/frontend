@@ -131,7 +131,7 @@ describe.each([
     expect(
       (
         screen.getByPlaceholderText(
-          "Enter your password..."
+          "Enter your password (at least 8 characters)..."
         ) as HTMLInputElement
       ).value
     ).toBe("password");
@@ -174,7 +174,7 @@ describe.each([
     expect(
       (
         screen.getByPlaceholderText(
-          "Enter your new password..."
+          "Enter your new password (at least 8 characters)..."
         ) as HTMLInputElement
       ).value
     ).toBe("password");
