@@ -130,7 +130,13 @@ export default function NodeForm(props: {
 
   const serverId = form.watch("server_id");
 
-  const { servers, getAvailableProtocols } = useServer();
+  const {
+    servers,
+    fetchServers,
+    getAvailableProtocols,
+    loading: loadingServers,
+    loadFailed,
+  } = useServer();
   const { tags } = useNode();
 
   const existingTags: string[] = tags || [];
@@ -250,7 +256,13 @@ export default function NodeForm(props: {
   }
 
   return (
-    <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
+    <WorkspaceDialog
+      onOpenChange={(next) => {
+        if (next) fetchServers();
+        return safety.requestOpenChange(next);
+      }}
+      open={open}
+    >
       <WorkspaceDialogTrigger asChild>
         <Button
           onClick={() => {
@@ -292,12 +304,31 @@ export default function NodeForm(props: {
                         onChange={(v) => handleServerChange(v)}
                         options={servers.map((s) => ({
                           value: s.id,
-                          label: `${s.name} (${(s.address as any) || ""})`,
+                          label: s.address
+                            ? `${s.name} (${s.address})`
+                            : s.name,
                         }))}
-                        placeholder={t("select_server", "Select server…")}
+                        placeholder={
+                          loadingServers && servers.length === 0
+                            ? t("components:read.loading", "Loading data")
+                            : t("select_server", "Select server…")
+                        }
                         value={field.value}
                       />
                     </FormControl>
+                    {loadFailed && (
+                      <FormDescription>
+                        {t("components:read.failed", "Unable to load data")}{" "}
+                        <Button
+                          onClick={fetchServers}
+                          size="sm"
+                          type="button"
+                          variant="link"
+                        >
+                          {t("components:read.retry", "Retry")}
+                        </Button>
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

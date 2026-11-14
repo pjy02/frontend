@@ -34,7 +34,12 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
+import { fetchAllPaginated } from "@/stores/pagination";
 import { useServer } from "@/stores/server";
+import {
+  inventorySearchTerm,
+  matchesInventorySearch,
+} from "@/utils/inventory-search";
 import DynamicMultiplier from "./dynamic-multiplier";
 import OnlineUsersCell from "./online-users-cell";
 import ServerConfig from "./server-config";
@@ -378,11 +383,22 @@ export default function Servers({ actionRef }: ServersProps) {
         }}
         params={[{ key: "search" }]}
         request={async (pagination, filter, { signal }) => {
+          const term = inventorySearchTerm(filter?.search);
+          if (term) {
+            const servers = await fetchAllPaginated(filterServerList, signal);
+            const matches = servers.filter((server) =>
+              matchesInventorySearch(server, term)
+            );
+            const start = (pagination.page - 1) * pagination.size;
+            return {
+              list: matches.slice(start, start + pagination.size),
+              total: matches.length,
+            };
+          }
           const { data } = await filterServerList(
             {
               page: pagination.page,
               size: pagination.size,
-              search: filter?.search || undefined,
             },
             { signal }
           );

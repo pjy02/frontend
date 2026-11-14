@@ -28,10 +28,13 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
+import { fetchAllPaginated } from "@/stores/pagination";
 import { useServer } from "@/stores/server";
+import {
+  inventorySearchTerm,
+  matchesInventorySearch,
+} from "@/utils/inventory-search";
 import NodeForm from "./node-form";
-
-const NODE_SORT_BATCH_SIZE = 100;
 
 function sortNodes(nodes: API.Node[]) {
   return nodes.slice().sort((a, b) => {
@@ -45,56 +48,11 @@ function sortNodes(nodes: API.Node[]) {
 }
 
 async function filterAllNodes(search?: string, signal?: AbortSignal) {
-  const firstResponse = await filterNodeList(
-    {
-      page: 1,
-      size: NODE_SORT_BATCH_SIZE,
-      search: search || undefined,
-    },
-    { signal }
+  const nodes = await fetchAllPaginated(filterNodeList, signal);
+  const term = inventorySearchTerm(search);
+  return sortNodes(
+    term ? nodes.filter((node) => matchesInventorySearch(node, term)) : nodes
   );
-  const firstPage = (firstResponse.data?.data?.list || []) as API.Node[];
-  const total = Number(firstResponse.data?.data?.total || firstPage.length);
-
-  if (total <= firstPage.length) {
-    return sortNodes(firstPage);
-  }
-
-  // Older backends may enforce a lower cap than the documented 100 records.
-  // Derive the effective size so the sortable workspace still loads every page.
-  const effectivePageSize = firstPage.length || NODE_SORT_BATCH_SIZE;
-  const pageCount = Math.ceil(total / effectivePageSize);
-  // Keep every record for cross-page/keyboard sorting, but avoid a request burst
-  // on large installations. Superseding search cancels every in-flight batch.
-  const remainingResponses: Awaited<ReturnType<typeof filterNodeList>>[] = [];
-  for (let page = 2; page <= pageCount; page += 4) {
-    signal?.throwIfAborted();
-    remainingResponses.push(
-      ...(await Promise.all(
-        Array.from({ length: Math.min(4, pageCount - page + 1) }, (_, index) =>
-          filterNodeList(
-            {
-              page: page + index,
-              size: NODE_SORT_BATCH_SIZE,
-              search: search || undefined,
-            },
-            { signal }
-          )
-        )
-      ))
-    );
-  }
-  const merged = [
-    ...firstPage,
-    ...remainingResponses.flatMap(
-      (response) => (response.data?.data?.list || []) as API.Node[]
-    ),
-  ];
-  const uniqueNodes = Array.from(
-    new Map(merged.map((node) => [String(node.id), node])).values()
-  );
-
-  return sortNodes(uniqueNodes);
 }
 
 export default function Nodes() {
