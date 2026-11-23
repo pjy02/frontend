@@ -1,6 +1,7 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, next, beta, develop]
     paths-ignore:
@@ -47,5 +48,5 @@ jobs:
         id: release
         run: bun run release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           HUSKY: 0

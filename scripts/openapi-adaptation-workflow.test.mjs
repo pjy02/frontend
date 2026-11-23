@@ -22,6 +22,10 @@ test("openapi adaptation workflow checks out trusted develop code with read-only
   assert.match(workflow, /permissions:\n\s+contents: read/);
   assert.match(
     workflow,
+    /notify-automation:\n(?:\s+#[^\n]*\n)*\s+if: github\.repository == 'perfect-panel\/frontend'/
+  );
+  assert.match(
+    workflow,
     /uses: actions\/checkout@v4\n\s+with:\n\s+ref: develop/
   );
   assert.doesNotMatch(

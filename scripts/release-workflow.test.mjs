@@ -27,3 +27,14 @@ test("release workflow ignores documentation and automation-only paths", async (
   assert.match(workflow, /uses:\s*actions\/cache@v4/);
   assert.doesNotMatch(workflow, /uses:\s*actions\/cache@v3/);
 });
+
+test("release workflow can be run manually and uses the repository token as a fallback", async () => {
+  const workflow = await readFile(workflowUrl, "utf8");
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /permissions:\s+contents: write/);
+  assert.match(
+    workflow,
+    /GH_TOKEN: \$\{\{ secrets\.GH_TOKEN \|\| github\.token \}\}/
+  );
+});

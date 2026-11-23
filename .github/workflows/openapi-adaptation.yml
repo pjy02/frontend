@@ -18,6 +18,8 @@ permissions:
 
 jobs:
   notify-automation:
+    # The automation bridge and its develop branch belong to the upstream repository.
+    if: github.repository == 'perfect-panel/frontend'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout trusted develop automation
