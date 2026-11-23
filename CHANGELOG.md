@@ -19,6 +19,18 @@ This document records all notable changes to ShadCN Admin.
 ---
 
 
+## [1.24.1](https://github.com/pjy02/frontend/compare/v1.24.0...v1.24.1) (2026-11-23)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** remove remote media before previewing email ([20257ed](https://github.com/pjy02/frontend/commit/20257ed2de8711d40a820efe0c5b92498f800b4d))
+* improve checkout, node inventory, and release checks ([39e0204](https://github.com/pjy02/frontend/commit/39e020447885d39ad7441f7ae7d0962067a4caf3))
+
+### 👷 Continuous Integration / CI/CD
+
+* fix release and OpenAPI workflows on the fork ([91866bf](https://github.com/pjy02/frontend/commit/91866bf413d21fe2cc23e3b9487d8f7fb940d3bc))
+* use Ubuntu 24.04 for Playwright verification ([02ba1ec](https://github.com/pjy02/frontend/commit/02ba1ecfd28cb0038dc987adc034f2de95ac925f))
+
 ## [1.24.0](https://github.com/perfect-panel/frontend/compare/v1.23.1...v1.24.0) (2026-11-22)
 
 ### ✨ Features / 新功能
