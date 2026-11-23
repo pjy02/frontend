@@ -13,6 +13,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Separator } from "@workspace/ui/components/separator";
 import { Icon } from "@workspace/ui/composed/icon";
+import { getCookie } from "@workspace/ui/lib/cookies";
 import {
   postV1PublicPortalOrderCheckout as purchaseCheckout,
   getV1PublicPortalOrderStatus as queryPurchaseOrder,
@@ -21,67 +22,84 @@ import { formatDate } from "@workspace/ui/utils/formatting";
 import { useCountDown } from "ahooks";
 import { addMinutes, format } from "date-fns";
 import { QRCodeCanvas } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Display } from "@/components/display";
 import { SubscribeBilling } from "@/sections/subscribe/billing";
 import { SubscribeDetail } from "@/sections/subscribe/detail";
 import StripePayment from "@/sections/user/payment/stripe";
 import { useGlobalStore } from "@/stores/global";
 import { setAuthorization } from "@/utils/common";
+import {
+  clearGuestCheckout,
+  isCheckoutAccessError,
+  readGuestCheckout,
+} from "./checkout-session";
 
 export default function Order() {
   const { t } = useTranslation("order");
   const { getUserInfo } = useGlobalStore();
-  const [orderNo, setOrderNo] = useState<string>();
-  const [enabled, setEnabled] = useState<boolean>(false);
-  const search = useSearch({ from: "/(main)/purchasing/order/" });
+  const { order_no: orderNo } = useSearch({
+    from: "/(main)/purchasing/order/",
+  });
+  const token = orderNo ? readGuestCheckout(orderNo) : undefined;
+  const canOpen = Boolean(orderNo && (token || getCookie("Authorization")));
+  const openedCheckout = useRef<string | undefined>(undefined);
 
-  const { data } = useQuery({
-    enabled,
+  const status = useQuery({
+    enabled: canOpen,
     queryKey: ["queryPurchaseOrder", orderNo],
-    queryFn: async () => {
-      if (!orderNo) return;
-      const params = localStorage.getItem(orderNo);
-      const authParams = params ? JSON.parse(params) : {};
-      const { data } = await queryPurchaseOrder({
-        order_no: orderNo,
-        ...authParams,
-      });
-      if (data?.data?.status !== 1) {
-        setEnabled(false);
-        if (data?.data?.token) {
-          setAuthorization(data?.data?.token);
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          await getUserInfo();
-        }
-      }
-      return data?.data;
+    queryFn: async ({ signal }) => {
+      if (!orderNo) throw new Error("Order number is missing");
+      const { data } = await queryPurchaseOrder(
+        { order_no: orderNo, checkout_token: token },
+        { signal, skipErrorHandler: true }
+      );
+      if (!data.data) throw new Error("Order status is missing");
+      return data.data;
     },
-    refetchInterval: 3000,
+    refetchInterval: ({ state }) =>
+      !state.error && state.data?.status === 1 ? 3000 : false,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
-  const { data: payment } = useQuery({
-    enabled: !!orderNo && data?.status === 1,
-    queryKey: ["purchaseCheckout", orderNo],
-    queryFn: async () => {
-      const { data } = await purchaseCheckout({
-        orderNo: orderNo || "",
-        returnUrl: window.location.href,
-      });
-      if (data.data?.type === "url" && data.data?.checkout_url) {
-        window.open(data.data.checkout_url, "_blank");
-      }
-      return data?.data;
+  const { data } = status;
+  const checkout = useQuery({
+    enabled: canOpen && status.isSuccess && data?.status === 1,
+    queryKey: ["guestCheckout", orderNo],
+    queryFn: async ({ signal }) => {
+      const { data } = await purchaseCheckout(
+        {
+          orderNo,
+          checkout_token: token,
+          returnUrl: window.location.href,
+        },
+        { signal, skipErrorHandler: true }
+      );
+      if (!data.data) throw new Error("Payment instructions are missing");
+      return data.data;
     },
+    refetchOnWindowFocus: false,
+    retry: false,
   });
+  const { data: payment } = checkout;
 
   useEffect(() => {
-    if (search.order_no) {
-      setOrderNo(search.order_no);
-      setEnabled(true);
+    if (!(orderNo && token && data?.token)) return;
+    if (!getCookie("Authorization")) {
+      setAuthorization(data.token);
+      getUserInfo();
     }
-  }, [search]);
+    if (getCookie("Authorization") === data.token) clearGuestCheckout(orderNo);
+  }, [data?.token, getUserInfo, orderNo, token]);
+
+  useEffect(() => {
+    if (!orderNo || data?.status !== 1 || payment?.type !== "url") return;
+    const url = payment.checkout_url;
+    if (!url || openedCheckout.current === orderNo) return;
+    openedCheckout.current = orderNo;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [data?.status, orderNo, payment]);
 
   const [countDown, formattedRes] = useCountDown({
     targetDate:
@@ -101,6 +119,59 @@ export default function Order() {
     ) : (
       t("timeExpired", "Time Expired")
     );
+
+  const failed = status.isError
+    ? status
+    : data?.status === 1 && checkout.isError
+      ? checkout
+      : undefined;
+  const unavailable = !canOpen || isCheckoutAccessError(failed?.error);
+  if (unavailable || failed) {
+    return (
+      <main className="container py-16">
+        <Card>
+          <CardContent className="space-y-4" role="alert">
+            <p>
+              {unavailable
+                ? t(
+                    "guestCheckout.unavailable",
+                    "This checkout session is unavailable. Open the order in the original tab, or sign in to view your orders."
+                  )
+                : t(
+                    "guestCheckout.failed",
+                    "Could not load the order or its payment details."
+                  )}
+            </p>
+            {orderNo && (
+              <p>
+                {t("orderNumber", "Order Number")} {orderNo}
+              </p>
+            )}
+            {unavailable ? (
+              <Button asChild variant="outline">
+                <Link to="/auth">{t("guestCheckout.signIn", "Sign in")}</Link>
+              </Button>
+            ) : (
+              <Button
+                disabled={failed?.isFetching}
+                onClick={() => failed?.refetch()}
+                variant="outline"
+              >
+                {t("guestCheckout.retry", "Retry")}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+  if (!data) {
+    return (
+      <main aria-busy="true" className="container py-16">
+        <p role="status">{t("guestCheckout.loading", "Loading order…")}</p>
+      </main>
+    );
+  }
 
   return (
     <main className="container lg:mt-16">
@@ -124,54 +195,19 @@ export default function Order() {
             <dl className="grid gap-3">
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">
-                  <Badge>{data?.payment.name || data?.payment.platform}</Badge>
+                  <Badge>{data.payment?.name || data.payment?.platform}</Badge>
                 </dt>
               </div>
             </dl>
             <Separator />
 
-            {data?.status && [1, 2].includes(data.status) && (
+            {data.subscribe && (
               <SubscribeDetail
                 subscribe={{
                   ...data?.subscribe,
                   quantity: data?.quantity,
                 }}
               />
-            )}
-            {data?.status === 3 && (
-              <>
-                <div className="font-semibold">
-                  {t("resetTraffic", "Reset Traffic")}
-                </div>
-                <ul className="grid grid-cols-2 gap-3 *:flex *:items-center *:justify-between lg:grid-cols-1">
-                  <li className="flex items-center justify-between">
-                    <span className="line-clamp-2 flex-1 text-muted-foreground">
-                      {t("resetPrice", "Reset Price")}
-                    </span>
-                    <span>
-                      <Display type="currency" value={data.amount} />
-                    </span>
-                  </li>
-                </ul>
-              </>
-            )}
-
-            {data?.status === 4 && (
-              <>
-                <div className="font-semibold">
-                  {t("balanceRecharge", "Balance Recharge")}
-                </div>
-                <ul className="grid grid-cols-2 gap-3 *:flex *:items-center *:justify-between lg:grid-cols-1">
-                  <li className="flex items-center justify-between">
-                    <span className="line-clamp-2 flex-1 text-muted-foreground">
-                      {t("rechargeAmount", "Recharge Amount")}
-                    </span>
-                    <span>
-                      <Display type="currency" value={data.amount} />
-                    </span>
-                  </li>
-                </ul>
-              </>
             )}
             <Separator />
             <SubscribeBilling
@@ -185,6 +221,11 @@ export default function Order() {
         </Card>
         <Card className="order-1 flex flex-auto items-center justify-center xl:order-2">
           <CardContent className="py-16">
+            {data.status === 1 && !payment && (
+              <p role="status">
+                {t("guestCheckout.loadingPayment", "Loading payment details…")}
+              </p>
+            )}
             {data?.status && [2, 5].includes(data?.status) && (
               <div className="flex flex-col items-center gap-8 text-center">
                 <h3 className="font-bold text-2xl tracking-tight">

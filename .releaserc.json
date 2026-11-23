@@ -135,7 +135,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "bun run build && tar -czf admin.tar.gz -C apps/admin/dist . && tar -czf user.tar.gz -C apps/user/dist . && echo 'VITE_API_PREFIX=/api' > apps/admin/.env && echo 'VITE_API_PREFIX=/api' > apps/user/.env && bun run build && tar -czf admin-with-api.tar.gz -C apps/admin/dist . && tar -czf user-with-api.tar.gz -C apps/user/dist ."
+        "prepareCmd": "node scripts/prepare-release.mjs"
       }
     ],
     [

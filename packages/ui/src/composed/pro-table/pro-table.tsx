@@ -104,7 +104,7 @@ export interface ProTableProps<TData, TValue> {
       size: number;
     },
     filter: TValue,
-    context: { signal: AbortSignal }
+    context: { signal: AbortSignal; refresh: boolean }
   ) => Promise<{ list: TData[]; total: number }>;
   params?: IParams[];
   header?: {
@@ -151,6 +151,7 @@ export interface ProTableProps<TData, TValue> {
     targetId: string | number | null,
     items: TData[]
   ) => Promise<TData[]>;
+  sortOnlyUnfiltered?: boolean;
   onFiltersChange?: (filters: Record<string, unknown>) => void;
   initialFilters?: Record<string, unknown>;
   onPaginationChange?: (pagination: ProTablePagination) => void;
@@ -183,7 +184,8 @@ export function ProTable<
   action,
   texts,
   empty,
-  onSort,
+  onSort: sortRows,
+  sortOnlyUnfiltered,
   onFiltersChange,
   initialFilters,
   onPaginationChange,
@@ -291,6 +293,8 @@ export function ProTable<
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
     toColumnFilters(initialFilters || {})
   );
+  const onSort =
+    sortOnlyUnfiltered && columnFilters.length ? undefined : sortRows;
   const [rowSelection, setRowSelection] = useState({});
   const [filterResetKey, setFilterResetKey] = useState(0);
   const [data, setData] = useState<TData[]>([]);
@@ -508,7 +512,7 @@ export function ProTable<
           size: pagination.pageSize,
         },
         filters,
-        { signal: controller.signal }
+        { signal: controller.signal, refresh: showRefreshFeedback }
       );
       if (requestId !== requestIdRef.current && options.throwOnError) {
         throw new Error("Table synchronization was superseded");

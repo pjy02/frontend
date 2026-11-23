@@ -73,5 +73,13 @@
     "unsubscribe": "取消订阅",
     "unsubscribeDescription": "请注意：如果您现在取消订阅，订阅的剩余价值将退还到您的账户余额中，可用于您下次的订阅购买或续订。"
   },
-  "Year": "年"
+  "Year": "年",
+  "quote": {
+    "failed": "无法确认当前价格。",
+    "loading": "正在确认价格…",
+    "noPaymentMethods": "暂无可用的支付方式。",
+    "orderMissing": "无法打开订单。",
+    "paymentMethodsFailed": "无法加载支付方式。",
+    "retry": "重试"
+  }
 }

@@ -34,4 +34,13 @@ describe("fetchAllPaginated", () => {
     ).rejects.toHaveProperty("name", "AbortError");
     expect(fetchPage).toHaveBeenCalledTimes(1);
   });
+
+  it("does not accept a partial inventory as complete", async () => {
+    const fetchPage = async ({ page }: { page: number }) => ({
+      data: { data: { list: page === 1 ? [{ id: 1 }] : [], total: 2 } },
+    });
+    await expect(fetchAllPaginated(fetchPage)).rejects.toThrow(
+      "Inventory response is incomplete"
+    );
+  });
 });

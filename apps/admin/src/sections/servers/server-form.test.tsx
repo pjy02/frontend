@@ -11,8 +11,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getProtocolDefaultConfig } from "./form-schema";
 import ServerForm from "./server-form";
 
+const nodeInventory = vi.hoisted(() => ({
+  ready: true,
+  fetchNodes: vi.fn(),
+}));
 vi.mock("@/stores/node", () => ({
-  useNode: () => ({ isProtocolUsedInNodes: () => false }),
+  useNode: () => ({
+    fetchNodes: nodeInventory.fetchNodes,
+    isProtocolUsedInNodes: () => false,
+    loadFailed: !nodeInventory.ready,
+    nodeReferencesReady: () => nodeInventory.ready,
+  }),
 }));
 vi.mock("@workspace/ui/composed/icon", () => ({ Icon: () => null }));
 vi.mock("@workspace/ui/components/scroll-area", () => ({
@@ -28,6 +37,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 beforeEach(() => {
+  nodeInventory.ready = true;
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -63,6 +73,31 @@ async function save() {
 }
 
 describe("server protocol submission", () => {
+  it("blocks disabling a stored protocol when node references could not be loaded", () => {
+    nodeInventory.ready = false;
+    render(
+      <ServerForm
+        initialValues={{
+          id: 7,
+          name: "HK",
+          address: "203.0.113.47",
+          protocols: [{ ...reality, enable: true }],
+        }}
+        onSubmit={vi.fn()}
+        open
+        title="Edit Server"
+      />
+    );
+    expect(screen.getByText(/could not verify node references/i)).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("switch", {
+          name: "Enable vless",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true);
+  });
+
   it("submits enabled VLESS Reality fields on the first confirmed save", async () => {
     const submit = vi.fn().mockResolvedValue(true);
     render(

@@ -36,5 +36,13 @@
     "4": "充值"
   },
   "viewDocument": "查看文档",
-  "waitingForPayment": "等待支付"
+  "waitingForPayment": "等待支付",
+  "guestCheckout": {
+    "failed": "无法加载订单或支付信息。",
+    "loading": "正在加载订单…",
+    "loadingPayment": "正在加载支付信息…",
+    "retry": "重试",
+    "signIn": "登录",
+    "unavailable": "本次结账凭证不可用。请回到最初下单的标签页，或登录查看订单。"
+  }
 }

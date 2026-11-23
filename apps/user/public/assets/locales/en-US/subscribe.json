@@ -73,5 +73,13 @@
     "unsubscribe": "Unsubscribe",
     "unsubscribeDescription": "Please note: If you unsubscribe now, the remaining value of the subscription will be refunded to your account balance, which can be used for your next subscription purchase or renewal."
   },
-  "Year": "Year"
+  "Year": "Year",
+  "quote": {
+    "failed": "Could not confirm the current price.",
+    "loading": "Confirming the price…",
+    "noPaymentMethods": "No payment methods are available.",
+    "orderMissing": "The order could not be opened.",
+    "paymentMethodsFailed": "Could not load payment methods.",
+    "retry": "Retry"
+  }
 }

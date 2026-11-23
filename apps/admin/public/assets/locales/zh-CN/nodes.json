@@ -32,5 +32,11 @@
   "tags": "标签",
   "tags_description": "权限分组标签（包含计划绑定和投递策略）。",
   "tags_placeholder": "使用回车或逗号 (,) 添加多个标签",
-  "updated": "已更新"
+  "updated": "已更新",
+  "addressKind": "地址类型",
+  "hostname": "域名",
+  "copyAddress": "复制节点入口",
+  "addressCopied": "已复制入口地址",
+  "addressCopyFailed": "无法复制入口地址",
+  "refreshServers": "刷新服务器列表"
 }

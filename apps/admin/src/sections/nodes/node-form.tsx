@@ -31,7 +31,7 @@ import {
   WorkspaceDialogTrigger,
 } from "@/components/workspace-dialog";
 import { useNode } from "@/stores/node";
-import { useServer } from "@/stores/server";
+import { refreshServerInventory, useServer } from "@/stores/server";
 import type { ProtocolType } from "../servers/form-schema/types";
 
 export type ProtocolName = ProtocolType | "hysteria" | "http" | "socks";
@@ -306,19 +306,21 @@ export default function NodeForm(props: {
                         value={field.value}
                       />
                     </FormControl>
-                    {loadFailed && (
-                      <FormDescription>
-                        {t("components:read.failed", "Unable to load data")}{" "}
-                        <Button
-                          onClick={fetchServers}
-                          size="sm"
-                          type="button"
-                          variant="link"
-                        >
-                          {t("components:read.retry", "Retry")}
-                        </Button>
-                      </FormDescription>
-                    )}
+                    <FormDescription className="flex flex-wrap items-center gap-2">
+                      {loadFailed &&
+                        t("components:read.failed", "Unable to load data")}
+                      <Button
+                        disabled={loadingServers}
+                        onClick={refreshServerInventory}
+                        size="sm"
+                        type="button"
+                        variant="link"
+                      >
+                        {loadFailed
+                          ? t("components:read.retry", "Retry")
+                          : t("refreshServers", "Refresh servers")}
+                      </Button>
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

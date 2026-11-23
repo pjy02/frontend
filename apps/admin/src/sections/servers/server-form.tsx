@@ -36,6 +36,7 @@ import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
 import {
   type BaseSyntheticEvent,
+  type ReactNode,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -501,6 +502,8 @@ interface ServerFormProps {
   trigger?: string;
   title: string;
   loading?: boolean;
+  readWarning?: ReactNode;
+  saveDisabled?: boolean;
   initialValues?: Partial<API.Server>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void | Promise<void>;
@@ -513,6 +516,8 @@ export default function ServerForm(props: ServerFormProps) {
     trigger,
     title,
     loading,
+    readWarning,
+    saveDisabled,
     initialValues,
     open: controlledOpen,
     onOpenChange,
@@ -533,7 +538,8 @@ export default function ServerForm(props: ServerFormProps) {
     return onOpenChange?.(nextOpen);
   };
 
-  const { isProtocolUsedInNodes } = useNode();
+  const { fetchNodes, isProtocolUsedInNodes, loadFailed, nodeReferencesReady } =
+    useNode();
   const PROTOCOL_FIELDS = useProtocolFields();
 
   const editableSchema = useMemo(
@@ -553,6 +559,11 @@ export default function ServerForm(props: ServerFormProps) {
     [initialValues]
   );
   const uneditableProtocols = getUneditableProtocols(initialValues?.protocols);
+  const serverId = initialValues?.id;
+
+  useEffect(() => {
+    if (open && serverId) fetchNodes();
+  }, [fetchNodes, open, serverId]);
 
   const form = useForm<Record<string, any>>({
     resolver: zodResolver(editableSchema) as unknown as Resolver<
@@ -679,6 +690,26 @@ export default function ServerForm(props: ServerFormProps) {
   async function handleSubmit(values: Record<string, any>) {
     form.clearErrors();
 
+    const protectedProtocolIndex = serverId
+      ? defaultValues.protocols.findIndex(
+          (protocol, index) =>
+            protocol.enable &&
+            !values.protocols?.[index]?.enable &&
+            (!nodeReferencesReady() ||
+              isProtocolUsedInNodes(serverId, protocol.type))
+        )
+      : -1;
+    if (protectedProtocolIndex >= 0) {
+      form.setError(`protocols.${protectedProtocolIndex}.enable`, {
+        type: "manual",
+        message: t(
+          "protocolDisableBlocked",
+          "This protocol cannot be disabled while node references are unverified or the protocol is in use."
+        ),
+      });
+      return;
+    }
+
     if (!validateEnabledProtocols(values)) {
       return;
     }
@@ -741,6 +772,10 @@ export default function ServerForm(props: ServerFormProps) {
   // just because its independent switch was left off. A pristine empty server
   // and deliberately disabling an unchanged existing protocol remain valid.
   function submitForm(event?: BaseSyntheticEvent) {
+    if (saveDisabled) {
+      event?.preventDefault();
+      return;
+    }
     const values = form.getValues();
     const baseline = form.formState.defaultValues?.protocols || [];
     let firstDisabled: string | undefined;
@@ -802,6 +837,30 @@ export default function ServerForm(props: ServerFormProps) {
               ref={formRef}
             >
               {safety.summary}
+              {readWarning && (
+                <div className="col-span-full">{readWarning}</div>
+              )}
+              {serverId && loadFailed && (
+                <div
+                  className="col-span-full flex flex-wrap items-center gap-2"
+                  role="alert"
+                >
+                  <p className="text-muted-foreground text-sm">
+                    {t(
+                      "nodeReferencesUnavailable",
+                      "Could not verify node references. Destructive actions are unavailable until the list is refreshed."
+                    )}
+                  </p>
+                  <Button
+                    onClick={fetchNodes}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {t("components:read.retry", "Retry")}
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={control}
@@ -935,9 +994,11 @@ export default function ServerForm(props: ServerFormProps) {
                             checked={!!isEnabled}
                             data-form-field={`protocols.${i}.enable`}
                             disabled={Boolean(
-                              initialValues?.id &&
-                                isProtocolUsedInNodes(initialValues.id, type) &&
-                                isEnabled
+                              serverId &&
+                                isEnabled &&
+                                defaultValues.protocols[i]?.enable &&
+                                (!nodeReferencesReady() ||
+                                  isProtocolUsedInNodes(serverId, type))
                             )}
                             onCheckedChange={(checked) => {
                               form.setValue(`protocols.${i}.enable`, checked, {
@@ -1076,7 +1137,7 @@ export default function ServerForm(props: ServerFormProps) {
             {t("cancel", "Cancel")}
           </Button>
           <Button
-            disabled={loading || safety.busy}
+            disabled={loading || safety.busy || saveDisabled}
             loading={loading || safety.submitting}
             loadingLabel={t("components:actions.processing")}
             onClick={submitForm}

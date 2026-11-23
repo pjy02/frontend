@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -11,19 +10,18 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Separator } from "@workspace/ui/components/separator";
-import {
-  postV1PublicOrderPre as preCreateOrder,
-  postV1PublicOrderPurchase as purchase,
-} from "@workspace/ui/services/user/user";
+import { postV1PublicOrderPurchase as purchase } from "@workspace/ui/services/user/user";
 import { LoaderCircle } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import CouponInput from "@/sections/subscribe/coupon-input";
 import DurationSelector from "@/sections/subscribe/duration-selector";
 import PaymentMethods from "@/sections/subscribe/payment-methods";
 import { useGlobalStore } from "@/stores/global";
 import { SubscribeBilling } from "./billing";
 import { SubscribeDetail } from "./detail";
+import { OrderQuoteFeedback, useOrderQuote } from "./order-quote";
 
 interface PurchaseProps {
   subscribe?: API.Subscribe;
@@ -44,36 +42,17 @@ export default function Purchase({
     coupon: "",
   });
   const [loading, startTransition] = useTransition();
-  const lastSuccessOrderRef = useRef<any>(null);
-
-  const { data: order } = useQuery({
-    enabled: !!subscribe?.id,
-    queryKey: [
-      "preCreateOrder",
-      subscribe?.id,
-      params.quantity,
-      params.payment,
-      params.coupon,
-    ],
-    queryFn: async () => {
-      try {
-        const { data } = await preCreateOrder({
-          ...params,
-          subscribe_id: subscribe?.id as number,
-        } as API.PurchaseOrderRequest);
-        const result = data.data;
-        if (result) {
-          lastSuccessOrderRef.current = result;
-        }
-        return result;
-      } catch (error) {
-        if (lastSuccessOrderRef.current) {
-          return lastSuccessOrderRef.current;
-        }
-        throw error;
-      }
+  const quote = useOrderQuote(
+    "purchase",
+    {
+      subscribe_id: subscribe?.id ?? 0,
+      quantity: params.quantity ?? 1,
+      payment: params.payment,
+      coupon: params.coupon,
     },
-  });
+    { open: Boolean(subscribe?.id && params.subscribe_id === subscribe.id) }
+  );
+  const canSubmit = quote.confirmed && !loading;
 
   useEffect(() => {
     if (subscribe) {
@@ -99,20 +78,28 @@ export default function Purchase({
     []
   );
 
-  const handleSubmit = useCallback(async () => {
+  function handleSubmit() {
+    if (!canSubmit) return;
     startTransition(async () => {
       try {
         const response = await purchase(params as API.PurchaseOrderRequest);
         const orderNo = response.data.data?.order_no;
         if (orderNo) {
           getUserInfo();
-          router.navigate({ to: "/payment", search: { order_no: orderNo } });
+          await router.navigate({
+            to: "/payment",
+            search: { order_no: orderNo },
+          });
+        } else {
+          toast.error(
+            t("quote.orderMissing", "The order could not be opened.")
+          );
         }
-      } catch (_error) {
-        /* empty */
+      } catch {
+        // API errors are reported by the shared request handler.
       }
     });
-  }, [params, router, getUserInfo]);
+  }
 
   return (
     <Dialog
@@ -137,7 +124,7 @@ export default function Purchase({
               <Separator />
               <SubscribeBilling
                 order={{
-                  ...order,
+                  ...quote.data,
                   quantity: params.quantity,
                   unit_price: subscribe?.unit_price,
                   show_original_price: subscribe?.show_original_price,
@@ -167,9 +154,10 @@ export default function Purchase({
                 value={params.payment as number}
               />
             </div>
+            <OrderQuoteFeedback state={quote} />
             <Button
               className="fixed bottom-0 left-0 w-full md:relative md:mt-6"
-              disabled={loading}
+              disabled={!canSubmit}
               onClick={handleSubmit}
             >
               {loading && <LoaderCircle className="mr-2 animate-spin" />}

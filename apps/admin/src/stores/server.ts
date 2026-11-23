@@ -1,5 +1,6 @@
 import { getServerList as filterServerList } from "@workspace/ui/services/admin/admin";
 import { create } from "zustand";
+import { createInventoryCache } from "./inventory-cache";
 import { fetchAllPaginated } from "./pagination";
 
 interface ServerState {
@@ -25,7 +26,29 @@ interface ServerState {
   ) => Array<{ protocol: string; port: number }>;
 }
 
-export const useServerStore = create<ServerState>((set, get) => ({
+export const readServerInventory = createInventoryCache<API.Server>(
+  (signal) => fetchAllPaginated(filterServerList, signal),
+  {
+    loading: () =>
+      useServerStore.setState({ loading: true, loadFailed: false }),
+    success: (servers) =>
+      useServerStore.setState({ servers, loaded: true, loading: false }),
+    failure: () =>
+      useServerStore.setState({
+        loaded: true,
+        loading: false,
+        loadFailed: true,
+      }),
+  }
+);
+
+export async function refreshServerInventory() {
+  await readServerInventory({ refresh: true }).catch(() => {
+    // The cache has already exposed the failure through the store.
+  });
+}
+
+export const useServerStore = create<ServerState>((_set, get) => ({
   // Initial state
   servers: [],
   loading: false,
@@ -34,20 +57,9 @@ export const useServerStore = create<ServerState>((set, get) => ({
 
   // Actions
   fetchServers: async () => {
-    if (get().loading) return;
-
-    set({ loading: true, loadFailed: false });
-    try {
-      const servers = await fetchAllPaginated(filterServerList);
-      set({
-        servers,
-        loaded: true,
-      });
-    } catch (_error) {
-      set({ loaded: true, loadFailed: true });
-    } finally {
-      set({ loading: false });
-    }
+    await readServerInventory().catch(() => {
+      // The store retains the last successful inventory.
+    });
   },
 
   // Getters

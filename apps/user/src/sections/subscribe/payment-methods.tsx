@@ -19,6 +19,18 @@ interface PaymentMethodsProps {
   balance?: boolean;
 }
 
+export function useAvailablePaymentMethods(balance: boolean, enabled = true) {
+  return useQuery({
+    enabled,
+    queryKey: ["getAvailablePaymentMethods", { balance }],
+    queryFn: async ({ signal }) => {
+      const { data } = await getAvailablePaymentMethods({ signal });
+      const list = data.data?.list || [];
+      return balance ? list : list.filter((item) => item.id !== -1);
+    },
+  });
+}
+
 const PaymentMethods: React.FC<PaymentMethodsProps> = ({
   value,
   onChange,
@@ -27,14 +39,7 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
 }) => {
   const { t } = useTranslation("subscribe");
 
-  const { data } = useQuery({
-    queryKey: ["getAvailablePaymentMethods", { balance }],
-    queryFn: async () => {
-      const { data } = await getAvailablePaymentMethods();
-      const list = data.data?.list || [];
-      return balance ? list : list.filter((item) => item.id !== -1);
-    },
-  });
+  const { data } = useAvailablePaymentMethods(balance);
 
   // Only set a default when the current value is not a valid option.
   // This avoids resetting the user's selection on refetch (common on mobile).

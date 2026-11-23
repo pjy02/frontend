@@ -25,14 +25,16 @@ export const fetchAllPaginated = async <T extends { id: number }>(
     { signal }
   );
   const firstPage = firstResponse.data?.data;
+  if (!firstPage) throw new Error("Inventory response is missing");
   const firstList = firstPage?.list || [];
   const total = firstPage?.total ?? firstList.length;
   if (total <= firstList.length) {
     return firstList;
   }
+  if (firstList.length === 0) throw new Error("Inventory first page is empty");
 
   // Some backend versions cap a page below the requested size.
-  const totalPages = Math.ceil(total / (firstList.length || PAGE_SIZE));
+  const totalPages = Math.ceil(total / firstList.length);
   const items = new Map(firstList.map((item) => [item.id, item]));
   const batchSize = 4;
   for (let page = 2; page <= totalPages; page += batchSize) {
@@ -45,11 +47,14 @@ export const fetchAllPaginated = async <T extends { id: number }>(
       )
     );
     for (const response of responses) {
-      for (const item of response.data?.data?.list || []) {
+      const page = response.data?.data;
+      if (!page) throw new Error("Inventory response is missing");
+      for (const item of page.list || []) {
         items.set(item.id, item);
       }
     }
     if (items.size >= total) break;
   }
+  if (items.size < total) throw new Error("Inventory response is incomplete");
   return [...items.values()];
 };

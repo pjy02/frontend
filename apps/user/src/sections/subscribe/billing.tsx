@@ -54,7 +54,7 @@ export function SubscribeBilling({ order }: Readonly<SubscribeBillingProps>) {
           <span>
             <Display
               type="currency"
-              value={order?.price || order?.unit_price}
+              value={order?.price ?? order?.unit_price}
             />
           </span>
         </li>

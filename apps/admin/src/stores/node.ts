@@ -3,6 +3,7 @@ import {
   getServerNodeTags as queryNodeTag,
 } from "@workspace/ui/services/admin/admin";
 import { create } from "zustand";
+import { createInventoryCache } from "./inventory-cache";
 import { fetchAllPaginated } from "./pagination";
 
 interface NodeState {
@@ -15,6 +16,7 @@ interface NodeState {
   loadingTags: boolean;
   loaded: boolean;
   loadedTags: boolean;
+  loadFailed: boolean;
 
   // Actions
   fetchNodes: () => Promise<void>;
@@ -24,10 +26,28 @@ interface NodeState {
   getNodeById: (nodeId: number) => API.Node | undefined;
   isProtocolUsedInNodes: (serverId: number, protocolType: string) => boolean;
   isServerReferencedByNodes: (serverId: number) => boolean;
+  nodeReferencesReady: () => boolean;
   getNodesByTag: (tag: string) => API.Node[];
   getNodesWithoutTags: () => API.Node[];
   getNodeTags: () => string[];
   getAllAvailableTags: () => string[];
+}
+
+export const readNodeInventory = createInventoryCache<API.Node>(
+  (signal) => fetchAllPaginated(filterNodeList, signal),
+  {
+    loading: () => useNodeStore.setState({ loading: true, loadFailed: false }),
+    success: (nodes) =>
+      useNodeStore.setState({ nodes, loaded: true, loading: false }),
+    failure: () =>
+      useNodeStore.setState({ loaded: true, loading: false, loadFailed: true }),
+  }
+);
+
+export async function refreshNodeInventory() {
+  await readNodeInventory({ refresh: true }).catch(() => {
+    // The cache has already exposed the failure through the store.
+  });
 }
 
 export const useNodeStore = create<NodeState>((set, get) => ({
@@ -38,24 +58,13 @@ export const useNodeStore = create<NodeState>((set, get) => ({
   loadingTags: false,
   loaded: false,
   loadedTags: false,
+  loadFailed: false,
 
   // Actions
   fetchNodes: async () => {
-    if (get().loading) return;
-
-    set({ loading: true });
-    try {
-      const nodes = await fetchAllPaginated(filterNodeList);
-      set({
-        nodes,
-        loaded: true,
-      });
-    } catch (_error) {
-      // Handle error silently
-      set({ loaded: true });
-    } finally {
-      set({ loading: false });
-    }
+    await readNodeInventory().catch(() => {
+      // The store retains the last successful inventory.
+    });
   },
 
   fetchTags: async () => {
@@ -81,11 +90,19 @@ export const useNodeStore = create<NodeState>((set, get) => ({
 
   isProtocolUsedInNodes: (serverId: number, protocolType: string) =>
     get().nodes.some(
-      (node) => node.server_id === serverId && node.protocol === protocolType
+      (node) =>
+        node.server_id === serverId &&
+        (node.protocol === protocolType ||
+          (protocolType === "hysteria2" && node.protocol === "hysteria"))
     ),
 
   isServerReferencedByNodes: (serverId: number) =>
     get().nodes.some((node) => node.server_id === serverId),
+
+  nodeReferencesReady: () => {
+    const { loaded, loading, loadFailed } = get();
+    return loaded && !loading && !loadFailed;
+  },
 
   getNodesByTag: (tag: string) =>
     get().nodes.filter((node) => (node.tags || []).includes(tag)),
@@ -129,11 +146,13 @@ export const useNode = () => {
     loadingTags: store.loadingTags,
     loaded: store.loaded,
     loadedTags: store.loadedTags,
+    loadFailed: store.loadFailed,
     fetchNodes: store.fetchNodes,
     fetchTags: store.fetchTags,
     getNodeById: store.getNodeById,
     isProtocolUsedInNodes: store.isProtocolUsedInNodes,
     isServerReferencedByNodes: store.isServerReferencedByNodes,
+    nodeReferencesReady: store.nodeReferencesReady,
     getNodesByTag: store.getNodesByTag,
     getNodesWithoutTags: store.getNodesWithoutTags,
     getNodeTags: store.getNodeTags,

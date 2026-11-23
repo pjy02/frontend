@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -12,19 +11,18 @@ import {
   DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import { Separator } from "@workspace/ui/components/separator";
-import {
-  postV1PublicOrderPre as preCreateOrder,
-  postV1PublicOrderRenewal as renewal,
-} from "@workspace/ui/services/user/user";
+import { postV1PublicOrderRenewal as renewal } from "@workspace/ui/services/user/user";
 import { LoaderCircle } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import CouponInput from "@/sections/subscribe/coupon-input";
 import DurationSelector from "@/sections/subscribe/duration-selector";
 import PaymentMethods from "@/sections/subscribe/payment-methods";
 import { useGlobalStore } from "@/stores/global";
 import { SubscribeBilling } from "./billing";
 import { SubscribeDetail } from "./detail";
+import { OrderQuoteFeedback, useOrderQuote } from "./order-quote";
 
 interface RenewalProps {
   id: number;
@@ -48,35 +46,17 @@ export default function Renewal({
     user_subscribe_id: id,
   });
   const [loading, startTransition] = useTransition();
-  const lastSuccessOrderRef = useRef<any>(null);
-
-  const { data: order } = useQuery({
-    enabled: !!subscribe.id && open,
-    queryKey: [
-      "preCreateOrder",
-      subscribe.id,
-      params.quantity,
-      params.payment,
-      params.coupon,
-    ],
-    queryFn: async () => {
-      try {
-        const { data } = await preCreateOrder({
-          ...params,
-          subscribe_id: subscribe.id,
-        } as API.PurchaseOrderRequest);
-        const result = data.data;
-        if (result) {
-          lastSuccessOrderRef.current = result;
-        }
-        return result;
-      } catch (_error) {
-        if (lastSuccessOrderRef.current) {
-          return lastSuccessOrderRef.current;
-        }
-      }
+  const quote = useOrderQuote(
+    "renewal",
+    {
+      subscribe_id: subscribe.id,
+      quantity: params.quantity ?? 1,
+      payment: params.payment,
+      coupon: params.coupon,
     },
-  });
+    { open: open && params.user_subscribe_id === id, renewalId: id }
+  );
+  const canSubmit = quote.confirmed && !loading;
 
   useEffect(() => {
     if (subscribe.id && id) {
@@ -103,20 +83,28 @@ export default function Renewal({
     []
   );
 
-  const handleSubmit = useCallback(async () => {
+  function handleSubmit() {
+    if (!canSubmit) return;
     startTransition(async () => {
       try {
         const response = await renewal(params as API.RenewalOrderRequest);
         const orderNo = response.data.data?.order_no;
         if (orderNo) {
           getUserInfo();
-          navigate({ to: "/payment", search: { order_no: String(orderNo) } });
+          await navigate({
+            to: "/payment",
+            search: { order_no: String(orderNo) },
+          });
+        } else {
+          toast.error(
+            t("quote.orderMissing", "The order could not be opened.")
+          );
         }
-      } catch (_error) {
-        /* empty */
+      } catch {
+        // API errors are reported by the shared request handler.
       }
     });
-  }, [params, getUserInfo, navigate]);
+  }
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
@@ -143,7 +131,7 @@ export default function Renewal({
               <Separator />
               <SubscribeBilling
                 order={{
-                  ...order,
+                  ...quote.data,
                   quantity: params.quantity,
                   unit_price: subscribe?.unit_price,
                   show_original_price: subscribe?.show_original_price,
@@ -173,9 +161,10 @@ export default function Renewal({
                 value={params.payment as number}
               />
             </div>
+            <OrderQuoteFeedback state={quote} />
             <Button
               className="sticky bottom-0 left-0 w-full md:relative md:mt-6"
-              disabled={loading}
+              disabled={!canSubmit}
               onClick={handleSubmit}
             >
               {loading && <LoaderCircle className="mr-2 animate-spin" />}

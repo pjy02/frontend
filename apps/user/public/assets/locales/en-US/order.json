@@ -36,5 +36,13 @@
     "4": "Recharge"
   },
   "viewDocument": "View Document",
-  "waitingForPayment": "Waiting for Payment"
+  "waitingForPayment": "Waiting for Payment",
+  "guestCheckout": {
+    "failed": "Could not load the order or its payment details.",
+    "loading": "Loading order…",
+    "loadingPayment": "Loading payment details…",
+    "retry": "Retry",
+    "signIn": "Sign in",
+    "unavailable": "This checkout session is unavailable. Open the order in the original tab, or sign in to view your orders."
+  }
 }

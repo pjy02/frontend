@@ -1,4 +1,3 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
@@ -6,6 +5,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { createApiDevProxy } from "../../scripts/api-dev-proxy";
+import { versionLockPlugin } from "../../scripts/version-lock";
 import {
   exactRouteI18nNamespaces,
   fallbackLng,
@@ -66,25 +66,6 @@ function localePreloadPlugin(): Plugin {
     name: "locale-preload",
     transformIndexHtml() {
       return [{ tag: "script", injectTo: "head", children: script }];
-    },
-  };
-}
-
-// Plugin to generate version.lock file after build
-function versionLockPlugin(): Plugin {
-  return {
-    name: "version-lock",
-    apply: "build",
-    closeBundle() {
-      const distDir = fileURLToPath(new URL("./dist", import.meta.url));
-      const rootPkgPath = fileURLToPath(
-        new URL("../../package.json", import.meta.url)
-      );
-      const rootPkg = JSON.parse(readFileSync(rootPkgPath, "utf-8"));
-      const version = rootPkg.version || "0.0.0";
-
-      mkdirSync(distDir, { recursive: true });
-      writeFileSync(`${distDir}/version.lock`, version);
     },
   };
 }

@@ -115,7 +115,7 @@ export default function OnlineUsersCell({
           className="flex items-center gap-2 bg-transparent p-0 text-muted-foreground text-sm hover:text-foreground"
           type="button"
         >
-          <Users className="h-4 w-4" /> {status?.online.length}
+          <Users className="h-4 w-4" /> {status?.online?.length ?? 0}
         </button>
       </WorkspaceDialogTrigger>
       <WorkspaceDialogContent size="xl">

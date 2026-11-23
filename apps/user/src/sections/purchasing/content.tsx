@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
@@ -8,19 +7,22 @@ import { Separator } from "@workspace/ui/components/separator";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
 import { Icon } from "@workspace/ui/composed/icon";
 import { cn } from "@workspace/ui/lib/utils";
-import {
-  postV1PublicPortalPre as prePurchaseOrder,
-  postV1PublicPortalPurchase as purchase,
-} from "@workspace/ui/services/user/user";
+import { postV1PublicPortalPurchase as purchase } from "@workspace/ui/services/user/user";
 import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { SubscribeBilling } from "@/sections/subscribe/billing";
 import CouponInput from "@/sections/subscribe/coupon-input";
 import { SubscribeDetail } from "@/sections/subscribe/detail";
 import DurationSelector from "@/sections/subscribe/duration-selector";
+import {
+  OrderQuoteFeedback,
+  useOrderQuote,
+} from "@/sections/subscribe/order-quote";
 import PaymentMethods from "@/sections/subscribe/payment-methods";
 import { useGlobalStore } from "@/stores/global";
+import { saveGuestCheckout } from "./checkout-session";
 
 export default function Content({
   subscription,
@@ -48,26 +50,8 @@ export default function Content({
     password: "",
   });
   const [loading, startTransition] = useTransition();
-  const [isEmailValid, setIsEmailValid] = useState({
-    valid: false,
-    message: "",
-  });
-
-  const { data: order } = useQuery({
-    enabled: !!subscription?.id && !!params.payment,
-    queryKey: [
-      "preCreateOrder",
-      params.coupon,
-      params.quantity,
-      params.payment,
-    ],
-    queryFn: async () => {
-      const { data } = await prePurchaseOrder({
-        ...params,
-        subscribe_id: subscription?.id as number,
-      } as API.PrePurchaseOrderRequest);
-      return data.data;
-    },
+  const quote = useOrderQuote("guest", params, {
+    open: Boolean(subscription?.id && params.subscribe_id === subscription.id),
   });
 
   useEffect(() => {
@@ -90,30 +74,46 @@ export default function Content({
     []
   );
 
-  const handleSubmit = useCallback(async () => {
-    startTransition(async () => {
-      try {
-        const { data } = await purchase(params);
-        const { order_no } = data.data!;
-        if (order_no) {
-          localStorage.setItem(
-            order_no,
-            JSON.stringify({
-              auth_type: params.auth_type,
-              identifier: params.identifier,
-            })
-          );
-          navigate({ to: "/purchasing/order", search: { order_no } });
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    });
-  }, [params, navigate]);
-
+  const email = (params.identifier || "").trim();
+  const emailSettings = common.auth.email;
+  const validFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const domain = email.split("@")[1]?.toLowerCase();
+  const allowedDomain =
+    !emailSettings.enable_domain_suffix ||
+    (emailSettings.domain_suffix_list || "")
+      .split("\n")
+      .some((value) => value.trim().toLowerCase() === domain);
+  const emailValid = validFormat && allowedDomain;
   const passwordLength = params.password?.length ?? 0;
   const isPasswordInvalid =
     passwordLength > 0 && (passwordLength < 8 || passwordLength > 128);
+  const canBuy =
+    emailValid && !isPasswordInvalid && quote.confirmed && !loading;
+
+  function handleSubmit() {
+    if (!canBuy) return;
+    startTransition(async () => {
+      try {
+        const { data } = await purchase({ ...params, identifier: email });
+        const order = data.data;
+        if (!order?.order_no) {
+          toast.error(
+            t("quote.orderMissing", "The order could not be opened.")
+          );
+          return;
+        }
+        if (order.checkout_token) {
+          saveGuestCheckout(order.order_no, order.checkout_token);
+        }
+        await navigate({
+          to: "/purchasing/order",
+          search: { order_no: order.order_no },
+        });
+      } catch {
+        // API errors are reported by the shared request handler.
+      }
+    });
+  }
 
   if (!subscription) {
     return (
@@ -140,46 +140,11 @@ export default function Content({
             <div className="flex flex-col gap-2">
               <EnhancedInput
                 className={cn({
-                  "border-destructive":
-                    !isEmailValid.valid && params.identifier !== "",
+                  "border-destructive": !emailValid && params.identifier !== "",
                 })}
-                onValueChange={(value: string) => {
-                  const email = value as string;
-                  setParams((prev) => ({
-                    ...prev,
-                    identifier: email,
-                  }));
-                  const reg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                  if (!reg.test(email)) {
-                    setIsEmailValid({
-                      valid: false,
-                      message: t(
-                        "invalidEmail",
-                        "Please enter a valid email address"
-                      ),
-                    });
-                  } else if (common.auth.email.enable_domain_suffix) {
-                    const domain = email.split("@")[1];
-                    const isValid = common.auth.email?.domain_suffix_list
-                      .split("\n")
-                      .includes(domain || "");
-                    if (!isValid) {
-                      setIsEmailValid({
-                        valid: false,
-                        message: t(
-                          "emailDomainNotAllowed",
-                          "Email domain is not in the whitelist"
-                        ),
-                      });
-                      return;
-                    }
-                  } else {
-                    setIsEmailValid({
-                      valid: true,
-                      message: "",
-                    });
-                  }
-                }}
+                onValueChange={(value: string) =>
+                  handleChange("identifier", value)
+                }
                 placeholder="Email"
                 required
                 type="email"
@@ -187,15 +152,22 @@ export default function Content({
               />
               <p
                 className={cn("text-muted-foreground text-xs", {
-                  "text-destructive":
-                    !isEmailValid.valid && params.identifier !== "",
+                  "text-destructive": !emailValid && params.identifier !== "",
                 })}
               >
-                {isEmailValid.message ||
-                  t("emailRequired", "Please enter your email address.")}
+                {email
+                  ? validFormat
+                    ? allowedDomain
+                      ? null
+                      : t(
+                          "emailDomainNotAllowed",
+                          "Email domain is not in the whitelist"
+                        )
+                    : t("invalidEmail", "Please enter a valid email address")
+                  : t("emailRequired", "Please enter your email address.")}
               </p>
             </div>
-            {params.identifier && isEmailValid.valid && (
+            {emailValid && (
               <div className="flex flex-col gap-2">
                 <EnhancedInput
                   onValueChange={(value: string) =>
@@ -294,7 +266,7 @@ export default function Content({
             <Separator />
             <SubscribeBilling
               order={{
-                ...order,
+                ...quote.data,
                 quantity: params.quantity,
                 unit_price: subscription?.unit_price,
                 show_original_price: subscription?.show_original_price,
@@ -329,9 +301,10 @@ export default function Content({
           </CardContent>
         </Card>
 
+        <OrderQuoteFeedback state={quote} />
         <Button
           className="w-full"
-          disabled={!isEmailValid.valid || isPasswordInvalid || loading}
+          disabled={!canBuy}
           onClick={handleSubmit}
           size="lg"
         >

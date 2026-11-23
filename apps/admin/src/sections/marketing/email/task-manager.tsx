@@ -110,6 +110,7 @@ export default function EmailTaskManager() {
                   <Dialog key="view-content">
                     <DialogTrigger asChild>
                       <Button
+                        aria-label={t("emailContent", "Email Content")}
                         onClick={() =>
                           setSelectedTask(row as API.BatchSendEmailTask)
                         }
@@ -159,10 +160,9 @@ export default function EmailTaskManager() {
                               <h4 className="mb-2 font-medium text-muted-foreground text-sm">
                                 {t("content", "Email Content")}
                               </h4>
-                              <div
-                                dangerouslySetInnerHTML={{
-                                  __html: selectedTask.content,
-                                }}
+                              <EmailContentPreview
+                                html={selectedTask.content}
+                                title={t("emailContent", "Email Content")}
                               />
                             </div>
                             {selectedTask.additional && (
@@ -329,6 +329,29 @@ export default function EmailTaskManager() {
         </ScrollArea>
       </SheetContent>
     </Sheet>
+  );
+}
+
+export function EmailContentPreview({
+  html,
+  title,
+}: {
+  html: string;
+  title: string;
+}) {
+  const preview = `<!doctype html><html><head><meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head><body>${html}</body></html>`;
+
+  return (
+    <iframe
+      className="h-72 w-full rounded-md border bg-white sm:h-96"
+      referrerPolicy="no-referrer"
+      sandbox=""
+      srcDoc={preview}
+      title={title}
+    />
   );
 }
 

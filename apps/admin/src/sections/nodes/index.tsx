@@ -11,7 +11,6 @@ import {
 import {
   postServerNodeCreate as createNode,
   postServerNodeOpenApiDelete as deleteNode,
-  getServerNodeList as filterNodeList,
   postServerNodeSort as resetSortWithNode,
   postServerNodeStatusToggle as toggleNodeStatus,
   postServerNodeUpdate as updateNode,
@@ -27,31 +26,73 @@ import {
 } from "@/components/admin-action-menu";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
-import { useNode } from "@/stores/node";
-import { fetchAllPaginated } from "@/stores/pagination";
+import {
+  readNodeInventory,
+  refreshNodeInventory,
+  useNode,
+} from "@/stores/node";
 import { useServer } from "@/stores/server";
 import {
   inventorySearchTerm,
   matchesInventorySearch,
 } from "@/utils/inventory-search";
+import {
+  formatNodeEndpoint,
+  type NodeAddressKind,
+  nodeAddressKind,
+} from "@/utils/node-address";
 import NodeForm from "./node-form";
+import { planNodeSort, sortNodes } from "./sort-nodes";
 
-function sortNodes(nodes: API.Node[]) {
-  return nodes.slice().sort((a, b) => {
-    const as = a.sort;
-    const bs = b.sort;
-    const an = typeof as === "number" ? as : Number.POSITIVE_INFINITY;
-    const bn = typeof bs === "number" ? bs : Number.POSITIVE_INFINITY;
-    if (an !== bn) return an - bn;
-    return Number(a.id) - Number(b.id);
-  });
-}
+type NodeFilters = { search?: string; addressKind?: NodeAddressKind };
 
-async function filterAllNodes(search?: string, signal?: AbortSignal) {
-  const nodes = await fetchAllPaginated(filterNodeList, signal);
-  const term = inventorySearchTerm(search);
-  return sortNodes(
-    term ? nodes.filter((node) => matchesInventorySearch(node, term)) : nodes
+function NodeEndpoint({ address, port }: Pick<API.Node, "address" | "port">) {
+  const { t } = useTranslation("nodes");
+  const endpoint = formatNodeEndpoint(address || "", port);
+  if (!endpoint) return <span>—</span>;
+
+  async function copyAddress() {
+    if (!endpoint) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(endpoint);
+      } else {
+        const field = document.createElement("textarea");
+        field.value = endpoint;
+        field.className = "fixed left-0 top-0 opacity-0";
+        document.body.appendChild(field);
+        field.select();
+        try {
+          if (!document.execCommand("copy"))
+            throw new Error("Clipboard is unavailable");
+        } finally {
+          field.remove();
+        }
+      }
+      toast.success(t("addressCopied", "Address copied"));
+    } catch {
+      toast.error(t("addressCopyFailed", "Could not copy the address"));
+    }
+  }
+
+  const copyLabel = t("copyAddress", "Copy node address");
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <span className="min-w-0 select-text font-mono text-sm [overflow-wrap:anywhere]">
+        {endpoint}
+      </span>
+      <Button
+        aria-label={copyLabel}
+        className="size-8 shrink-0"
+        onClick={copyAddress}
+        size="icon"
+        title={copyLabel}
+        type="button"
+        variant="ghost"
+      >
+        <Copy aria-hidden="true" className="size-4" />
+      </Button>
+    </div>
   );
 }
 
@@ -62,12 +103,12 @@ export default function Nodes() {
 
   // Use our zustand store for server data
   const { getServerName, getServerAddress, getProtocolPort } = useServer();
-  const { fetchNodes, fetchTags } = useNode();
+  const { fetchTags } = useNode();
 
   return (
     <div className="space-y-5">
       <PageHeader title={t("inventoryTitle", "Node inventory")} />
-      <ProTable<API.Node, { search: string }>
+      <ProTable<API.Node, NodeFilters>
         action={ref}
         actions={{
           visibleCount: 2,
@@ -85,8 +126,8 @@ export default function Nodes() {
                   } as any;
                   await updateNode(body);
                   toast.success(t("updated", "Updated"));
+                  refreshNodeInventory();
                   ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
-                  fetchNodes();
                   fetchTags();
                   setLoading(false);
                   return true;
@@ -102,8 +143,8 @@ export default function Nodes() {
               key="more"
               node={row}
               onChanged={(options) => {
+                refreshNodeInventory();
                 ref.current?.refresh(options);
-                fetchNodes();
                 fetchTags();
               }}
             />,
@@ -119,16 +160,19 @@ export default function Nodes() {
                 )}
                 key="delete"
                 onConfirm={async () => {
-                  await Promise.all(
+                  const results = await Promise.allSettled(
                     rows.map((r) => deleteNode({ id: r.id } as any))
                   );
-                  toast.success(t("deleted", "Deleted"));
+                  refreshNodeInventory();
                   ref.current?.refresh({
                     reason: "delete",
                     rowIds: rows.map((row) => row.id),
                   });
-                  fetchNodes();
                   fetchTags();
+                  if (results.some((result) => result.status === "rejected")) {
+                    return false;
+                  }
+                  toast.success(t("deleted", "Deleted"));
                 }}
                 title={t("confirmDeleteTitle", "Delete this node?")}
                 trigger={
@@ -153,11 +197,11 @@ export default function Nodes() {
                         ? t("enabled_on", "Enabled")
                         : t("enabled_off", "Disabled")
                     );
+                    refreshNodeInventory();
                     ref.current?.refresh({
                       reason: "edit",
                       rowIds: [row.original.id],
                     });
-                    fetchNodes();
                     fetchTags();
                   }}
                 />
@@ -177,8 +221,12 @@ export default function Nodes() {
           {
             id: "address_port",
             header: `${t("address", "Address")}:${t("port", "Port")}`,
-            cell: ({ row }) =>
-              `${row.original.address || "—"}:${row.original.port || "—"}`,
+            cell: ({ row }) => (
+              <NodeEndpoint
+                address={row.original.address}
+                port={row.original.port}
+              />
+            ),
           },
 
           {
@@ -227,8 +275,8 @@ export default function Nodes() {
                   };
                   await createNode(body);
                   toast.success(t("created", "Created"));
+                  refreshNodeInventory();
                   ref.current?.refresh({ reason: "create" });
-                  fetchNodes();
                   fetchTags();
                   setLoading(false);
                   return true;
@@ -255,7 +303,7 @@ export default function Nodes() {
                     </h2>
                   </div>
                   <p className="mt-1 break-all font-mono text-muted-foreground text-sm">
-                    {row.address || "—"}:{row.port || "—"}
+                    <NodeEndpoint address={row.address} port={row.port} />
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -269,11 +317,11 @@ export default function Nodes() {
                           ? t("enabled_on", "Enabled")
                           : t("enabled_off", "Disabled")
                       );
+                      refreshNodeInventory();
                       ref.current?.refresh({
                         reason: "edit",
                         rowIds: [row.id],
                       });
-                      fetchNodes();
                       fetchTags();
                     }}
                   />
@@ -324,63 +372,51 @@ export default function Nodes() {
           ),
         }}
         onSort={async (source, target, items) => {
-          // The node page loads the complete filtered list, so this re-indexes the
-          // global order instead of only changing one visible page.
-          const sourceIndex = items.findIndex(
-            (item) => String(item.id) === source
-          );
-          const targetIndex = items.findIndex(
-            (item) => String(item.id) === target
-          );
-
-          if (sourceIndex === -1 || targetIndex === -1) return items;
-
-          const prevSortById = new Map(items.map((it) => [it.id, it.sort]));
-
-          const next = items.slice();
-          const [movedItem] = next.splice(sourceIndex, 1);
-          next.splice(targetIndex, 0, movedItem!);
-
-          // IMPORTANT:
-          // Some installations have duplicate / empty `sort` values (commonly 0 or null)
-          // which makes the order appear "random" after refresh and also makes
-          // "swap sort values" strategies a no-op.
-          //
-          // To make the ordering stable, we re-index the current page to a strictly
-          // increasing sequence.
-          const numericSorts = items
-            .map((it) => (typeof it.sort === "number" ? it.sort : Number.NaN))
-            .filter((v) => Number.isFinite(v)) as number[];
-          const baseSort = numericSorts.length ? Math.min(...numericSorts) : 0;
-
-          const updatedItems = next.map((item, index) => ({
-            ...item,
-            sort: baseSort + index,
-          }));
-
-          const changedItems = updatedItems.filter(
-            (item) => item.sort !== prevSortById.get(item.id)
-          );
-
-          if (changedItems.length > 0) {
-            await resetSortWithNode({
-              // Send all changed rows (within the current page) so backend can persist.
-              sort: changedItems.map((item) => ({
-                id: item.id,
-                sort: item.sort,
-              })) as API.SortItem[],
-            });
-            toast.success(t("sorted_success", "Sorted successfully"));
+          const inventory = sortNodes(await readNodeInventory());
+          if (
+            items.length !== inventory.length ||
+            items.some(
+              (item, index) =>
+                item.id !== inventory[index]?.id ||
+                item.sort !== inventory[index]?.sort
+            )
+          ) {
+            throw new Error("The node order changed before sorting");
           }
-
-          return updatedItems;
+          const next = planNodeSort(inventory, source, target);
+          if (!next.writes.length) return items;
+          await resetSortWithNode({ sort: next.writes });
+          refreshNodeInventory();
+          toast.success(t("sorted_success", "Sorted successfully"));
+          return next.items;
         }}
         pagination={false}
-        params={[{ key: "search" }]}
-        request={async (_pagination, filter, { signal }) => {
-          const list = await filterAllNodes(filter?.search, signal);
+        params={[
+          { key: "search" },
+          {
+            key: "addressKind",
+            placeholder: t("addressKind", "Address type"),
+            options: [
+              { label: "IPv4", value: "ipv4" },
+              { label: "IPv6", value: "ipv6" },
+              { label: t("hostname", "Domain"), value: "hostname" },
+            ],
+          },
+        ]}
+        request={async (_pagination, filter, { refresh, signal }) => {
+          const nodes = await readNodeInventory({ refresh, signal });
+          const term = inventorySearchTerm(filter?.search);
+          const kind = filter?.addressKind;
+          const list = sortNodes(
+            nodes.filter(
+              (node) =>
+                (!term || matchesInventorySearch(node, term)) &&
+                (!kind || nodeAddressKind(node.address || "") === kind)
+            )
+          );
           return { list, total: list.length };
         }}
+        sortOnlyUnfiltered
       />
     </div>
   );

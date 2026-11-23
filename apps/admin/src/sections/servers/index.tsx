@@ -32,10 +32,10 @@ import {
   AdminActionMenuItem,
 } from "@/components/admin-action-menu";
 import { PageHeader } from "@/components/page-header";
+import { requireReadData } from "@/components/read-boundary";
 import { StatusChip } from "@/components/status-chip";
 import { useNode } from "@/stores/node";
-import { fetchAllPaginated } from "@/stores/pagination";
-import { useServer } from "@/stores/server";
+import { readServerInventory, refreshServerInventory } from "@/stores/server";
 import {
   inventorySearchTerm,
   matchesInventorySearch,
@@ -82,6 +82,20 @@ function RegionIpCell({
   );
 }
 
+function ServerStatusChip({ status }: { status?: string }) {
+  const { t } = useTranslation("servers");
+  if (status === "online") {
+    return <StatusChip tone="success">{t("online", "Online")}</StatusChip>;
+  }
+  return (
+    <StatusChip>
+      {status === "offline"
+        ? t("offline", "Offline")
+        : t("statusUnknown", "Unknown")}
+    </StatusChip>
+  );
+}
+
 interface ServersProps {
   actionRef?: RefObject<ProTableActions | null>;
 }
@@ -89,11 +103,17 @@ interface ServersProps {
 export default function Servers({ actionRef }: ServersProps) {
   const { t } = useTranslation("servers");
   const routeSearch = useSearch({ strict: false });
-  const { isServerReferencedByNodes } = useNode();
-  const { fetchServers } = useServer();
+  const {
+    fetchNodes,
+    isServerReferencedByNodes,
+    loadFailed,
+    nodeReferencesReady,
+  } = useNode();
 
   const internalActionRef = useRef<ProTableActions>(null);
   const ref = actionRef ?? internalActionRef;
+  const canDeleteServer = (id: number) =>
+    nodeReferencesReady() && !isServerReferencedByNodes(id);
 
   return (
     <div className="space-y-6">
@@ -105,6 +125,19 @@ export default function Servers({ actionRef }: ServersProps) {
         eyebrow={t("infrastructure", "Infrastructure")}
         title={t("pageTitle", "Servers")}
       />
+      {loadFailed && (
+        <div className="flex flex-wrap items-center gap-2" role="alert">
+          <p className="text-muted-foreground text-sm">
+            {t(
+              "nodeReferencesUnavailable",
+              "Could not verify node references. Destructive actions are unavailable until the list is refreshed."
+            )}
+          </p>
+          <Button onClick={fetchNodes} size="sm" variant="outline">
+            {t("components:read.retry", "Retry")}
+          </Button>
+        </div>
+      )}
       <div className="admin-server-shortcuts grid grid-cols-2 gap-2 sm:gap-3">
         <DynamicMultiplier />
         <ServerConfig />
@@ -125,19 +158,18 @@ export default function Servers({ actionRef }: ServersProps) {
               </Link>
             </Button>,
             <ServerRowActions
-              deleteDisabled={isServerReferencedByNodes(row.id)}
+              canDelete={() => canDeleteServer(row.id)}
               key="more"
               onChanged={(options) => {
+                refreshServerInventory();
                 ref.current?.refresh(options);
-                fetchServers();
               }}
               server={row}
             />,
           ],
           batchRender(rows) {
-            const hasReferencedServers = rows.some((row) =>
-              isServerReferencedByNodes(row.id)
-            );
+            const canDeleteSelection = () =>
+              rows.every((row) => canDeleteServer(row.id));
             return [
               <ConfirmButton
                 cancelText={t("cancel", "Cancel")}
@@ -148,19 +180,26 @@ export default function Servers({ actionRef }: ServersProps) {
                 )}
                 key="delete"
                 onConfirm={async () => {
-                  await Promise.all(
+                  if (!canDeleteSelection()) return false;
+                  const results = await Promise.allSettled(
                     rows.map((r) => deleteServer({ id: r.id }))
                   );
-                  toast.success(t("deleted", "Deleted"));
+                  refreshServerInventory();
                   ref.current?.refresh({
                     reason: "delete",
                     rowIds: rows.map((row) => row.id),
                   });
-                  fetchServers();
+                  if (results.some((result) => result.status === "rejected")) {
+                    return false;
+                  }
+                  toast.success(t("deleted", "Deleted"));
                 }}
                 title={t("confirmDeleteTitle", "Delete this server?")}
                 trigger={
-                  <Button disabled={hasReferencedServers} variant="destructive">
+                  <Button
+                    disabled={!canDeleteSelection()}
+                    variant="destructive"
+                  >
                     {t("delete", "Delete")}
                   </Button>
                 }
@@ -215,14 +254,9 @@ export default function Servers({ actionRef }: ServersProps) {
           {
             id: "status",
             header: t("status", "Status"),
-            cell: ({ row }) => {
-              const offline = row.original.status.status === "offline";
-              return (
-                <StatusChip tone={offline ? "neutral" : "success"}>
-                  {offline ? t("offline", "Offline") : t("online", "Online")}
-                </StatusChip>
-              );
-            },
+            cell: ({ row }) => (
+              <ServerStatusChip status={row.original.status?.status} />
+            ),
           },
           {
             id: "cpu",
@@ -284,7 +318,6 @@ export default function Servers({ actionRef }: ServersProps) {
         mobile={{
           getAriaLabel: (row) => String(row.name || row.id),
           render: (row) => {
-            const offline = row.status?.status === "offline";
             const protocols = (row.protocols || []).filter(
               (protocol) => protocol.enable
             );
@@ -307,9 +340,7 @@ export default function Servers({ actionRef }: ServersProps) {
                         t("notAvailable", "Not Available")}
                     </p>
                   </div>
-                  <StatusChip tone={offline ? "neutral" : "success"}>
-                    {offline ? t("offline", "Offline") : t("online", "Online")}
-                  </StatusChip>
+                  <ServerStatusChip status={row.status?.status} />
                 </div>
 
                 <div className="rounded-lg bg-muted/45 px-3 py-2 font-mono text-sm [overflow-wrap:anywhere]">
@@ -377,15 +408,16 @@ export default function Servers({ actionRef }: ServersProps) {
         onSort={async (source, target, items) => {
           const result = await saveServerOrder(source, target, items);
           if (result.changed) {
+            refreshServerInventory();
             toast.success(t("sorted_success", "Sorted successfully"));
           }
           return result.items;
         }}
         params={[{ key: "search" }]}
-        request={async (pagination, filter, { signal }) => {
+        request={async (pagination, filter, { refresh, signal }) => {
           const term = inventorySearchTerm(filter?.search);
           if (term) {
-            const servers = await fetchAllPaginated(filterServerList, signal);
+            const servers = await readServerInventory({ refresh, signal });
             const matches = servers.filter((server) =>
               matchesInventorySearch(server, term)
             );
@@ -412,11 +444,11 @@ export default function Servers({ actionRef }: ServersProps) {
 }
 
 function ServerRowActions({
-  deleteDisabled,
+  canDelete,
   onChanged,
   server,
 }: {
-  deleteDisabled: boolean;
+  canDelete: () => boolean;
   onChanged: (options: Parameters<ProTableActions["refresh"]>[0]) => void;
   server: API.Server;
 }) {
@@ -446,29 +478,39 @@ function ServerRowActions({
         address: others.address as string,
         protocols: (others.protocols as API.Protocol[]) || [],
       };
-      const [createResp, configResp] = await Promise.all([
-        createServer(body),
-        getServerNodeConfig({ server_id: server.id }),
-      ]);
-      const newServerId = (createResp.data as { data?: { id?: number } }).data
-        ?.id;
-      const override = configResp.data?.data?.override;
+      const configResp = await getServerNodeConfig(
+        { server_id: server.id },
+        { skipErrorHandler: true }
+      );
+      const { override } = requireReadData(configResp.data.data);
+      const createResp = await createServer(body, { skipErrorHandler: true });
+      const id = (createResp.data as { data?: { id?: number } }).data?.id;
+      const newServerId =
+        Number.isSafeInteger(id) && Number(id) > 0 ? id : undefined;
 
+      let overrideCopied = !override;
       if (newServerId && override) {
-        await updateServerNodeConfig({
-          server_id: newServerId,
-          inherit_ip_strategy: override.inherit_ip_strategy,
-          ip_strategy: override.ip_strategy,
-          inherit_dns: override.inherit_dns,
-          dns: override.dns || [],
-          inherit_block: override.inherit_block,
-          block: override.block || [],
-          inherit_outbound: override.inherit_outbound,
-          outbound: override.outbound || [],
-        });
+        try {
+          await updateServerNodeConfig(
+            { ...override, server_id: newServerId },
+            { skipErrorHandler: true }
+          );
+          overrideCopied = true;
+        } catch {
+          // The new server already exists even if its overrides could not be saved.
+        }
       }
 
-      toast.success(t("copied", "Copied"));
+      if (overrideCopied) {
+        toast.success(t("copied", "Copied"));
+      } else {
+        toast.warning(
+          t(
+            "copyConfigIncomplete",
+            "Server created. Node configuration was not copied."
+          )
+        );
+      }
       setOpen(false);
       onChanged({
         reason: "create",
@@ -526,7 +568,7 @@ function ServerRowActions({
           {t("copy", "Copy")}
         </AdminActionMenuItem>
         <AdminActionMenuDangerItem
-          disabled={deleteDisabled}
+          disabled={!canDelete()}
           icon={<Trash2 />}
           onAction={() => deleteRef.current?.click()}
         >
@@ -547,6 +589,7 @@ function ServerRowActions({
         confirmText={t("confirm", "Confirm")}
         description={t("confirmDeleteDesc", "This action cannot be undone.")}
         onConfirm={async () => {
+          if (!canDelete()) return false;
           await deleteServer({ id: server.id } as API.DeleteServerRequest);
           toast.success(t("deleted", "Deleted"));
           onChanged({ reason: "delete", rowIds: [server.id] });
