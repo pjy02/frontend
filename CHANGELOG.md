@@ -19,6 +19,90 @@ This document records all notable changes to ShadCN Admin.
 ---
 
 
+## [1.24.0](https://github.com/perfect-panel/frontend/compare/v1.23.1...v1.24.0) (2026-11-22)
+
+### ✨ Features / 新功能
+
+* **mail:** configure Resend and Cloudflare delivery in admin ([5ce8278](https://github.com/perfect-panel/frontend/commit/5ce8278e34c1e9eef054e82c2fab4a0477009a34))
+
+### 🔧 Chores / 其他变更
+
+* **release:** Release 1.24.0-dev.1 / 发布版本 1.24.0-dev.1 [skip ci] ([3c115de](https://github.com/perfect-panel/frontend/commit/3c115de278256980a11bb29e970dd39efbfc151a))
+
+## [1.24.0-dev.1](https://github.com/perfect-panel/frontend/compare/v1.23.1-dev.1...v1.24.0-dev.1) (2026-11-22)
+
+### ✨ Features / 新功能
+
+* **mail:** configure Resend and Cloudflare delivery in admin ([5ce8278](https://github.com/perfect-panel/frontend/commit/5ce8278e34c1e9eef054e82c2fab4a0477009a34))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([f986065](https://github.com/perfect-panel/frontend/commit/f986065da9d0f3f83b7d7b764bd7cf5266637269))
+
+## [1.23.1](https://github.com/perfect-panel/frontend/compare/v1.23.0...v1.23.1) (2026-11-22)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **affiliate:** 佣金提现金额按分提交 ([45b9894](https://github.com/perfect-panel/frontend/commit/45b9894aa36f6419adf43f3450bee019f18eecc9))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([f986065](https://github.com/perfect-panel/frontend/commit/f986065da9d0f3f83b7d7b764bd7cf5266637269))
+
+### 🔧 Chores / 其他变更
+
+* **api:** sync generated Nowhere protocol descriptions ([6160a59](https://github.com/perfect-panel/frontend/commit/6160a59b03ae2ed3d79fbf3dc688b242df493170))
+* **release:** Release 1.23.1-dev.1 / 发布版本 1.23.1-dev.1 [skip ci] ([ab18da2](https://github.com/perfect-panel/frontend/commit/ab18da2ce99e4bb56eeeacda5513bff0ad0a7b62))
+
+## [1.23.1-dev.1](https://github.com/perfect-panel/frontend/compare/v1.23.0...v1.23.1-dev.1) (2026-11-22)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **affiliate:** 佣金提现金额按分提交 ([45b9894](https://github.com/perfect-panel/frontend/commit/45b9894aa36f6419adf43f3450bee019f18eecc9))
+
+### 🔧 Chores / 其他变更
+
+* **api:** sync generated Nowhere protocol descriptions ([6160a59](https://github.com/perfect-panel/frontend/commit/6160a59b03ae2ed3d79fbf3dc688b242df493170))
+
+## [1.23.0](https://github.com/perfect-panel/frontend/compare/v1.22.0...v1.23.0) (2026-11-10)
+
+### ✨ Features / 新功能
+
+* **nowhere:** add NW3 forms and preserve stored protocols ([4da813b](https://github.com/perfect-panel/frontend/commit/4da813b8825da61943c5c129f12abed74e91556d))
+* **subscribe:** 购买已持有的套餐时提示续订 ([91c4bbd](https://github.com/perfect-panel/frontend/commit/91c4bbdbe95c2e640bc0252cc92df055073e1d46))
+
+### 🐛 Bug Fixes / 问题修复
+
+* explain password rules and translate backend errors ([404a5a0](https://github.com/perfect-panel/frontend/commit/404a5a080d2f16f435ad2b0a3fe0c35a86c0ade1))
+* **subscribe:** 续订提醒弹窗限制高度并可滚动 ([65d85ec](https://github.com/perfect-panel/frontend/commit/65d85ec3c66c8b671fcbf979aa26566ce31663fd))
+* **ticket:** show users that support has replied ([bee2fe4](https://github.com/perfect-panel/frontend/commit/bee2fe47081d908d901106879a774ab4347964d1))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([4032016](https://github.com/perfect-panel/frontend/commit/40320162fa85c0ed29178ca4055264b7d30fc247))
+* **api:** sync Swagger from backend ([7d7d0df](https://github.com/perfect-panel/frontend/commit/7d7d0dfcc4e6f89b9ef0a13e15878a8c1e9632a3))
+
+### 🔧 Chores / 其他变更
+
+* **release:** Release 1.22.0-dev.3 / 发布版本 1.22.0-dev.3 [skip ci] ([ee62b33](https://github.com/perfect-panel/frontend/commit/ee62b33e70d189be7d9f484b512e073255545a1b))
+* **release:** Release 1.22.1-dev.1 / 发布版本 1.22.1-dev.1 [skip ci] ([6f8365c](https://github.com/perfect-panel/frontend/commit/6f8365c6113131d40df1fc15dae1c5b22ac0f315))
+* **release:** Release 1.22.1-dev.2 / 发布版本 1.22.1-dev.2 [skip ci] ([ab72415](https://github.com/perfect-panel/frontend/commit/ab724151edce5576a8cefe3cd7a30670e730457c))
+* **release:** Release 1.23.0-dev.1 / 发布版本 1.23.0-dev.1 [skip ci] ([26a6a64](https://github.com/perfect-panel/frontend/commit/26a6a64ba727ad7872daacfddb6382f983d9badc))
+
+## [1.23.0-dev.1](https://github.com/perfect-panel/frontend/compare/v1.22.1-dev.2...v1.23.0-dev.1) (2026-11-03)
+
+### ✨ Features / 新功能
+
+* **subscribe:** 购买已持有的套餐时提示续订 ([91c4bbd](https://github.com/perfect-panel/frontend/commit/91c4bbdbe95c2e640bc0252cc92df055073e1d46))
+
+### 🐛 Bug Fixes / 问题修复
+
+* **subscribe:** 续订提醒弹窗限制高度并可滚动 ([65d85ec](https://github.com/perfect-panel/frontend/commit/65d85ec3c66c8b671fcbf979aa26566ce31663fd))
+
+### 📚 Documentation / 文档更新
+
+* **api:** sync Swagger from backend ([7d7d0df](https://github.com/perfect-panel/frontend/commit/7d7d0dfcc4e6f89b9ef0a13e15878a8c1e9632a3))
+
 ## [1.22.1-dev.2](https://github.com/perfect-panel/frontend/compare/v1.22.1-dev.1...v1.22.1-dev.2) (2026-11-02)
 
 ### 🐛 Bug Fixes / 问题修复

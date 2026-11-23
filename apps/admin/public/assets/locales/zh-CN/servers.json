@@ -241,5 +241,9 @@
     "requiredField": "此项为必填项",
     "requiredNumberField": "请输入有效数字",
     "requiredSelectField": "请选择一项"
-  }
+  },
+  "nowhere_morph": "Morph 伪装",
+  "nowhere_description": "NW3 · TLS 1.3 · ALPN nw3。请使用 NW3 客户端，并保持客户端与节点的 Morph 设置一致。",
+  "uneditable_protocols_preserved": "当前面板暂不支持编辑以下协议，保存时将保留原配置：{{protocols}}",
+  "protocol_enabled": "启用 {{protocol}}"
 }

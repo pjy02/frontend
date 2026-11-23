@@ -150,7 +150,7 @@ describe("server protocol submission", () => {
         title="Edit Server"
       />
     );
-    fireEvent.click(screen.getByRole("switch", { name: "vless Enabled" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Enable vless" }));
     await save();
     await waitFor(() =>
       expect(submit).toHaveBeenCalledWith(
@@ -183,5 +183,106 @@ describe("server protocol submission", () => {
         expect.objectContaining({ name: "HK renamed" })
       )
     );
+  });
+});
+
+describe("server editor protocol preservation", () => {
+  it("keeps NW3 and an uneditable protocol when submitting a server edit", async () => {
+    const submit = vi.fn().mockResolvedValue(true);
+    const opaque = {
+      type: "future-protocol",
+      enable: true,
+      port: 8443,
+      settings: { custom: "preserved" },
+    };
+    render(
+      <ServerForm
+        initialValues={
+          {
+            id: 7,
+            name: "Node",
+            address: "node.example",
+            protocols: [
+              {
+                type: "nowhere",
+                enable: true,
+                port: 443,
+                version: 3,
+                security: "tls",
+                alpn: ["nw3"],
+                network: "mix",
+                obfs: "none",
+                sni: "nw.example",
+                cert_mode: "self",
+              },
+              opaque,
+            ],
+          } as unknown as API.Server
+        }
+        onSubmit={submit}
+        title="Edit server"
+        trigger="Edit server"
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit server" }));
+    await screen.findByText(/will be preserved when saving: future-protocol/);
+    fireEvent.click(screen.getByRole("button", { name: /nowhere/i }));
+    expect(await screen.findByText(/NW3 · TLS 1.3/)).toBeTruthy();
+    expect(screen.queryByText("Allow Insecure")).toBeNull();
+    await save();
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    const payload = submit.mock.calls[0]?.[0];
+    expect(payload.protocols).toEqual([
+      expect.objectContaining({
+        type: "nowhere",
+        version: 3,
+        security: "tls",
+        alpn: ["nw3"],
+        network: "mix",
+        obfs: "none",
+      }),
+      opaque,
+    ]);
+  });
+  it("creates an NW3 server with valid defaults after the required fields are filled", async () => {
+    const submit = vi.fn().mockResolvedValue(true);
+    render(
+      <ServerForm onSubmit={submit} title="Add server" trigger="Add server" />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add server" }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "NW3 node" },
+    });
+    fireEvent.change(screen.getByLabelText("Address"), {
+      target: { value: "nw.example" },
+    });
+    fireEvent.click(screen.getByRole("switch", { name: "Enable nowhere" }));
+    await screen.findByText(/NW3 · TLS 1.3/);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await screen.findByText("Nowhere requires a TLS server name.");
+    expect(submit).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText(/^Port/), {
+      target: { value: "443" },
+    });
+    fireEvent.change(screen.getByLabelText(/^SNI/), {
+      target: { value: "nw.example" },
+    });
+    expect(
+      screen.getByRole("combobox", { name: /^Network/ }).textContent
+    ).toContain("TLS + QUIC");
+    await save();
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(submit.mock.calls[0]?.[0].protocols).toEqual([
+      expect.objectContaining({
+        type: "nowhere",
+        version: 3,
+        security: "tls",
+        alpn: ["nw3"],
+        network: "mix",
+        obfs: "morph",
+        sni: "nw.example",
+        port: 443,
+      }),
+    ]);
   });
 });

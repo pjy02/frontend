@@ -32,19 +32,9 @@ import {
 } from "@/components/workspace-dialog";
 import { useNode } from "@/stores/node";
 import { useServer } from "@/stores/server";
+import type { ProtocolType } from "../servers/form-schema/types";
 
-export type ProtocolName =
-  | "shadowsocks"
-  | "vmess"
-  | "vless"
-  | "trojan"
-  | "hysteria"
-  | "tuic"
-  | "anytls"
-  | "naive"
-  | "http"
-  | "socks"
-  | "mieru";
+export type ProtocolName = ProtocolType | "hysteria" | "http" | "socks";
 
 const buildSchema = (t: TFunction) =>
   z.object({

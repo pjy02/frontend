@@ -59,9 +59,11 @@ import {
   createServerFormSchema,
   type FieldConfig,
   getLabel,
-  getProtocolDefaultConfig,
+  getProtocolFormValues,
+  getUneditableProtocols,
   protocols as PROTOCOLS,
   type ProtocolType,
+  preserveUneditableProtocols,
   useProtocolFields,
 } from "./form-schema";
 
@@ -86,37 +88,6 @@ function getVisibleRequiredFields(
     (field) =>
       field.required && (!field.condition || field.condition(protocolData, {}))
   );
-}
-
-function normalizeMultiplexValue(
-  protocolType: ProtocolType,
-  value: unknown,
-  fallback: unknown
-) {
-  const raw = String(value || fallback || "").trim();
-  if (protocolType !== "mieru") {
-    return raw || "none";
-  }
-
-  switch (raw.toUpperCase()) {
-    case "NONE":
-    case "OFF":
-    case "MULTIPLEXING_OFF":
-      return "MULTIPLEXING_OFF";
-    case "":
-    case "LOW":
-    case "MULTIPLEXING_LOW":
-      return "MULTIPLEXING_LOW";
-    case "MIDDLE":
-    case "MEDIUM":
-    case "MULTIPLEXING_MIDDLE":
-      return "MULTIPLEXING_MIDDLE";
-    case "HIGH":
-    case "MULTIPLEXING_HIGH":
-      return "MULTIPLEXING_HIGH";
-    default:
-      return raw;
-  }
 }
 
 const PRESERVED_HIDDEN_PROTOCOL_FIELDS = new Set([
@@ -570,18 +541,24 @@ export default function ServerForm(props: ServerFormProps) {
     [initialValues?.protocols]
   );
 
-  const form = useForm<Record<string, any>>({
-    resolver: zodResolver(editableSchema) as unknown as Resolver<
-      Record<string, any>
-    >,
-    defaultValues: {
+  const defaultValues = useMemo(
+    () => ({
       name: "",
       address: "",
       country: "",
       city: "",
-      protocols: PROTOCOLS.map((type) => getProtocolDefaultConfig(type)),
       ...initialValues,
-    },
+      protocols: getProtocolFormValues(initialValues?.protocols),
+    }),
+    [initialValues]
+  );
+  const uneditableProtocols = getUneditableProtocols(initialValues?.protocols);
+
+  const form = useForm<Record<string, any>>({
+    resolver: zodResolver(editableSchema) as unknown as Resolver<
+      Record<string, any>
+    >,
+    defaultValues,
   });
   const safety = useFormSafety({
     form,
@@ -609,66 +586,10 @@ export default function ServerForm(props: ServerFormProps) {
 
   useEffect(() => {
     if (initialValues && !safety.dirty && !safety.busy) {
-      form.reset({
-        name: "",
-        address: "",
-        country: "",
-        city: "",
-        ...initialValues,
-        protocols: PROTOCOLS.map((type) => {
-          const existingProtocol = initialValues.protocols?.find(
-            (protocol) =>
-              protocol.type === type ||
-              (type === "hysteria2" && protocol.type === "hysteria")
-          );
-          const defaultConfig = getProtocolDefaultConfig(type);
-          if (!existingProtocol) return defaultConfig;
-
-          const merged = {
-            ...defaultConfig,
-            ...existingProtocol,
-            type,
-            transport:
-              existingProtocol.transport === "websocket"
-                ? "ws"
-                : existingProtocol.transport,
-            plugin: existingProtocol.plugin || "none",
-            multiplex: normalizeMultiplexValue(
-              type,
-              existingProtocol.multiplex,
-              defaultConfig.multiplex
-            ),
-          };
-          // Only these three are TLS-only. anytls and trojan also accept
-          // REALITY, so coercing them here would rewrite a stored REALITY node.
-          if (["hysteria2", "tuic", "naive"].includes(type)) {
-            merged.security = "tls";
-            if (!merged.cert_mode || merged.cert_mode === "none") {
-              merged.cert_mode = "self";
-            }
-          }
-          if (
-            ["anytls", "trojan"].includes(type) &&
-            !["tls", "reality"].includes(String(merged.security))
-          ) {
-            merged.security = "tls";
-            merged.cert_mode = "self";
-          }
-          if (merged.security === "reality") {
-            // Never overwrite a stored transport: REALITY rides any stream
-            // transport on vless, and rewriting it here made every edit — even
-            // a rename — silently destroy an xhttp node's configuration.
-            if (!merged.transport) {
-              merged.transport = "tcp";
-            }
-            merged.cert_mode = "none";
-          }
-          return merged;
-        }),
-      });
+      form.reset(defaultValues);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValues]);
+  }, [defaultValues]);
 
   function validateEnabledProtocols(values: Record<string, any>) {
     let firstInvalidProtocol: ProtocolType | undefined;
@@ -803,7 +724,10 @@ export default function ServerForm(props: ServerFormProps) {
       country: values.country,
       city: values.city,
       address: values.address,
-      protocols: filteredProtocols,
+      protocols: preserveUneditableProtocols(
+        filteredProtocols,
+        initialValues?.protocols
+      ) as API.Protocol[],
     };
 
     const ok = await onSubmit(result);
@@ -852,14 +776,7 @@ export default function ServerForm(props: ServerFormProps) {
           <Button
             onClick={() => {
               if (!initialValues) {
-                const full = PROTOCOLS.map((t) => getProtocolDefaultConfig(t));
-                form.reset({
-                  name: "",
-                  address: "",
-                  country: "",
-                  city: "",
-                  protocols: full,
-                });
+                form.reset(defaultValues);
               }
               setOpen(true);
             }}
@@ -967,6 +884,19 @@ export default function ServerForm(props: ServerFormProps) {
                 </p>
               </div>
 
+              {uneditableProtocols.length > 0 && (
+                <p className="mb-3 text-muted-foreground text-xs">
+                  {t(
+                    "uneditable_protocols_preserved",
+                    "These protocols are not editable in this panel and will be preserved when saving: {{protocols}}",
+                    {
+                      protocols: uneditableProtocols
+                        .map((protocol) => protocol.type)
+                        .join(", "),
+                    }
+                  )}
+                </p>
+              )}
               <Accordion
                 className="w-full space-y-3"
                 collapsible
@@ -997,7 +927,11 @@ export default function ServerForm(props: ServerFormProps) {
                               !!form.getFieldState(`protocols.${i}.enable`)
                                 .error
                             }
-                            aria-label={`${type} ${t("enabled", "Enabled")}`}
+                            aria-label={t(
+                              "protocol_enabled",
+                              "Enable {{protocol}}",
+                              { protocol: type }
+                            )}
                             checked={!!isEnabled}
                             data-form-field={`protocols.${i}.enable`}
                             disabled={Boolean(
@@ -1062,6 +996,14 @@ export default function ServerForm(props: ServerFormProps) {
                           </p>
                         )}
                         <div className="admin-protocol-groups space-y-5 border-t pt-4">
+                          {type === "nowhere" && (
+                            <p className="text-muted-foreground text-xs">
+                              {t(
+                                "nowhere_description",
+                                "NW3 · TLS 1.3 · ALPN nw3. Use an NW3 client with the same Morph setting."
+                              )}
+                            </p>
+                          )}
                           {renderGroupCard(
                             t("basic", "Basic Configuration"),
                             fields,

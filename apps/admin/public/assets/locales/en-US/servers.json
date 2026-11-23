@@ -241,5 +241,9 @@
     "requiredField": "This field is required",
     "requiredNumberField": "Enter a valid number",
     "requiredSelectField": "Please select an option"
-  }
+  },
+  "nowhere_morph": "Morph",
+  "nowhere_description": "NW3 · TLS 1.3 · ALPN nw3. Use an NW3 client with the same Morph setting.",
+  "uneditable_protocols_preserved": "These protocols are not editable in this panel and will be preserved when saving: {{protocols}}",
+  "protocol_enabled": "Enable {{protocol}}"
 }
