@@ -60,6 +60,7 @@ test("publish waits for frontend tests, four archive checks, and browser smoke",
   assert.match(release, /needs: verify/);
   assert.match(verification, /workflow_call:/);
   assert.match(verification, /permissions:\s+contents: read/);
+  assert.match(verification, /runs-on: ubuntu-24\.04/);
   assert.match(verification, /run: bun run test/);
   assert.match(verification, /run: node scripts\/prepare-release\.mjs/);
   assert.match(verification, /run: node scripts\/check-release-smoke\.mjs/);
