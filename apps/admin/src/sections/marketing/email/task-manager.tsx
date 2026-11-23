@@ -339,10 +339,42 @@ export function EmailContentPreview({
   html: string;
   title: string;
 }) {
+  // Template content is inert, so external media cannot preload while it is parsed.
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  for (const element of template.content.querySelectorAll(
+    "base, embed, iframe, link, meta, object, script, template"
+  )) {
+    element.remove();
+  }
+  for (const element of template.content.querySelectorAll(
+    "[src], [srcset], [href], [xlink\\:href], [background], [poster], [ping]"
+  )) {
+    for (const attribute of [
+      "src",
+      "srcset",
+      "href",
+      "xlink:href",
+      "background",
+      "poster",
+      "ping",
+    ]) {
+      const url = element.getAttribute(attribute)?.trim();
+      if (!url) continue;
+      const inlineImage =
+        element.localName === "img" &&
+        attribute === "src" &&
+        /^data:image\/(?:png|gif|jpe?g|webp|avif|bmp)[;,]/i.test(url);
+      const fragmentLink =
+        (attribute === "href" || attribute === "xlink:href") &&
+        url.startsWith("#");
+      if (!(inlineImage || fragmentLink)) element.removeAttribute(attribute);
+    }
+  }
   const preview = `<!doctype html><html><head><meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head><body>${html}</body></html>`;
+    </head><body>${template.innerHTML}</body></html>`;
 
   return (
     <iframe

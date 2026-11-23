@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EmailRecipientCount } from "./task-manager";
+import { EmailContentPreview, EmailRecipientCount } from "./task-manager";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -10,6 +10,23 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 afterEach(cleanup);
+
+it("removes remote media before rendering while preserving inline images and style", () => {
+  render(
+    <EmailContentPreview
+      html={
+        '<p style="color:navy">Message</p><img src="https://example.test/remote.png" alt="Remote"><img src="data:image/gif;base64,AA==" alt="Inline">'
+      }
+      title="Email preview"
+    />
+  );
+  const frame = screen.getByTitle("Email preview");
+  const markup = frame.getAttribute("srcdoc");
+  expect(frame.getAttribute("sandbox")).toBe("");
+  expect(markup).toContain('style="color:navy"');
+  expect(markup).toContain("data:image/gif;base64,AA==");
+  expect(markup).not.toContain("https://example.test/remote.png");
+});
 
 describe("email recipient count", () => {
   it("displays the backend total rather than counting a truncated recipient list", () => {

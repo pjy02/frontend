@@ -412,10 +412,15 @@ test("mail history isolates HTML and blocks automatic external media loads", asy
   const row = page.getByRole("row").filter({ hasText: "Preview fixture" });
   await row.getByRole("button", { name: "Email Content", exact: true }).click();
   const iframe = page.locator('iframe[title="Email Content"]');
-  const content = iframe.contentFrame().getByText("Isolated preview");
+  const frame = iframe.contentFrame();
+  const content = frame.getByText("Isolated preview");
   await content.waitFor();
   assert.equal(await iframe.getAttribute("sandbox"), "");
   assert.equal(await iframe.getAttribute("referrerpolicy"), "no-referrer");
+  assert.equal(
+    await frame.getByAltText("Optional image").getAttribute("src"),
+    null
+  );
   assert.equal(
     await content.evaluate((element) => getComputedStyle(element).color),
     "rgb(0, 0, 128)"
