@@ -103,7 +103,7 @@ export default function ConfigForm() {
     await updateSubscribeConfig(values as API.SubscribeConfig);
     toast.success(t("config.updateSuccess", "Settings updated successfully"));
     await safety.completeSave();
-    void refetch();
+    refetch();
   }
 
   return (

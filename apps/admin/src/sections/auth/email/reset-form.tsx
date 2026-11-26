@@ -25,7 +25,9 @@ export default function ResetForm({
   onSwitchForm,
 }: {
   loading?: boolean;
-  onSubmit: (data: any) => Promise<boolean | undefined> | boolean | void;
+  onSubmit: (
+    data: any
+  ) => Promise<boolean | undefined> | boolean | undefined;
   initialValues: any;
   setInitialValues: Dispatch<SetStateAction<any>>;
   onSwitchForm: Dispatch<SetStateAction<"register" | "reset" | "login">>;

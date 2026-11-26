@@ -195,7 +195,7 @@ export default function Nodes() {
                 onSync={async () => {
                   await readNodeInventory({ refresh: true });
                   await synchronizeTable(ref, row.original.id);
-                  void fetchTags();
+                  fetchTags();
                 }}
                 onWrite={async (checked) => {
                   await toggleNodeStatus({
@@ -322,7 +322,7 @@ export default function Nodes() {
                     onSync={async () => {
                       await readNodeInventory({ refresh: true });
                       await synchronizeTable(ref, row.id);
-                      void fetchTags();
+                      fetchTags();
                     }}
                     onWrite={async (checked) => {
                       await toggleNodeStatus({ id: row.id, enable: checked });

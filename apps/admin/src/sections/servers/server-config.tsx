@@ -157,7 +157,7 @@ export default function ServerConfig() {
     } as API.NodeConfig);
     toast.success(t("server_config.saveSuccess", "Saved successfully"));
     await safety.completeSave();
-    void refetchCfg();
+    refetchCfg();
   }
 
   return (
