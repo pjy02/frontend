@@ -147,6 +147,23 @@ export function parseTemplateObject(
     throw new Error("Unterminated array literal");
   }
 
+  function resolveIdentifier(ident: string): unknown {
+    switch (ident) {
+      case "true":
+        return true;
+      case "false":
+        return false;
+      case "null":
+        return null;
+      case "url":
+        return variables.url;
+      case "name":
+        return variables.name;
+      default:
+        throw new Error(`Unsupported identifier: ${ident}`);
+    }
+  }
+
   function parseObject(): Record<string, unknown> {
     pos++;
     const obj: Record<string, unknown> = {};
@@ -159,21 +176,30 @@ export function parseTemplateObject(
       skipWhitespace();
       const ch = input[pos];
       let key: string;
+      let isIdentifierKey = false;
       if (ch === '"' || ch === "'" || ch === "`") {
         key = parseString(ch);
       } else if (ch && /[A-Za-z_$]/.test(ch)) {
         key = parseIdentifier();
+        isIdentifierKey = true;
       } else if (ch && /[-\d]/.test(ch)) {
         key = String(parseNumber());
       } else {
         throw new Error("Expected property key");
       }
       skipWhitespace();
-      if (input[pos] !== ":") {
+      let value: unknown;
+      if (input[pos] === ":") {
+        pos++;
+        value = parseValue();
+      } else if (
+        isIdentifierKey &&
+        (input[pos] === "," || input[pos] === "}")
+      ) {
+        value = resolveIdentifier(key);
+      } else {
         throw new Error("Expected ':' after property key");
       }
-      pos++;
-      const value = parseValue();
       Object.defineProperty(obj, key, {
         value,
         enumerable: true,
@@ -209,21 +235,7 @@ export function parseTemplateObject(
     if (ch === "[") return parseArray();
     if (ch === '"' || ch === "'" || ch === "`") return parseString(ch);
     if (ch === "-" || (ch >= "0" && ch <= "9")) return parseNumber();
-    const ident = parseIdentifier();
-    switch (ident) {
-      case "true":
-        return true;
-      case "false":
-        return false;
-      case "null":
-        return null;
-      case "url":
-        return variables.url;
-      case "name":
-        return variables.name;
-      default:
-        throw new Error(`Unsupported identifier: ${ident}`);
-    }
+    return resolveIdentifier(parseIdentifier());
   }
 
   const parsed = parseValue();
