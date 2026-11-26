@@ -1,21 +1,21 @@
-name: Sync upstream for deployment
-run-name: Sync pjy02/frontend@${{ inputs.upstream_ref }} into main
+name: 同步上游代码用于部署
+run-name: 同步 pjy02/frontend@${{ inputs.upstream_ref }} 到 main
 
 on:
   workflow_dispatch:
     inputs:
       upstream_ref:
-        description: Branch or tag to sync from pjy02/frontend
+        description: 要从 pjy02/frontend 同步的分支或标签（默认 main）
         required: true
         default: main
         type: string
       run_checks:
-        description: Run checks, tests, and build before pushing
+        description: 推送前先运行格式检查、单元测试和构建
         required: true
         default: true
         type: boolean
       auto_fix_format:
-        description: Auto-fix safe Biome formatting issues before running checks
+        description: 检查前自动修复代码格式、导入排序和 Tailwind 类名排序
         required: true
         default: true
         type: boolean
