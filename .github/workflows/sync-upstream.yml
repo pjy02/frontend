@@ -14,6 +14,11 @@ on:
         required: true
         default: true
         type: boolean
+      auto_fix_format:
+        description: Auto-fix safe Biome formatting issues before running checks
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -124,14 +129,40 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Setup Bun
-        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        if: steps.sync.outputs.has_changes == 'true' && (inputs.run_checks || inputs.auto_fix_format)
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.1
 
       - name: Install dependencies
-        if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
+        if: steps.sync.outputs.has_changes == 'true' && (inputs.run_checks || inputs.auto_fix_format)
         run: bun install --frozen-lockfile
+
+      - name: Auto-fix safe formatting
+        if: steps.sync.outputs.has_changes == 'true' && inputs.auto_fix_format
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ steps.sync.outputs.before_sha }}
+        run: |
+          set -euo pipefail
+          # Apply safe formatting fixes only; leave unfixable lint errors for the next check step.
+          bun x biome check --write || true
+          git restore \
+            --source="${BEFORE_SHA}" \
+            --staged \
+            --worktree \
+            -- .github/workflows
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add -A
+            git restore \
+              --source="${BEFORE_SHA}" \
+              --staged \
+              --worktree \
+              -- .github/workflows
+            git commit --amend --no-edit
+            echo "Amended deployment snapshot with safe Biome formatting fixes."
+          fi
 
       - name: Check formatting and types
         if: steps.sync.outputs.has_changes == 'true' && inputs.run_checks
@@ -162,13 +193,17 @@ jobs:
         shell: bash
         env:
           CHECKS_ENABLED: ${{ inputs.run_checks }}
+          AUTO_FIX_ENABLED: ${{ inputs.auto_fix_format }}
         run: |
+          final_sha="$(git rev-parse HEAD)"
           {
             echo
             echo "## Sync completed"
             echo
             echo "- Updated branch: \`${TARGET_BRANCH}\`"
+            echo "- Final commit: \`${final_sha}\`"
             echo "- Preserved path: \`.github/workflows/**\`"
             echo "- Checks enabled: \`${CHECKS_ENABLED}\`"
+            echo "- Auto-fix format: \`${AUTO_FIX_ENABLED}\`"
             echo "- Vercel can now deploy the new \`${TARGET_BRANCH}\` commit."
           } >> "${GITHUB_STEP_SUMMARY}"
