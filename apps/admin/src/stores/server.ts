@@ -1,4 +1,5 @@
 import { getServerList as filterServerList } from "@workspace/ui/services/admin/admin";
+import { useEffect } from "react";
 import { create } from "zustand";
 import { createInventoryCache } from "./inventory-cache";
 import { fetchAllPaginated } from "./pagination";
@@ -105,9 +106,11 @@ export const useServer = () => {
   const store = useServerStore();
 
   // Auto-fetch servers
-  if (!(store.loaded || store.loading)) {
-    store.fetchServers();
-  }
+  useEffect(() => {
+    if (!(store.loaded || store.loading)) {
+      store.fetchServers();
+    }
+  }, [store.loaded, store.loading, store.fetchServers]);
 
   return {
     servers: store.servers,

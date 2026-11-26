@@ -1,4 +1,5 @@
 import { getSubscribeList } from "@workspace/ui/services/admin/admin";
+import { useEffect } from "react";
 import { create } from "zustand";
 import { fetchAllPaginated } from "./pagination";
 
@@ -58,9 +59,11 @@ export const useSubscribe = () => {
   const store = useSubscribeStore();
 
   // Auto-fetch subscribes
-  if (!(store.loaded || store.loading)) {
-    store.fetchSubscribes();
-  }
+  useEffect(() => {
+    if (!(store.loaded || store.loading)) {
+      store.fetchSubscribes();
+    }
+  }, [store.loaded, store.loading, store.fetchSubscribes]);
 
   return {
     subscribes: store.subscribes,

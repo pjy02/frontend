@@ -26,7 +26,7 @@ export default function RegisterForm({
   onSwitchForm,
 }: {
   loading?: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<boolean | undefined> | boolean | void;
   initialValues: any;
   setInitialValues: Dispatch<SetStateAction<any>>;
   onSwitchForm: Dispatch<SetStateAction<"register" | "reset" | "login">>;
@@ -38,11 +38,12 @@ export default function RegisterForm({
   const handleCheckUser = async (email: string) => {
     try {
       if (!auth.email.enable_domain_suffix) return true;
-      const domain = email.split("@")[1];
-      const isValid = auth.email?.domain_suffix_list
+      const domain = email.split("@")[1]?.trim().toLowerCase() || "";
+      const allowedDomains = (auth.email?.domain_suffix_list || "")
         .split("\n")
-        .includes(domain || "");
-      return isValid;
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+      return allowedDomains.includes(domain);
     } catch (error) {
       console.log("Error checking user:", error);
       return false;
@@ -63,7 +64,7 @@ export default function RegisterForm({
       invite: invite.forced_invite ? z.string().min(1) : z.string().nullish(),
       cf_token:
         verify.enable_register_verify && verify.turnstile_site_key
-          ? z.string()
+          ? z.string().min(1)
           : z.string().nullish(),
     })
     .superRefine(({ password, repeat_password }, ctx) => {
@@ -85,11 +86,16 @@ export default function RegisterForm({
   });
 
   const turnstile = useRef<TurnstileRef>(null);
-  const handleSubmit = form.handleSubmit((data) => {
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      onSubmit(data);
+      const succeeded = await onSubmit(data);
+      if (succeeded === false) {
+        turnstile.current?.reset();
+        form.setValue("cf_token", "");
+      }
     } catch (_error) {
       turnstile.current?.reset();
+      form.setValue("cf_token", "");
     }
   });
 

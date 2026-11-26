@@ -1,6 +1,7 @@
 import { removeCookie, setCookie } from "@workspace/ui/lib/cookies";
 import { isBrowser } from "@workspace/ui/utils/index";
 import { intlFormat } from "date-fns";
+import { useGlobalStore } from "@/stores/global";
 
 export function getPlatform(): string {
   if (typeof window === "undefined") return "unknown";
@@ -53,7 +54,11 @@ export function setAuthorization(token: string): void {
 
 export function normalizeAdminRedirectUrl(value?: string | null) {
   if (!value) return;
-  if (value === "/dashboard" || value.startsWith("/dashboard/")) {
+  if (
+    value === "/dashboard" ||
+    value.startsWith("/dashboard/") ||
+    value.startsWith("/dashboard?")
+  ) {
     return value;
   }
 }
@@ -80,6 +85,7 @@ export function setRedirectUrl(value?: string) {
 export function Logout() {
   if (!isBrowser()) return;
   removeCookie("Authorization");
+  useGlobalStore.getState().setUser(undefined);
 
   const pathname = location.pathname;
   const hash = location.hash.slice(1);

@@ -2,7 +2,6 @@
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { Switch } from "@workspace/ui/components/switch";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import {
   ProTable,
@@ -24,6 +23,7 @@ import {
   AdminActionMenuDangerItem,
   AdminActionMenuItem,
 } from "@/components/admin-action-menu";
+import { AsyncSwitch, synchronizeTable } from "@/components/async-switch";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import {
@@ -187,33 +187,39 @@ export default function Nodes() {
             id: "enabled",
             header: t("enabled", "Enabled"),
             cell: ({ row }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={row.original.enabled}
-                  onCheckedChange={async (v) => {
-                    await toggleNodeStatus({ id: row.original.id, enable: v });
-                    toast.success(
-                      v
-                        ? t("enabled_on", "Enabled")
-                        : t("enabled_off", "Disabled")
-                    );
-                    refreshNodeInventory();
-                    ref.current?.refresh({
-                      reason: "edit",
-                      rowIds: [row.original.id],
-                    });
-                    fetchTags();
-                  }}
-                />
-                <StatusChip
-                  dot={false}
-                  tone={row.original.enabled ? "success" : "neutral"}
-                >
-                  {row.original.enabled
-                    ? t("enabled_on", "Enabled")
-                    : t("enabled_off", "Disabled")}
-                </StatusChip>
-              </div>
+              <AsyncSwitch
+                checked={Boolean(row.original.enabled)}
+                field="enabled"
+                id={row.original.id}
+                label={t("enabled", "Enabled")}
+                onSync={async () => {
+                  await readNodeInventory({ refresh: true });
+                  await synchronizeTable(ref, row.original.id);
+                  void fetchTags();
+                }}
+                onWrite={async (checked) => {
+                  await toggleNodeStatus({
+                    id: row.original.id,
+                    enable: checked,
+                  });
+                  toast.success(
+                    checked
+                      ? t("enabled_on", "Enabled")
+                      : t("enabled_off", "Disabled")
+                  );
+                }}
+                resource="node"
+                status={(value) => (
+                  <StatusChip
+                    dot={false}
+                    tone={value ? "success" : "neutral"}
+                  >
+                    {value
+                      ? t("enabled_on", "Enabled")
+                      : t("enabled_off", "Disabled")}
+                  </StatusChip>
+                )}
+              />
             ),
           },
           { accessorKey: "name", header: t("name", "Name") },
@@ -302,28 +308,31 @@ export default function Nodes() {
                       {row.name || "—"}
                     </h2>
                   </div>
-                  <p className="mt-1 break-all font-mono text-muted-foreground text-sm">
+                  <div className="mt-1 break-all font-mono text-muted-foreground text-sm">
                     <NodeEndpoint address={row.address} port={row.port} />
-                  </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch
-                    aria-label={t("enabled", "Enabled")}
-                    checked={row.enabled}
-                    onCheckedChange={async (value) => {
-                      await toggleNodeStatus({ id: row.id, enable: value });
+                  <AsyncSwitch
+                    checked={Boolean(row.enabled)}
+                    compact
+                    field="enabled"
+                    id={row.id}
+                    label={t("enabled", "Enabled")}
+                    onSync={async () => {
+                      await readNodeInventory({ refresh: true });
+                      await synchronizeTable(ref, row.id);
+                      void fetchTags();
+                    }}
+                    onWrite={async (checked) => {
+                      await toggleNodeStatus({ id: row.id, enable: checked });
                       toast.success(
-                        value
+                        checked
                           ? t("enabled_on", "Enabled")
                           : t("enabled_off", "Disabled")
                       );
-                      refreshNodeInventory();
-                      ref.current?.refresh({
-                        reason: "edit",
-                        rowIds: [row.id],
-                      });
-                      fetchTags();
                     }}
+                    resource="node"
                   />
                   <StatusChip
                     dot={false}

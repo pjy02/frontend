@@ -2,6 +2,7 @@ import {
   getServerNodeList as filterNodeList,
   getServerNodeTags as queryNodeTag,
 } from "@workspace/ui/services/admin/admin";
+import { useEffect } from "react";
 import { create } from "zustand";
 import { createInventoryCache } from "./inventory-cache";
 import { fetchAllPaginated } from "./pagination";
@@ -132,12 +133,21 @@ export const useNode = () => {
   const store = useNodeStore();
 
   // Auto-fetch nodes and tags
-  if (!(store.loaded || store.loading)) {
-    store.fetchNodes();
-  }
-  if (!(store.loadedTags || store.loadingTags)) {
-    store.fetchTags();
-  }
+  useEffect(() => {
+    if (!(store.loaded || store.loading)) {
+      store.fetchNodes();
+    }
+    if (!(store.loadedTags || store.loadingTags)) {
+      store.fetchTags();
+    }
+  }, [
+    store.loaded,
+    store.loading,
+    store.loadedTags,
+    store.loadingTags,
+    store.fetchNodes,
+    store.fetchTags,
+  ]);
 
   return {
     nodes: store.nodes,

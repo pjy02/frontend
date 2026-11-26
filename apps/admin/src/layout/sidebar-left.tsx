@@ -35,6 +35,17 @@ function hasChildren(item: NavItem): item is NavItem & { items: NavItem[] } {
   return Boolean(item.items?.length);
 }
 
+function getNavGroupKey(nav: NavItem) {
+  return (
+    nav.items
+      ?.map((item) => item.url)
+      .filter(Boolean)
+      .join("|") ||
+    nav.url ||
+    nav.title
+  );
+}
+
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
@@ -51,17 +62,14 @@ export function SidebarLeft({
   const navigationClosing = React.useRef(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
-      navs
-        .filter(hasChildren)
-        .map((nav) => [
-          nav.title,
-          nav.items.some(
-            (item) =>
-              item.url &&
-              (pathname === item.url || pathname.startsWith(`${item.url}/`))
-          ) ||
-            (nav.defaultOpen ?? true),
-        ])
+      navs.filter(hasChildren).map((nav) => [
+        getNavGroupKey(nav),
+        nav.items.some(
+          (item) =>
+            item.url &&
+            (pathname === item.url || pathname.startsWith(`${item.url}/`))
+        ) || (nav.defaultOpen ?? true),
+      ])
     )
   );
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -150,10 +158,11 @@ export function SidebarLeft({
       const next = { ...current };
       for (const nav of navs) {
         if (!hasChildren(nav)) continue;
+        const groupKey = getNavGroupKey(nav);
         if (isGroupActive(nav)) {
-          next[nav.title] = true;
-        } else if (next[nav.title] === undefined) {
-          next[nav.title] = nav.defaultOpen ?? true;
+          next[groupKey] = true;
+        } else if (next[groupKey] === undefined) {
+          next[groupKey] = nav.defaultOpen ?? true;
         }
       }
       return next;
@@ -207,11 +216,13 @@ export function SidebarLeft({
       );
     }
 
+    const groupKey = getNavGroupKey(nav);
+
     return (
       <DropdownMenu
         modal={false}
-        onOpenChange={(open) => setOpenCollapsedGroup(open ? nav.title : null)}
-        open={openCollapsedGroup === nav.title}
+        onOpenChange={(open) => setOpenCollapsedGroup(open ? groupKey : null)}
+        open={openCollapsedGroup === groupKey}
       >
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton
@@ -246,7 +257,7 @@ export function SidebarLeft({
             {nav.items?.map((item) => {
               const ItemIcon = item.icon;
               return (
-                <DropdownMenuItem asChild key={item.title}>
+                <DropdownMenuItem asChild key={item.url || item.title}>
                   <Link
                     className={cn(
                       "flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
@@ -337,16 +348,20 @@ export function SidebarLeft({
         <SidebarMenu>
           {!isMobile && state === "collapsed"
             ? navs.map((nav) => (
-                <SidebarMenuItem className="py-0.5" key={nav.title}>
+                <SidebarMenuItem
+                  className="py-0.5"
+                  key={getNavGroupKey(nav)}
+                >
                   {renderCollapsedItem(nav)}
                 </SidebarMenuItem>
               ))
             : navs.map((nav) => {
                 const NavIcon = nav.icon;
+                const groupKey = getNavGroupKey(nav);
 
                 if (!hasChildren(nav)) {
                   return (
-                    <SidebarMenuItem className="mb-1" key={nav.title}>
+                    <SidebarMenuItem className="mb-1" key={groupKey}>
                       <SidebarMenuButton
                         asChild={Boolean(nav.url)}
                         className="relative h-10 rounded-lg px-3"
@@ -373,10 +388,10 @@ export function SidebarLeft({
                   );
                 }
 
-                const isOpen = openGroups[nav.title] ?? false;
+                const isOpen = openGroups[groupKey] ?? false;
                 const groupId = `${groupIdPrefix}-${navs.indexOf(nav)}`;
                 return (
-                  <SidebarGroup className="p-0 pb-1" key={nav.title}>
+                  <SidebarGroup className="p-0 pb-1" key={groupKey}>
                     <SidebarMenuButton
                       aria-controls={groupId}
                       aria-expanded={isOpen}
@@ -389,7 +404,7 @@ export function SidebarLeft({
                       onClick={() =>
                         setOpenGroups((current) => ({
                           ...current,
-                          [nav.title]: !isOpen,
+                          [groupKey]: !isOpen,
                         }))
                       }
                     >
@@ -418,7 +433,9 @@ export function SidebarLeft({
                             {nav.items.map((item) => {
                               const ItemIcon = item.icon;
                               return (
-                                <SidebarMenuSubItem key={item.title}>
+                                <SidebarMenuSubItem
+                                  key={item.url || item.title}
+                                >
                                   <SidebarMenuSubButton
                                     asChild
                                     className="relative h-9 rounded-lg"

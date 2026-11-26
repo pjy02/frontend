@@ -122,7 +122,7 @@ export function UserSubscribeDetail({
               <li className="flex items-center justify-between font-semibold">
                 <span className="text-muted-foreground">{t("balance")}</span>
                 <span>
-                  <Display type="currency" value={data?.user.balance} />
+                  <Display type="currency" value={data?.user?.balance} />
                 </span>
               </li>
               <li className="flex items-center justify-between">
@@ -184,16 +184,17 @@ export function UserDetail({ id }: { id: number }) {
   if (!id) return "--";
 
   const identifier =
-    data?.auth_methods.find(
+    data?.auth_methods?.find(
       (method: API.UserAuthMethod) => method.auth_type === "email"
-    )?.auth_identifier || data?.auth_methods[0]?.auth_identifier;
+    )?.auth_identifier || data?.auth_methods?.[0]?.auth_identifier;
 
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
         <Button asChild className="p-0" variant="link">
           <Link search={{ user_id: id }} to="/dashboard/user">
-            {identifier || t("loading", "Loading...")}
+            {identifier ||
+              (readQuery.isPending ? t("loading", "Loading...") : `User ${id}`)}
           </Link>
         </Button>
       </HoverCardTrigger>

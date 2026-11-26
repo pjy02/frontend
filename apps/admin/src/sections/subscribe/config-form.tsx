@@ -58,7 +58,6 @@ type SubscribeConfigFormData = z.infer<typeof subscribeConfigSchema>;
 export default function ConfigForm() {
   const { t } = useTranslation("subscribe");
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const readQuery = useQuery({
     queryKey: ["getSubscribeConfig"],
@@ -101,18 +100,10 @@ export default function ConfigForm() {
 
   async function onSubmit(values: SubscribeConfigFormData) {
     if (!readReady(readQuery)) return;
-    setLoading(true);
-    try {
-      await updateSubscribeConfig(values as API.SubscribeConfig);
-      toast.success(t("config.updateSuccess", "Settings updated successfully"));
-      refetch();
-      form.reset(form.getValues());
-      setOpen(false);
-    } catch (_error) {
-      toast.error(t("config.updateError", "Update failed"));
-    } finally {
-      setLoading(false);
-    }
+    await updateSubscribeConfig(values as API.SubscribeConfig);
+    toast.success(t("config.updateSuccess", "Settings updated successfully"));
+    await safety.completeSave();
+    void refetch();
   }
 
   return (
@@ -424,16 +415,16 @@ export default function ConfigForm() {
         </ScrollArea>
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
-            disabled={loading}
+            disabled={safety.busy}
             onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("actions.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={loading || !readReady(readQuery)}
+            disabled={safety.busy || !readReady(readQuery)}
             form="subscribe-config-form"
-            loading={loading || safety.submitting}
+            loading={safety.submitting}
             loadingLabel={t("components:actions.processing")}
             type="submit"
           >

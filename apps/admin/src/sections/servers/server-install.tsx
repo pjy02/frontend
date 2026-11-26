@@ -36,6 +36,10 @@ type Props = {
   trigger?: ReactNode;
 };
 
+function shellQuote(value: string) {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
 export default function ServerInstall({ server, trigger }: Props) {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
@@ -60,7 +64,7 @@ export default function ServerInstall({ server, trigger }: Props) {
 
   const installCommand = useMemo(() => {
     const secret = cfgResp?.node_secret ?? "";
-    return `wget -N https://raw.githubusercontent.com/perfect-panel/ppanel-node/master/scripts/install.sh && bash install.sh --api-host ${domain} --server-id ${server.id} --secret-key ${secret}`;
+    return `wget -N https://raw.githubusercontent.com/perfect-panel/ppanel-node/master/scripts/install.sh && bash install.sh --api-host ${shellQuote(domain)} --server-id ${Number(server.id)} --secret-key ${shellQuote(secret)}`;
   }, [domain, server.id, cfgResp?.node_secret]);
 
   async function handleCopy() {

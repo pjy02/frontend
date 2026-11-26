@@ -95,12 +95,17 @@ export default function SubscribeTable({
               description={t("deleteWarning")}
               key="delete"
               onConfirm={async () => {
+                const rowIds = rows
+                  .map((item) => item.id)
+                  .filter(
+                    (id): id is number => id !== undefined && id !== null
+                  );
                 await batchDeleteSubscribe({
-                  ids: rows.map((item) => item.id) as number[],
+                  ids: rowIds,
                 });
 
                 toast.success(t("deleteSuccess"));
-                ref.current?.reset();
+                ref.current?.refresh({ reason: "delete", rowIds });
                 fetchSubscribes();
               }}
               title={t("confirmDelete")}
@@ -383,13 +388,21 @@ export default function SubscribeTable({
           const targetIndex = items.findIndex(
             (item) => String(item.id) === target
           );
+          if (
+            sourceIndex < 0 ||
+            targetIndex < 0 ||
+            sourceIndex === targetIndex
+          ) {
+            return items;
+          }
 
           const originalSorts = items.map((item) => item.sort);
+          const reordered = [...items];
+          const [movedItem] = reordered.splice(sourceIndex, 1);
+          if (!movedItem) return items;
+          reordered.splice(targetIndex, 0, movedItem);
 
-          const [movedItem] = items.splice(sourceIndex, 1);
-          items.splice(targetIndex, 0, movedItem!);
-
-          const updatedItems = items.map((item, index) => {
+          const updatedItems = reordered.map((item, index) => {
             const originalSort = originalSorts[index];
             const newSort =
               originalSort !== undefined ? originalSort : item.sort;
@@ -397,7 +410,7 @@ export default function SubscribeTable({
           });
 
           const changedItems = updatedItems.filter(
-            (item, index) => item.sort !== items[index]?.sort
+            (item, index) => item.sort !== reordered[index]?.sort
           );
 
           if (changedItems.length > 0) {

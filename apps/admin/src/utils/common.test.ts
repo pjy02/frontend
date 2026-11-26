@@ -15,11 +15,17 @@ describe("admin login redirects", () => {
 
   it("accepts only internal dashboard destinations", () => {
     expect(normalizeAdminRedirectUrl("/dashboard")).toBe("/dashboard");
+    expect(normalizeAdminRedirectUrl("/dashboard?range=total")).toBe(
+      "/dashboard?range=total"
+    );
     expect(normalizeAdminRedirectUrl("/dashboard/log/order?user_id=7")).toBe(
       "/dashboard/log/order?user_id=7"
     );
     expect(
       normalizeAdminRedirectUrl("//example.com/dashboard")
+    ).toBeUndefined();
+    expect(
+      normalizeAdminRedirectUrl("/dashboard-evil")
     ).toBeUndefined();
     expect(normalizeAdminRedirectUrl("/login")).toBeUndefined();
   });

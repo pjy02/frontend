@@ -7,7 +7,7 @@ import {
   postAuthRegister as userRegister,
 } from "@workspace/ui/services/common/common";
 import type { ReactNode } from "react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { USER_EMAIL, USER_PASSWORD } from "@/config";
@@ -22,7 +22,7 @@ export default function EmailAuthForm() {
   const navigate = useNavigate();
   const { getUserInfo } = useGlobalStore();
   const [type, setType] = useState<"login" | "register" | "reset">("login");
-  const [loading, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<{
     email?: string;
     password?: string;
@@ -31,38 +31,42 @@ export default function EmailAuthForm() {
     password: USER_PASSWORD,
   });
 
-  const handleFormSubmit = async (params: any) => {
+  const handleFormSubmit = async (params: any): Promise<boolean> => {
+    if (loading) return false;
     const onLogin = async (token?: string) => {
       if (!token) return;
       setAuthorization(token);
       await getUserInfo();
       navigate({ to: getRedirectUrl() });
     };
-    startTransition(async () => {
-      try {
-        switch (type) {
-          case "login": {
-            const login = await userLogin(params);
-            toast.success(t("login.success", "Login successful!"));
-            onLogin(login.data.data?.token);
-            break;
-          }
-          case "register": {
-            const create = await userRegister(params);
-            toast.success(t("register.success", "Registration successful!"));
-            onLogin(create.data.data?.token);
-            break;
-          }
-          case "reset":
-            await resetPassword(params);
-            toast.success(t("reset.success", "Password reset successful!"));
-            setType("login");
-            break;
+    setLoading(true);
+    try {
+      switch (type) {
+        case "login": {
+          const login = await userLogin(params);
+          toast.success(t("login.success", "Login successful!"));
+          await onLogin(login.data.data?.token);
+          return true;
         }
-      } catch {
-        // The request layer already toasted the reason.
+        case "register": {
+          const create = await userRegister(params);
+          toast.success(t("register.success", "Registration successful!"));
+          await onLogin(create.data.data?.token);
+          return true;
+        }
+        case "reset":
+          await resetPassword(params);
+          toast.success(t("reset.success", "Password reset successful!"));
+          setType("login");
+          return true;
       }
-    });
+      return false;
+    } catch {
+      // The request layer already toasted the reason.
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   let UserForm: ReactNode = null;

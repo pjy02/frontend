@@ -37,7 +37,6 @@ import {
 } from "@workspace/ui/services/admin/admin";
 import { unitConversion } from "@workspace/ui/utils/unit-conversions";
 import { DicesIcon } from "lucide-react";
-import { uid } from "radash";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -82,10 +81,22 @@ const nodeConfigSchema = z.object({
 });
 type NodeConfigFormData = z.infer<typeof nodeConfigSchema>;
 
+function generateNodeSecret() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export default function ServerConfig() {
   const { t } = useTranslation("servers");
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const readQuery = useQuery({
     queryKey: ["getNodeConfig"],
@@ -138,21 +149,15 @@ export default function ServerConfig() {
 
   async function onSubmit(values: NodeConfigFormData) {
     if (!readReady(readQuery)) return;
-    setSaving(true);
-    try {
-      await updateNodeConfig({
-        ...values,
-        outbound: (values.outbound || []).map((item) =>
-          normalizeOutboundConfig(item)
-        ),
-      } as API.NodeConfig);
-      toast.success(t("server_config.saveSuccess", "Saved successfully"));
-      await refetchCfg();
-      form.reset(form.getValues());
-      setOpen(false);
-    } finally {
-      setSaving(false);
-    }
+    await updateNodeConfig({
+      ...values,
+      outbound: (values.outbound || []).map((item) =>
+        normalizeOutboundConfig(item)
+      ),
+    } as API.NodeConfig);
+    toast.success(t("server_config.saveSuccess", "Saved successfully"));
+    await safety.completeSave();
+    void refetchCfg();
   }
 
   return (
@@ -247,9 +252,10 @@ export default function ServerConfig() {
                                   <DicesIcon
                                     className="cursor-pointer"
                                     onClick={() => {
-                                      const id = uid(32).toLowerCase();
-                                      const formatted = `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20)}`;
-                                      form.setValue("node_secret", formatted);
+                                      form.setValue(
+                                        "node_secret",
+                                        generateNodeSecret()
+                                      );
                                     }}
                                   />
                                 </div>
@@ -571,23 +577,19 @@ export default function ServerConfig() {
 
         <WorkspaceDialogFooter className="flex-row justify-end gap-2">
           <Button
-            disabled={saving}
+            disabled={safety.busy}
             onClick={() => safety.requestOpenChange(false)}
             variant="outline"
           >
             {t("actions.cancel", "Cancel")}
           </Button>
           <Button
-            disabled={saving || !readReady(readQuery)}
+            disabled={safety.busy || !readReady(readQuery)}
             form="server-config-form"
-            loading={saving || safety.submitting}
+            loading={safety.submitting}
             loadingLabel={t("components:actions.processing")}
             type="submit"
           >
-            <Icon
-              className={saving ? "mr-2 animate-spin" : "hidden"}
-              icon="mdi:loading"
-            />
             {t("actions.save", "Save")}
           </Button>
         </WorkspaceDialogFooter>

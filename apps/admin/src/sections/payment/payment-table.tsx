@@ -1,11 +1,6 @@
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { Switch } from "@workspace/ui/components/switch";
 import { ConfirmButton } from "@workspace/ui/composed/confirm-button";
 import {
   ProTable,
@@ -26,6 +21,7 @@ import {
   AdminActionMenuDangerItem,
   AdminActionMenuItem,
 } from "@/components/admin-action-menu";
+import { AsyncSwitch, synchronizeTable } from "@/components/async-switch";
 import { EnabledStatusChip, MoneyValue } from "@/components/commerce-display";
 import { MobileListSummary } from "@/components/mobile-list-summary";
 import { PageHeader } from "@/components/page-header";
@@ -85,14 +81,22 @@ export default function PaymentTable() {
                 )}
                 key="delete"
                 onConfirm={async () => {
-                  for (const row of rows) {
-                    await deletePaymentMethod({ id: row.id });
+                  const results = await Promise.allSettled(
+                    rows.map((row) => deletePaymentMethod({ id: row.id }))
+                  );
+                  const deletedIds = rows
+                    .filter((_, index) => results[index]?.status === "fulfilled")
+                    .map((row) => row.id);
+                  if (deletedIds.length > 0) {
+                    ref.current?.refresh({
+                      reason: "delete",
+                      rowIds: deletedIds,
+                    });
+                  }
+                  if (results.some((result) => result.status === "rejected")) {
+                    return false;
                   }
                   toast.success(t("deleteSuccess", "Deleted successfully"));
-                  ref.current?.refresh({
-                    reason: "delete",
-                    rowIds: rows.map((row) => row.id),
-                  });
                 }}
                 title={t("confirmDelete", "Confirm Delete")}
                 trigger={
@@ -109,26 +113,27 @@ export default function PaymentTable() {
             accessorKey: "enable",
             header: t("enable", "Enable"),
             cell: ({ row }) => (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={Boolean(row.getValue("enable"))}
-                  onCheckedChange={async (checked) => {
-                    await updatePaymentMethod({
-                      ...row.original,
-                      enable: checked,
-                    });
-                    ref.current?.refresh({
-                      reason: "edit",
-                      rowIds: [row.original.id],
-                    });
-                  }}
-                />
-                <EnabledStatusChip
-                  disabledLabel={t("disabled", "Disabled")}
-                  enabled={Boolean(row.original.enable)}
-                  enabledLabel={t("enabled", "Enabled")}
-                />
-              </div>
+              <AsyncSwitch
+                checked={Boolean(row.getValue("enable"))}
+                field="enable"
+                id={row.original.id}
+                label={t("enable", "Enable")}
+                onSync={() => synchronizeTable(ref, row.original.id)}
+                onWrite={(checked) =>
+                  updatePaymentMethod({
+                    ...row.original,
+                    enable: checked,
+                  })
+                }
+                resource="payment"
+                status={(value) => (
+                  <EnabledStatusChip
+                    disabledLabel={t("disabled", "Disabled")}
+                    enabled={value}
+                    enabledLabel={t("enabled", "Enabled")}
+                  />
+                )}
+              />
             ),
           },
           {
@@ -257,16 +262,17 @@ export default function PaymentTable() {
                     <span className="text-muted-foreground">
                       {t("enable", "Enable")}
                     </span>
-                    <Switch
-                      aria-label={t("enable", "Enable")}
+                    <AsyncSwitch
                       checked={Boolean(row.enable)}
-                      onCheckedChange={async (checked) => {
-                        await updatePaymentMethod({ ...row, enable: checked });
-                        ref.current?.refresh({
-                          reason: "edit",
-                          rowIds: [row.id],
-                        });
-                      }}
+                      compact
+                      field="enable"
+                      id={row.id}
+                      label={t("enable", "Enable")}
+                      onSync={() => synchronizeTable(ref, row.id)}
+                      onWrite={(checked) =>
+                        updatePaymentMethod({ ...row, enable: checked })
+                      }
+                      resource="payment"
                     />
                   </div>
                 }

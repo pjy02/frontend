@@ -7,11 +7,15 @@ let initialConfigPromise: ReturnType<typeof getGlobalConfig> | undefined;
 // The root route awaits the same promise.
 export function fetchInitialConfig(): ReturnType<typeof getGlobalConfig> {
   if (!initialConfigPromise) {
-    initialConfigPromise = getGlobalConfig();
+    const request = getGlobalConfig();
+    initialConfigPromise = request;
     // The root route attaches its own handlers later; swallow the rejection
-    // here to avoid an unhandled-rejection warning in the meantime.
-    initialConfigPromise.catch(() => {
-      /* handled by the root route */
+    // here to avoid an unhandled-rejection warning in the meantime, and
+    // clear the cached promise so retries can re-fetch.
+    request.catch(() => {
+      if (initialConfigPromise === request) {
+        initialConfigPromise = undefined;
+      }
     });
   }
   return initialConfigPromise;

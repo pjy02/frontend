@@ -36,6 +36,209 @@ export function extractDomain(url: string, extractRoot = true): string | null {
   }
 }
 
+export function parseTemplateObject(
+  expr: string,
+  variables: { url: string; name: string }
+): unknown {
+  if (expr.includes("server_remote")) {
+    const serverRemoteValue = `${variables.url}, tag=${variables.name}`;
+    return { server_remote: [serverRemoteValue] };
+  }
+
+  let pos = 0;
+  const input = expr;
+
+  const skipWhitespace = () => {
+    while (pos < input.length && /\s/.test(input[pos]!)) {
+      pos++;
+    }
+  };
+
+  const interpolateBacktick = (raw: string) =>
+    raw
+      .replace(/\$\{url\}/g, variables.url)
+      .replace(/\$\{name\}/g, variables.name);
+
+  const parseString = (quote: string): string => {
+    pos++;
+    let out = "";
+    while (pos < input.length) {
+      const ch = input[pos]!;
+      if (ch === quote) {
+        pos++;
+        return quote === "`" ? interpolateBacktick(out) : out;
+      }
+      if (ch === "\\") {
+        pos++;
+        if (pos >= input.length) {
+          throw new Error("Unterminated escape sequence");
+        }
+        const esc = input[pos]!;
+        pos++;
+        switch (esc) {
+          case "n":
+            out += "\n";
+            break;
+          case "r":
+            out += "\r";
+            break;
+          case "t":
+            out += "\t";
+            break;
+          case "\\":
+          case '"':
+          case "'":
+          case "`":
+            out += esc;
+            break;
+          default:
+            out += esc;
+            break;
+        }
+        continue;
+      }
+      out += ch;
+      pos++;
+    }
+    throw new Error("Unterminated string literal");
+  };
+
+  const parseNumber = (): number => {
+    const remaining = input.slice(pos);
+    const match = /^-?\d+(?:\.\d+)?/.exec(remaining);
+    if (!match) {
+      throw new Error("Invalid number literal");
+    }
+    pos += match[0].length;
+    return Number(match[0]);
+  };
+
+  const parseIdentifier = (): string => {
+    const remaining = input.slice(pos);
+    const match = /^[A-Za-z_$][A-Za-z0-9_$-]*/.exec(remaining);
+    if (!match) {
+      throw new Error("Invalid identifier");
+    }
+    pos += match[0].length;
+    return match[0];
+  };
+
+  const parseArray = (): unknown[] => {
+    pos++;
+    const items: unknown[] = [];
+    skipWhitespace();
+    if (input[pos] === "]") {
+      pos++;
+      return items;
+    }
+    while (pos < input.length) {
+      items.push(parseValue());
+      skipWhitespace();
+      if (input[pos] === ",") {
+        pos++;
+        skipWhitespace();
+        if (input[pos] === "]") {
+          pos++;
+          return items;
+        }
+        continue;
+      }
+      if (input[pos] === "]") {
+        pos++;
+        return items;
+      }
+      throw new Error("Expected ',' or ']' in array literal");
+    }
+    throw new Error("Unterminated array literal");
+  };
+
+  const parseObject = (): Record<string, unknown> => {
+    pos++;
+    const obj: Record<string, unknown> = {};
+    skipWhitespace();
+    if (input[pos] === "}") {
+      pos++;
+      return obj;
+    }
+    while (pos < input.length) {
+      skipWhitespace();
+      const ch = input[pos];
+      let key: string;
+      if (ch === '"' || ch === "'" || ch === "`") {
+        key = parseString(ch);
+      } else if (ch && /[A-Za-z_$]/.test(ch)) {
+        key = parseIdentifier();
+      } else if (ch && /[-\d]/.test(ch)) {
+        key = String(parseNumber());
+      } else {
+        throw new Error("Expected property key");
+      }
+      skipWhitespace();
+      if (input[pos] !== ":") {
+        throw new Error("Expected ':' after property key");
+      }
+      pos++;
+      const value = parseValue();
+      Object.defineProperty(obj, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+      skipWhitespace();
+      if (input[pos] === ",") {
+        pos++;
+        skipWhitespace();
+        if (input[pos] === "}") {
+          pos++;
+          return obj;
+        }
+        continue;
+      }
+      if (input[pos] === "}") {
+        pos++;
+        return obj;
+      }
+      throw new Error("Expected ',' or '}' in object literal");
+    }
+    throw new Error("Unterminated object literal");
+  };
+
+  const parseValue = (): unknown => {
+    skipWhitespace();
+    const ch = input[pos];
+    if (!ch) {
+      throw new Error("Unexpected end of expression");
+    }
+    if (ch === "{") return parseObject();
+    if (ch === "[") return parseArray();
+    if (ch === '"' || ch === "'" || ch === "`") return parseString(ch);
+    if (ch === "-" || (ch >= "0" && ch <= "9")) return parseNumber();
+    const ident = parseIdentifier();
+    switch (ident) {
+      case "true":
+        return true;
+      case "false":
+        return false;
+      case "null":
+        return null;
+      case "url":
+        return variables.url;
+      case "name":
+        return variables.name;
+      default:
+        throw new Error(`Unsupported identifier: ${ident}`);
+    }
+  };
+
+  const parsed = parseValue();
+  skipWhitespace();
+  if (pos !== input.length) {
+    throw new Error("Unexpected trailing tokens in template expression");
+  }
+  return parsed;
+}
+
 export const useGlobalStore = create<GlobalStore>((set, get) => ({
   common: {
     site: {
@@ -127,9 +330,16 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
   getUserSubscribe: (short: string, token: string, type?: string) => {
     const { pan_domain, subscribe_domain, subscribe_path } =
       get().common.subscribe || {};
-    const domains = subscribe_domain
-      ? subscribe_domain.split("\n")
-      : [extractDomain(window.location.origin, pan_domain)];
+    const configuredDomains = subscribe_domain
+      ?.split("\n")
+      .map((domain) => domain.trim())
+      .filter(Boolean);
+    const fallbackDomain = extractDomain(window.location.origin, pan_domain);
+    const domains = configuredDomains?.length
+      ? configuredDomains
+      : fallbackDomain
+        ? [fallbackDomain]
+        : [];
 
     return domains.map((domain) => {
       if (pan_domain) {
@@ -145,7 +355,7 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
   getAppSubLink: (url: string, schema?: string) => {
     const name = get().common?.site?.site_name || "";
 
-    if (!schema) return "url";
+    if (!schema) return url;
     try {
       let result = schema.replace(/\${url}/g, url).replace(/\${name}/g, name);
 
@@ -158,16 +368,7 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
           /\${encodeURIComponent\(JSON\.stringify\(([^)]+)\)\)}/g,
           (match, expr) => {
             try {
-              const processedExpr = expr
-                .replace(/url/g, `"${url}"`)
-                .replace(/name/g, `"${name}"`);
-              if (processedExpr.includes("server_remote")) {
-                const serverRemoteValue = `${url}, tag=${name}`;
-                return encodeURIComponent(
-                  JSON.stringify({ server_remote: [serverRemoteValue] })
-                );
-              }
-              const obj = eval(`(${processedExpr})`);
+              const obj = parseTemplateObject(expr, { url, name });
               return encodeURIComponent(JSON.stringify(obj));
             } catch {
               return match;
@@ -203,18 +404,11 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
         );
 
         result = result.replace(
-          /\${JSON\.stringify\(([^}]+)\)}/g,
+          /\${JSON\.stringify\(([^)]+)\)}/g,
           (match, expr) => {
             try {
-              const processedExpr = expr
-                .replace(/url/g, `"${url}"`)
-                .replace(/name/g, `"${name}"`);
-              if (processedExpr.includes("server_remote")) {
-                const serverRemoteValue = `${url}, tag=${name}`;
-                return JSON.stringify({ server_remote: [serverRemoteValue] });
-              }
-              const result = eval(`(${processedExpr})`);
-              return JSON.stringify(result);
+              const parsed = parseTemplateObject(expr, { url, name });
+              return JSON.stringify(parsed);
             } catch {
               return match;
             }

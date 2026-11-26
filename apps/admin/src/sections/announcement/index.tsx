@@ -90,16 +90,26 @@ export default function Page() {
                 )}
                 key="delete"
                 onConfirm={async () => {
-                  for (const element of rows) {
-                    await deleteAnnouncement({
-                      id: element.id!,
+                  const results = await Promise.allSettled(
+                    rows.map((element) =>
+                      deleteAnnouncement({
+                        id: element.id!,
+                      })
+                    )
+                  );
+                  const deletedIds = rows
+                    .filter((_, index) => results[index]?.status === "fulfilled")
+                    .map((row) => row.id);
+                  if (deletedIds.length > 0) {
+                    ref.current?.refresh({
+                      reason: "delete",
+                      rowIds: deletedIds,
                     });
                   }
+                  if (results.some((result) => result.status === "rejected")) {
+                    return false;
+                  }
                   toast.success(t("deleteSuccess", "Deleted successfully"));
-                  ref.current?.refresh({
-                    reason: "delete",
-                    rowIds: rows.map((row) => row.id),
-                  });
                 }}
                 title={t("confirmDelete", "Confirm Delete")}
                 trigger={

@@ -15,7 +15,7 @@ import {
   getOrderList,
   putOrderStatus as updateOrderStatus,
 } from "@workspace/ui/services/admin/admin";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   DateTimeValue,
@@ -52,6 +52,38 @@ export default function Order() {
   ];
 
   const ref = useRef<ProTableActions>(null);
+  const updatingOrderIdsRef = useRef(new Set<number>());
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<number>>(
+    () => new Set()
+  );
+
+  const handleStatusChange = async (order: API.Order, value: number) => {
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value === order.status ||
+      updatingOrderIdsRef.current.has(order.id)
+    ) {
+      return;
+    }
+    updatingOrderIdsRef.current.add(order.id);
+    setUpdatingOrderIds(new Set(updatingOrderIdsRef.current));
+    try {
+      await updateOrderStatus({
+        id: order.id,
+        status: value,
+      });
+      ref.current?.refresh({
+        reason: "edit",
+        rowIds: [order.id],
+      });
+    } catch {
+      // The request layer already toasted the reason.
+    } finally {
+      updatingOrderIdsRef.current.delete(order.id);
+      setUpdatingOrderIds(new Set(updatingOrderIdsRef.current));
+    }
+  };
 
   const { subscribes, getSubscribeName } = useSubscribe();
   const syncFilters = useTableSearchParams([
@@ -222,16 +254,12 @@ export default function Order() {
               if ([1, 3, 4].includes(row.getValue("status"))) {
                 return (
                   <Combobox<number, false>
-                    onChange={async (value) => {
-                      await updateOrderStatus({
-                        id: order.id,
-                        status: value,
-                      });
-                      ref.current?.refresh({
-                        reason: "edit",
-                        rowIds: [order.id],
-                      });
-                    }}
+                    className={
+                      updatingOrderIds.has(order.id)
+                        ? "pointer-events-none opacity-60"
+                        : undefined
+                    }
+                    onChange={(value) => handleStatusChange(order, value)}
                     options={statusOptions.map((item) => ({
                       ...item,
                       children: (
@@ -274,10 +302,12 @@ export default function Order() {
                 : `${getSubscribeName(row.subscribe_id) || "—"} × ${row.quantity}`;
             const status = [1, 3, 4].includes(row.status) ? (
               <Combobox<number, false>
-                onChange={async (value) => {
-                  await updateOrderStatus({ id: row.id, status: value });
-                  ref.current?.refresh({ reason: "edit", rowIds: [row.id] });
-                }}
+                className={
+                  updatingOrderIds.has(row.id)
+                    ? "pointer-events-none opacity-60"
+                    : undefined
+                }
+                onChange={(value) => handleStatusChange(row, value)}
                 options={statusOptions.map((item) => ({
                   ...item,
                   children: (

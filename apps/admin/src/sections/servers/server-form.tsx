@@ -274,10 +274,15 @@ function DynamicField({
                         );
                       }
                       if (value === "reality") {
-                        form.setValue(
-                          `protocols.${protocolIndex}.transport`,
-                          "tcp"
-                        );
+                        if (
+                          protocolData.type === "vmess" ||
+                          protocolData.type === "trojan"
+                        ) {
+                          form.setValue(
+                            `protocols.${protocolIndex}.transport`,
+                            "tcp"
+                          );
+                        }
                         form.setValue(
                           `protocols.${protocolIndex}.cert_mode`,
                           "none"

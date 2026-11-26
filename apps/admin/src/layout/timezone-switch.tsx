@@ -203,9 +203,41 @@ export default function TimezoneSwitch() {
       })
     );
   };
-  const serverTimezones = timezoneOptions.filter(
-    (option) =>
-      getServerTimezones().includes(option.value) && option.value !== timezone
+  const serverTimezoneSet = useMemo(() => new Set(getServerTimezones()), []);
+  const recommendedTimezoneSet = useMemo(
+    () => new Set(getRecommendedTimezones()),
+    []
+  );
+  const currentOptions = useMemo(
+    () => timezoneOptions.filter((option) => option.value === timezone),
+    [timezoneOptions, timezone]
+  );
+  const serverTimezones = useMemo(
+    () =>
+      timezoneOptions.filter(
+        (option) =>
+          serverTimezoneSet.has(option.value) && option.value !== timezone
+      ),
+    [timezoneOptions, timezone, serverTimezoneSet]
+  );
+  const recommendedTimezones = useMemo(
+    () =>
+      timezoneOptions.filter(
+        (option) =>
+          recommendedTimezoneSet.has(option.value) && option.value !== timezone
+      ),
+    [timezoneOptions, timezone, recommendedTimezoneSet]
+  );
+  const otherTimezones = useMemo(
+    () =>
+      timezoneOptions.filter(
+        (option) =>
+          !(
+            serverTimezoneSet.has(option.value) ||
+            recommendedTimezoneSet.has(option.value)
+          ) && option.value !== timezone
+      ),
+    [timezoneOptions, timezone, serverTimezoneSet, recommendedTimezoneSet]
   );
 
   return (
@@ -225,26 +257,24 @@ export default function TimezoneSwitch() {
           <CommandInput placeholder={t("admin.timezoneSearch", "Search...")} />
           <CommandList>
             <CommandGroup heading={t("admin.timezoneCurrent", "Current")}>
-              {timezoneOptions
-                .filter((option) => option.value === timezone)
-                .map((option) => (
-                  <CommandItem
-                    className="bg-primary/10"
-                    key={option.value}
-                    onSelect={() => handleTimezoneChange(option.value)}
-                    value={`${option.label} ${option.value}`}
-                  >
-                    <div className="flex w-full items-center gap-3">
-                      <div className="flex flex-1 flex-col">
-                        <span className="font-medium">{option.value}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {option.timezone} • {getCurrentTime(option.value)}
-                        </span>
-                      </div>
-                      <Check className="size-4 opacity-100" />
+              {currentOptions.map((option) => (
+                <CommandItem
+                  className="bg-primary/10"
+                  key={option.value}
+                  onSelect={() => handleTimezoneChange(option.value)}
+                  value={`${option.label} ${option.value}`}
+                >
+                  <div className="flex w-full items-center gap-3">
+                    <div className="flex flex-1 flex-col">
+                      <span className="font-medium">{option.value}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {option.timezone} • {getCurrentTime(option.value)}
+                      </span>
                     </div>
-                  </CommandItem>
-                ))}
+                    <Check className="size-4 opacity-100" />
+                  </div>
+                </CommandItem>
+              ))}
             </CommandGroup>
             {serverTimezones.length > 0 && (
               <CommandGroup heading={t("admin.timezoneServer", "Server")}>
@@ -271,57 +301,43 @@ export default function TimezoneSwitch() {
             <CommandGroup
               heading={t("admin.timezoneRecommended", "Recommended")}
             >
-              {timezoneOptions
-                .filter(
-                  (option) =>
-                    getRecommendedTimezones().includes(option.value) &&
-                    option.value !== timezone
-                )
-                .map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => handleTimezoneChange(option.value)}
-                    value={`${option.label} ${option.value}`}
-                  >
-                    <div className="flex w-full items-center gap-3">
-                      <div className="flex flex-1 flex-col">
-                        <span className="font-medium">{option.value}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {option.timezone} • {getCurrentTime(option.value)}
-                        </span>
-                      </div>
-                      <Check className="size-4 opacity-0" />
+              {recommendedTimezones.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  onSelect={() => handleTimezoneChange(option.value)}
+                  value={`${option.label} ${option.value}`}
+                >
+                  <div className="flex w-full items-center gap-3">
+                    <div className="flex flex-1 flex-col">
+                      <span className="font-medium">{option.value}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {option.timezone} • {getCurrentTime(option.value)}
+                      </span>
                     </div>
-                  </CommandItem>
-                ))}
+                    <Check className="size-4 opacity-0" />
+                  </div>
+                </CommandItem>
+              ))}
             </CommandGroup>
 
             <CommandGroup heading={t("admin.timezoneAll", "All timezones")}>
-              {timezoneOptions
-                .filter(
-                  (option) =>
-                    !(
-                      getServerTimezones().includes(option.value) ||
-                      getRecommendedTimezones().includes(option.value)
-                    ) && option.value !== timezone
-                )
-                .map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => handleTimezoneChange(option.value)}
-                    value={`${option.label} ${option.value}`}
-                  >
-                    <div className="flex w-full items-center gap-3">
-                      <div className="flex flex-1 flex-col">
-                        <span className="font-medium">{option.value}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {option.timezone} • {getCurrentTime(option.value)}
-                        </span>
-                      </div>
-                      <Check className="size-4 opacity-0" />
+              {otherTimezones.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  onSelect={() => handleTimezoneChange(option.value)}
+                  value={`${option.label} ${option.value}`}
+                >
+                  <div className="flex w-full items-center gap-3">
+                    <div className="flex flex-1 flex-col">
+                      <span className="font-medium">{option.value}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {option.timezone} • {getCurrentTime(option.value)}
+                      </span>
                     </div>
-                  </CommandItem>
-                ))}
+                    <Check className="size-4 opacity-0" />
+                  </div>
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>

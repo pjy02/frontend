@@ -509,8 +509,16 @@ export default function WithdrawalPage() {
           },
         ]}
         request={async (pagination, filters, { signal }) => {
-          const status = Number(filters.status);
-          const userId = Number(filters.user_id);
+          const hasStatus =
+            filters.status !== undefined &&
+            filters.status !== null &&
+            filters.status !== "";
+          const status = hasStatus ? Number(filters.status) : Number.NaN;
+          const hasUserId =
+            filters.user_id !== undefined &&
+            filters.user_id !== null &&
+            filters.user_id !== "";
+          const userId = hasUserId ? Number(filters.user_id) : Number.NaN;
           const params: API.getWithdrawalListParams = {
             page: pagination.page,
             size: pagination.size,
