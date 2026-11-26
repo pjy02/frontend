@@ -48,18 +48,19 @@ export function parseTemplateObject(
   let pos = 0;
   const input = expr;
 
-  const skipWhitespace = () => {
+  function skipWhitespace() {
     while (pos < input.length && /\s/.test(input[pos]!)) {
       pos++;
     }
-  };
+  }
 
-  const interpolateBacktick = (raw: string) =>
-    raw
-      .replace(/\$\{url\}/g, variables.url)
-      .replace(/\$\{name\}/g, variables.name);
+  function interpolateBacktick(raw: string) {
+    return raw
+      .replaceAll("${url}", variables.url)
+      .replaceAll("${name}", variables.name);
+  }
 
-  const parseString = (quote: string): string => {
+  function parseString(quote: string): string {
     pos++;
     let out = "";
     while (pos < input.length) {
@@ -85,12 +86,6 @@ export function parseTemplateObject(
           case "t":
             out += "\t";
             break;
-          case "\\":
-          case '"':
-          case "'":
-          case "`":
-            out += esc;
-            break;
           default:
             out += esc;
             break;
@@ -101,9 +96,9 @@ export function parseTemplateObject(
       pos++;
     }
     throw new Error("Unterminated string literal");
-  };
+  }
 
-  const parseNumber = (): number => {
+  function parseNumber(): number {
     const remaining = input.slice(pos);
     const match = /^-?\d+(?:\.\d+)?/.exec(remaining);
     if (!match) {
@@ -111,9 +106,9 @@ export function parseTemplateObject(
     }
     pos += match[0].length;
     return Number(match[0]);
-  };
+  }
 
-  const parseIdentifier = (): string => {
+  function parseIdentifier(): string {
     const remaining = input.slice(pos);
     const match = /^[A-Za-z_$][A-Za-z0-9_$-]*/.exec(remaining);
     if (!match) {
@@ -121,9 +116,9 @@ export function parseTemplateObject(
     }
     pos += match[0].length;
     return match[0];
-  };
+  }
 
-  const parseArray = (): unknown[] => {
+  function parseArray(): unknown[] {
     pos++;
     const items: unknown[] = [];
     skipWhitespace();
@@ -150,9 +145,9 @@ export function parseTemplateObject(
       throw new Error("Expected ',' or ']' in array literal");
     }
     throw new Error("Unterminated array literal");
-  };
+  }
 
-  const parseObject = (): Record<string, unknown> => {
+  function parseObject(): Record<string, unknown> {
     pos++;
     const obj: Record<string, unknown> = {};
     skipWhitespace();
@@ -202,9 +197,9 @@ export function parseTemplateObject(
       throw new Error("Expected ',' or '}' in object literal");
     }
     throw new Error("Unterminated object literal");
-  };
+  }
 
-  const parseValue = (): unknown => {
+  function parseValue(): unknown {
     skipWhitespace();
     const ch = input[pos];
     if (!ch) {
@@ -229,7 +224,7 @@ export function parseTemplateObject(
       default:
         throw new Error(`Unsupported identifier: ${ident}`);
     }
-  };
+  }
 
   const parsed = parseValue();
   skipWhitespace();
@@ -357,7 +352,9 @@ export const useGlobalStore = create<GlobalStore>((set, get) => ({
 
     if (!schema) return url;
     try {
-      let result = schema.replace(/\${url}/g, url).replace(/\${name}/g, name);
+      let result = schema
+        .replaceAll("${url}", url)
+        .replaceAll("${name}", name);
 
       const maxLoop = 10;
       let prev: string;

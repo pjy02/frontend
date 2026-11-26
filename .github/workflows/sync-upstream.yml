@@ -145,8 +145,8 @@ jobs:
           BEFORE_SHA: ${{ steps.sync.outputs.before_sha }}
         run: |
           set -euo pipefail
-          # Apply safe formatting fixes only; leave unfixable lint errors for the next check step.
-          bun x biome check --write || true
+          # Apply Ultracite safe+formatting fixes (including Tailwind class sorting); leave unfixable lint errors for the next check step.
+          bun x ultracite fix || true
           git restore \
             --source="${BEFORE_SHA}" \
             --staged \

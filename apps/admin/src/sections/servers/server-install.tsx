@@ -37,7 +37,7 @@ type Props = {
 };
 
 function shellQuote(value: string) {
-  return `'${value.replace(/'/g, "'\\''")}'`;
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 export default function ServerInstall({ server, trigger }: Props) {

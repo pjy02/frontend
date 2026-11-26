@@ -219,7 +219,10 @@ describe("Admin settings & protocol inventory contract (zero setting loss)", () 
       expect(systemIndex).toContain(entry.component);
       const source = readAdminFile(entry.file);
       for (const field of entry.fields) {
-        expect(source).toMatch(new RegExp(`name=["']${field.replaceAll(".", "\\.")}["']`));
+        expect(
+          source.includes(`name="${field}"`) ||
+            source.includes(`name='${field}'`)
+        ).toBe(true);
       }
     }
   });
@@ -230,7 +233,10 @@ describe("Admin settings & protocol inventory contract (zero setting loss)", () 
       expect(authIndex).toContain(entry.component);
       const source = readAdminFile(entry.file);
       for (const field of entry.fields) {
-        expect(source).toMatch(new RegExp(`name=["']${field.replaceAll(".", "\\.")}["']`));
+        expect(
+          source.includes(`name="${field}"`) ||
+            source.includes(`name='${field}'`)
+        ).toBe(true);
       }
     }
   });
