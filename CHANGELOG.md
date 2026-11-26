@@ -19,6 +19,12 @@ This document records all notable changes to ShadCN Admin.
 ---
 
 
+## [1.24.2](https://github.com/pjy02/frontend/compare/v1.24.1...v1.24.2) (2026-11-26)
+
+### 🐛 Bug Fixes / 问题修复
+
+* **admin:** allow clearing node port before retyping ([0303a62](https://github.com/pjy02/frontend/commit/0303a6276416452062209c8bada0402703f7d54c))
+
 ## [1.24.1](https://github.com/pjy02/frontend/compare/v1.24.0...v1.24.1) (2026-11-23)
 
 ### 🐛 Bug Fixes / 问题修复
