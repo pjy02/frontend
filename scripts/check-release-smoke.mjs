@@ -373,10 +373,24 @@ test("node filters share paginated inventory and never expose filtered sorting",
   await retry.waitFor({ state: "hidden" });
   await form.getByText("Select server…", { exact: true }).click();
   await page.getByText(`HK-isvoro (${ip})`, { exact: true }).last().click();
+  const port = form.getByRole("spinbutton", { name: "Port" });
+  assert.equal(await port.inputValue(), "443");
+  await port.fill("3083");
+  for (const remaining of ["308", "30", "3", ""]) {
+    await port.press("Backspace");
+    assert.equal(await port.inputValue(), remaining);
+  }
+  await form.getByRole("button", { name: "Confirm", exact: true }).click();
+  await form.getByText("Port must be between 1 and 65535").first().waitFor();
+  assert.equal(created, undefined);
+  assert.equal(await port.inputValue(), "");
+  await port.pressSequentially("2083");
+  assert.equal(await port.inputValue(), "2083");
   await form.getByRole("button", { name: "Confirm", exact: true }).click();
   await page.getByRole("button", { name: "Confirm save", exact: true }).click();
   await form.waitFor({ state: "hidden" });
   assert.equal(created?.address, ip);
+  assert.equal(created?.port, 2083);
   assert.equal(created?.server_id, secondServer.id);
 });
 

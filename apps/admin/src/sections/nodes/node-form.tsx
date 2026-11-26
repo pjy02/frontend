@@ -11,6 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@workspace/ui/components/form";
+import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Combobox } from "@workspace/ui/composed/combobox";
 import { EnhancedInput } from "@workspace/ui/composed/enhanced-input";
@@ -393,15 +394,18 @@ export default function NodeForm(props: {
                   <FormItem>
                     <FormLabel>{t("port", "Port")}</FormLabel>
                     <FormControl>
-                      <EnhancedInput
+                      <Input
                         {...field}
+                        autoComplete="off"
                         max={65_535}
                         min={1}
-                        onValueChange={(v) =>
-                          handleManualFieldChange("port", Number(v))
-                        }
+                        onChange={(event) => {
+                          field.onChange(Number(event.currentTarget.value));
+                          removeAutoFilledField("port");
+                        }}
                         placeholder="1-65535"
                         type="number"
+                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />
