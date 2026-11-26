@@ -95,6 +95,7 @@ import { useTableSearchWriter } from "@/utils/use-table-search-params";
 import { DashboardComponentsMenu } from "./dashboard-components-menu";
 import {
   AnimatedNumber,
+  DashboardCardEntrance,
   DashboardCategoryMotion,
   DashboardDataTransition,
   DashboardFadeThrough,
@@ -196,11 +197,13 @@ function MetricCard({
     <Card className="dashboard-card dashboard-metric gap-0 py-0 shadow-none">
       <CardContent className="dashboard-metric__content flex min-h-36 items-start justify-between gap-4 p-5">
         <div className="dashboard-metric__body min-w-0 space-y-2">
-          <p className="font-medium text-muted-foreground text-sm">{title}</p>
+          <p className="font-medium text-muted-foreground text-xs tracking-[0.01em]">
+            {title}
+          </p>
           {loading ? (
             <Skeleton className="h-9 w-32" />
           ) : (
-            <div className="dashboard-metric__value truncate font-semibold text-2xl tabular-nums tracking-tight sm:text-[1.75rem]">
+            <div className="dashboard-metric__value truncate font-semibold text-2xl tabular-nums tracking-[-0.025em] sm:text-[1.75rem]">
               {value}
             </div>
           )}
@@ -208,8 +211,8 @@ function MetricCard({
             {description}
           </div>
         </div>
-        <div className="dashboard-metric__icon grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-          <MetricIcon className="size-5" />
+        <div className="dashboard-metric__icon grid size-9 shrink-0 place-items-center rounded-lg border border-border/70 bg-muted/50 text-muted-foreground">
+          <MetricIcon className="size-[1.125rem]" />
         </div>
       </CardContent>
     </Card>
@@ -225,7 +228,9 @@ function SectionHeading({
 }) {
   return (
     <div className="min-w-0 space-y-1">
-      <h2 className="font-semibold text-base">{title}</h2>
+      <h2 className="font-semibold text-[0.9375rem] tracking-[-0.01em]">
+        {title}
+      </h2>
       <div className="text-muted-foreground text-xs">{description}</div>
     </div>
   );
@@ -690,7 +695,7 @@ export default function Statistics() {
       <div className="dashboard-module-grid grid grid-cols-2 gap-4 xl:grid-cols-12">
         {layout.order
           .filter((id) => !layout.hidden.includes(id))
-          .map((id) => (
+          .map((id, index) => (
             <div
               className={cn(
                 "min-w-0",
@@ -707,18 +712,20 @@ export default function Statistics() {
               data-dashboard-module={id}
               key={id}
             >
-              {modules[id]}
-              {moduleSources[id] && (
-                <div className="mt-2 space-y-1 px-1">
-                  {moduleSources[id].map(({ query, label }, index) => (
-                    <DataFreshness
-                      key={label || index}
-                      label={label}
-                      query={query}
-                    />
-                  ))}
-                </div>
-              )}
+              <DashboardCardEntrance index={index}>
+                {modules[id]}
+                {moduleSources[id] && (
+                  <div className="mt-2 space-y-1 px-1">
+                    {moduleSources[id].map(({ query, label }, sourceIndex) => (
+                      <DataFreshness
+                        key={label || sourceIndex}
+                        label={label}
+                        query={query}
+                      />
+                    ))}
+                  </div>
+                )}
+              </DashboardCardEntrance>
             </div>
           ))}
       </div>
@@ -1045,7 +1052,7 @@ function RevenueTrendChart({
             <stop
               offset="5%"
               stopColor="var(--color-newPurchase)"
-              stopOpacity={0.22}
+              stopOpacity={0.2}
             />
             <stop
               offset="95%"
@@ -1053,8 +1060,25 @@ function RevenueTrendChart({
               stopOpacity={0}
             />
           </linearGradient>
+          <linearGradient id={`${gradientId}Renewal`} x1="0" x2="0" y1="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-renewal)"
+              stopOpacity={0.12}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-renewal)"
+              stopOpacity={0}
+            />
+          </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid
+          stroke="var(--border)"
+          strokeDasharray="3 3"
+          strokeOpacity={0.7}
+          vertical={false}
+        />
         <XAxis
           axisLine={false}
           dataKey="date"
@@ -1069,6 +1093,7 @@ function RevenueTrendChart({
           isAnimationActive={false}
         />
         <Area
+          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="newPurchase"
@@ -1079,18 +1104,19 @@ function RevenueTrendChart({
             firstDraw.current = false;
           }}
           stroke="var(--color-newPurchase)"
-          strokeWidth={2}
+          strokeWidth={1.75}
           type="monotone"
         />
         <Area
+          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="renewal"
-          fill="transparent"
+          fill={`url(#${gradientId}Renewal)`}
           hide={legend.hidden.includes("renewal")}
           isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-renewal)"
-          strokeWidth={2}
+          strokeWidth={1.75}
           type="monotone"
         />
         <ChartLegend
@@ -1148,7 +1174,12 @@ function UserTrendChart({
       }}
     >
       <LineChart data={data} margin={{ left: 4, right: 12 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid
+          stroke="var(--border)"
+          strokeDasharray="3 3"
+          strokeOpacity={0.7}
+          vertical={false}
+        />
         <XAxis
           axisLine={false}
           dataKey="date"
@@ -1169,6 +1200,7 @@ function UserTrendChart({
           isAnimationActive={false}
         />
         <Line
+          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="register"
@@ -1179,10 +1211,11 @@ function UserTrendChart({
             firstDraw.current = false;
           }}
           stroke="var(--color-register)"
-          strokeWidth={2}
+          strokeWidth={1.75}
           type="monotone"
         />
         <Line
+          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="paid"
@@ -1190,7 +1223,7 @@ function UserTrendChart({
           hide={legend.hidden.includes("paid")}
           isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-paid)"
-          strokeWidth={2}
+          strokeWidth={1.75}
           type="monotone"
         />
         <ChartLegend
@@ -1312,16 +1345,20 @@ function SystemHealthCard({
             key={tone}
             transition={presets.state.transition}
           >
-            <StatusChip dot={false} tone={tone}>
-              {error || offline > 0 ? (
-                <CircleAlert aria-hidden="true" className="size-3.5" />
-              ) : total === 0 || loading ? (
-                <CircleHelp aria-hidden="true" className="size-3.5" />
-              ) : (
-                <CircleCheck aria-hidden="true" className="size-3.5" />
-              )}
-              {label}
-            </StatusChip>
+            {tone === "success" ? (
+              <StatusChip pulse tone={tone}>
+                {label}
+              </StatusChip>
+            ) : (
+              <StatusChip dot={false} tone={tone}>
+                {error || offline > 0 ? (
+                  <CircleAlert aria-hidden="true" className="size-3.5" />
+                ) : (
+                  <CircleHelp aria-hidden="true" className="size-3.5" />
+                )}
+                {label}
+              </StatusChip>
+            )}
           </motion.div>
         </AnimatePresence>
       </CardHeader>
@@ -2264,7 +2301,12 @@ export function TrafficRankingRow({
             type="button"
           >
             <div className="flex items-start gap-3">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted font-semibold text-muted-foreground text-xs tabular-nums">
+              <span
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center rounded-md border border-border/80 bg-muted/60 font-mono font-semibold text-muted-foreground text-xs tabular-nums",
+                  index < 3 && "border-primary/25 bg-primary/10 text-primary"
+                )}
+              >
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
@@ -2322,7 +2364,7 @@ export function TrafficRankingRow({
                         share: rankingWidth.toFixed(0),
                       }
                     )}
-                    className="h-2.5 overflow-hidden rounded-full bg-muted"
+                    className="h-2 overflow-hidden rounded-full bg-muted/80"
                     role="img"
                   >
                     <motion.div

@@ -11,11 +11,13 @@ export type StatusChipTone =
 interface StatusChipProps extends React.ComponentProps<"span"> {
   tone?: StatusChipTone;
   dot?: boolean;
+  pulse?: boolean;
 }
 
 export function StatusChip({
   tone = "neutral",
   dot = true,
+  pulse = false,
   className,
   ...props
 }: StatusChipProps) {
@@ -23,6 +25,7 @@ export function StatusChip({
     <span
       className={cn("admin-status-chip", className)}
       data-dot={dot}
+      data-pulse={pulse || undefined}
       data-tone={tone}
       {...props}
     />

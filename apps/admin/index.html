@@ -11,7 +11,7 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#F8FAFD">
+    <meta name="theme-color" content="#F5F6F8">
 
     <!-- The app ships its own i18n; browser page translation rewrites DOM
          text nodes and crashes React (see issue #139) -->
@@ -38,7 +38,7 @@
         document.documentElement.style.colorScheme = dark ? "dark" : "light";
         const themeColor = document.querySelector("meta[name='theme-color']");
         if (themeColor) {
-          themeColor.setAttribute("content", dark ? "#111315" : "#F8FAFD");
+          themeColor.setAttribute("content", dark ? "#090A0D" : "#F5F6F8");
         }
       } catch {
         /* noop */
@@ -49,10 +49,10 @@
     <!-- Splash screen shown until React commits its first content into #app -->
     <style>
     html {
-      background-color: #f8fafd;
+      background-color: #f5f6f8;
     }
     html.dark {
-      background-color: #111315;
+      background-color: #090a0d;
     }
     #splash {
       position: fixed;
@@ -67,8 +67,8 @@
     #splash .spinner {
       width: 2.5rem;
       height: 2.5rem;
-      border: 3px solid #e3e7ed;
-      border-top-color: #4285f4;
+      border: 3px solid #e4e6eb;
+      border-top-color: #4b55c4;
       border-radius: 50%;
       animation: splash-spin 0.8s linear infinite;
     }
@@ -84,8 +84,8 @@
       border: 0;
     }
     html.dark #splash .spinner {
-      border-color: #303134;
-      border-top-color: #8ab4f8;
+      border-color: #232834;
+      border-top-color: #939dff;
     }
     @keyframes splash-spin {
       to {
@@ -95,7 +95,7 @@
     @media (prefers-reduced-motion: reduce) {
       #splash .spinner {
         animation: none;
-        border-top-color: #4285f4;
+        border-top-color: #4b55c4;
       }
     }
     </style>

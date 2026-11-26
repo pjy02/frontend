@@ -254,3 +254,48 @@ export function DashboardHeightRegion({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+/** First-mount micro-stagger for Dashboard grid modules; never replays on updates. */
+export function DashboardCardEntrance({
+  children,
+  index,
+}: {
+  children: ReactNode;
+  index: number;
+}) {
+  const { reducedMotion, presets } = useAdminMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const hasEnteredRef = useRef(false);
+
+  useEffect(() => {
+    if (hasEnteredRef.current) return;
+    hasEnteredRef.current = true;
+    const element = ref.current;
+    if (reducedMotion || !element) return;
+
+    const controls = animate(
+      element,
+      { opacity: [0, 1], y: [6, 0] },
+      {
+        ...presets.dataEnter.transition,
+        delay: Math.min(index, 9) * 0.028,
+      }
+    );
+    controls.then(() => {
+      element.style.opacity = "";
+      element.style.transform = "";
+    });
+
+    return () => {
+      controls.stop();
+      element.style.opacity = "";
+      element.style.transform = "";
+    };
+  }, [index, presets.dataEnter, reducedMotion]);
+
+  return (
+    <div className="min-w-0" ref={ref}>
+      {children}
+    </div>
+  );
+}

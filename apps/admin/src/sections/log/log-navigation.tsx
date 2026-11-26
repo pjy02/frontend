@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { cn } from "@workspace/ui/lib/utils";
 import { Check, ChevronDown, ListFilter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -56,11 +57,13 @@ export function LogNavigation() {
   const search = useSearch({ strict: false });
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-xs">
-      <div className="flex items-center gap-2">
-        <ListFilter className="size-4 text-muted-foreground" />
+    <div className="admin-log-nav flex flex-col gap-3 rounded-xl border bg-card p-3.5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-center gap-2.5">
+        <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-border/70 bg-muted/50 text-muted-foreground">
+          <ListFilter className="size-4" />
+        </div>
         <div>
-          <div className="font-medium text-sm">
+          <div className="font-semibold text-[0.8125rem] tracking-[-0.01em]">
             {t("navigation.title", "Log explorer")}
           </div>
           <div className="text-muted-foreground text-xs">
@@ -72,7 +75,7 @@ export function LogNavigation() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {logGroups.map((group) => {
           const activeRoute = group.routes.find(
             (route) => route.url === pathname
@@ -82,31 +85,48 @@ export function LogNavigation() {
           return (
             <DropdownMenu key={group.key}>
               <DropdownMenuTrigger asChild>
-                <Button variant={activeRoute ? "secondary" : "outline"}>
+                <Button
+                  className="admin-log-nav__trigger h-8 gap-1.5 rounded-lg px-2.5 font-medium text-xs"
+                  data-active={activeRoute ? "true" : undefined}
+                  size="sm"
+                  variant={activeRoute ? "secondary" : "outline"}
+                >
+                  {activeRoute && (
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 rounded-full bg-primary"
+                    />
+                  )}
                   <span>
                     {activeRoute
                       ? `${groupLabel} · ${t(`navigation.item.${activeRoute.key}`, activeRoute.key)}`
                       : groupLabel}
                   </span>
-                  <ChevronDown className="size-4" />
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-52">
+              <DropdownMenuContent align="start" className="min-w-56">
                 <DropdownMenuLabel>{groupLabel}</DropdownMenuLabel>
-                {group.routes.map((route) => (
-                  <DropdownMenuItem asChild key={route.key}>
-                    <Link
-                      className="flex justify-between"
-                      search={{ ...search, page: undefined }}
-                      to={route.url}
-                    >
-                      <span>
-                        {t(`navigation.item.${route.key}`, route.key)}
-                      </span>
-                      {route.url === pathname && <Check className="size-4" />}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                {group.routes.map((route) => {
+                  const isActive = route.url === pathname;
+                  return (
+                    <DropdownMenuItem asChild key={route.key}>
+                      <Link
+                        className={cn(
+                          "flex items-center justify-between",
+                          isActive && "bg-accent font-medium text-accent-foreground"
+                        )}
+                        search={{ ...search, page: undefined }}
+                        to={route.url}
+                      >
+                        <span>
+                          {t(`navigation.item.${route.key}`, route.key)}
+                        </span>
+                        {isActive && <Check className="size-4 text-primary" />}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           );

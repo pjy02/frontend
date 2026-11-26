@@ -585,6 +585,9 @@ export default function ServerForm(props: ServerFormProps) {
   const { control } = form;
 
   const protocolsValues = useWatch({ control, name: "protocols" });
+  const enabledProtocolCount = (protocolsValues || []).filter((protocol: any) =>
+    Boolean(protocol?.enable)
+  ).length;
 
   useLayoutEffect(() => {
     if (!revealProtocolError.current) return;
@@ -866,7 +869,7 @@ export default function ServerForm(props: ServerFormProps) {
                   </Button>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="admin-server-base-panel grid grid-cols-1 gap-4 rounded-xl border border-border/80 bg-muted/20 p-4 sm:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={control}
                   name="name"
@@ -936,16 +939,26 @@ export default function ServerForm(props: ServerFormProps) {
                   )}
                 />
               </div>
-              <div className="my-3">
-                <h3 className="font-semibold text-foreground text-sm">
-                  {t("protocol_configurations", "Protocol Configurations")}
-                </h3>
-                <p className="admin-helper-text mt-1">
-                  {t(
-                    "protocol_configurations_desc",
-                    "Enable and configure the required protocol types"
-                  )}
-                </p>
+              <div className="my-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-foreground text-sm">
+                    {t("protocol_configurations", "Protocol Configurations")}
+                  </h3>
+                  <p className="admin-helper-text mt-1">
+                    {t(
+                      "protocol_configurations_desc",
+                      "Enable and configure the required protocol types"
+                    )}
+                  </p>
+                </div>
+                <StatusChip
+                  pulse={enabledProtocolCount > 0}
+                  tone={enabledProtocolCount > 0 ? "success" : "neutral"}
+                >
+                  <span className="font-mono tabular-nums">
+                    {enabledProtocolCount} / {PROTOCOLS.length}
+                  </span>
+                </StatusChip>
               </div>
 
               {uneditableProtocols.length > 0 && (
@@ -978,7 +991,8 @@ export default function ServerForm(props: ServerFormProps) {
                   const fields = PROTOCOL_FIELDS[type] || [];
                   return (
                     <AccordionItem
-                      className="mb-2 rounded-lg border"
+                      className="admin-protocol-card mb-2 rounded-xl border"
+                      data-enabled={isEnabled ? "true" : "false"}
                       key={type}
                       value={type}
                     >
@@ -1017,38 +1031,41 @@ export default function ServerForm(props: ServerFormProps) {
                           />
                         }
                       >
-                        <div className="flex w-full items-center justify-between">
-                          <div className="flex flex-col items-start gap-1">
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium capitalize">
-                                {type}
-                              </span>
-                              {current.transport && (
-                                <Badge className="text-xs" variant="secondary">
-                                  {current.transport.toUpperCase()}
-                                </Badge>
-                              )}
-                              {current.security &&
-                                current.security !== "none" && (
-                                  <Badge className="text-xs" variant="outline">
-                                    {current.security.toUpperCase()}
-                                  </Badge>
-                                )}
-                              {current.port && (
-                                <Badge className="text-xs">
-                                  {current.port}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <StatusChip
-                                tone={isEnabled ? "success" : "neutral"}
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-sm capitalize tracking-[-0.01em]">
+                              {type}
+                            </span>
+                            <StatusChip
+                              pulse={Boolean(isEnabled)}
+                              tone={isEnabled ? "success" : "neutral"}
+                            >
+                              {isEnabled
+                                ? t("enabled", "Enabled")
+                                : t("disabled", "Disabled")}
+                            </StatusChip>
+                            {current.transport && (
+                              <Badge
+                                className="font-mono text-[11px] tabular-nums"
+                                variant="secondary"
                               >
-                                {isEnabled
-                                  ? t("enabled", "Enabled")
-                                  : t("disabled", "Disabled")}
-                              </StatusChip>
-                            </div>
+                                {current.transport.toUpperCase()}
+                              </Badge>
+                            )}
+                            {current.security &&
+                              current.security !== "none" && (
+                                <Badge
+                                  className="font-mono text-[11px] tabular-nums"
+                                  variant="outline"
+                                >
+                                  {current.security.toUpperCase()}
+                                </Badge>
+                              )}
+                            {current.port && (
+                              <Badge className="font-mono text-[11px] tabular-nums">
+                                {current.port}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </AccordionTrigger>

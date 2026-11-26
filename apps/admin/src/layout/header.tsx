@@ -29,31 +29,36 @@ export function Header() {
       <div className="admin-header__start flex min-w-0 items-center gap-2">
         <SidebarTrigger
           aria-label={t("accessibility.toggleSidebar", "Toggle sidebar")}
-          className="size-9 rounded-full"
+          className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
         />
         <Separator
-          className="mx-1 hidden h-5 sm:block"
+          className="mx-1 hidden h-4 sm:block"
           orientation="vertical"
         />
         <Breadcrumb className="hidden min-w-0 lg:block">
-          <BreadcrumbList className="flex-nowrap">
+          <BreadcrumbList className="flex-nowrap text-[13px]">
             {items.map((item, index) => (
               <Fragment key={`${item.title}-${item.url || index}`}>
                 {index !== items.length - 1 ? (
                   <BreadcrumbItem className="min-w-0">
                     {item.url ? (
                       <BreadcrumbLink asChild>
-                        <Link className="max-w-36 truncate" to={item.url}>
+                        <Link
+                          className="max-w-36 truncate text-muted-foreground transition-colors hover:text-foreground"
+                          to={item.url}
+                        >
                           {item.title}
                         </Link>
                       </BreadcrumbLink>
                     ) : (
-                      <span className="max-w-36 truncate">{item.title}</span>
+                      <span className="max-w-36 truncate text-muted-foreground">
+                        {item.title}
+                      </span>
                     )}
                   </BreadcrumbItem>
                 ) : (
                   <BreadcrumbItem className="min-w-0">
-                    <BreadcrumbPage className="max-w-48 truncate font-medium">
+                    <BreadcrumbPage className="max-w-48 truncate font-medium text-foreground">
                       {item.title}
                     </BreadcrumbPage>
                   </BreadcrumbItem>

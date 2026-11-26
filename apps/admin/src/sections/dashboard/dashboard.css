@@ -29,8 +29,13 @@ html.admin-console .dashboard-range-tabs__trigger {
 }
 
 .dashboard-card {
-  border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  border-color: color-mix(in srgb, var(--border) 92%, transparent);
   background: var(--card);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+html.admin-console.dark .dashboard-card {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 .dashboard-chart-tooltip-transition {
@@ -94,6 +99,13 @@ html.admin-console .dashboard-traffic-tooltip[data-state="closed"] {
 
 .dashboard-metric:hover {
   border-color: color-mix(in srgb, var(--foreground) 16%, var(--border));
+  box-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+}
+
+html.admin-console.dark .dashboard-metric:hover {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 7%),
+    0 4px 16px rgb(0 0 0 / 28%);
 }
 
 .dashboard-traffic-controls__tabs-list {
@@ -130,9 +142,19 @@ html.admin-console
   box-shadow: 0 1px 2px rgb(60 64 67 / 12%);
 }
 
+html.admin-console.dark .dashboard-traffic-type-indicator {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 6%),
+    0 1px 2px rgb(0 0 0 / 35%);
+}
+
 .dashboard-traffic-type-label {
   position: relative;
   z-index: 1;
+}
+
+.dashboard-traffic-summary {
+  background: color-mix(in srgb, var(--muted) 22%, var(--card));
 }
 
 .dashboard-chart-dialog__canvas {
@@ -140,7 +162,25 @@ html.admin-console
 }
 
 .dashboard-page [data-slot="progress-indicator"] {
-  background: var(--admin-success);
+  background: linear-gradient(
+    90deg,
+    var(--admin-success),
+    color-mix(in srgb, var(--admin-success) 76%, var(--chart-1))
+  );
+}
+
+.dashboard-system-health[data-health-tone="warning"]
+  [data-slot="progress-indicator"] {
+  background: linear-gradient(
+    90deg,
+    var(--admin-warning),
+    color-mix(in srgb, var(--admin-warning) 80%, var(--chart-3))
+  );
+}
+
+.dashboard-system-health[data-health-tone="danger"]
+  [data-slot="progress-indicator"] {
+  background: var(--admin-danger);
 }
 
 .dashboard-card:has(a:hover) {
@@ -174,13 +214,17 @@ html.admin-console
   --dashboard-traffic-tooltip-download: var(--chart-4);
 
   border: 1px solid var(--border);
-  background: var(--popover);
+  background: color-mix(in srgb, var(--popover) 92%, transparent);
   color: var(--popover-foreground);
   box-shadow: 0 8px 24px rgb(60 64 67 / 18%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 html.admin-console.dark .dashboard-traffic-tooltip {
-  box-shadow: 0 12px 32px rgb(0 0 0 / 52%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 6%),
+    0 12px 32px rgb(0 0 0 / 52%);
 }
 
 html.admin-console .dashboard-traffic-detail {

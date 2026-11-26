@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
-import { SettingsItem, SettingsSection } from "@/components/settings-section";
+import {
+  SettingsAnchorNav,
+  SettingsItem,
+  SettingsSection,
+} from "@/components/settings-section";
 import AppleForm from "./forms/apple-form";
 import DeviceForm from "./forms/device-form";
 import EmailSettingsForm from "./forms/email-settings-form";
@@ -15,6 +19,7 @@ export default function AuthControl() {
 
   const formSections = [
     {
+      id: "communication-methods",
       title: t("communicationMethods", "Communication Methods"),
       description: t(
         "communicationMethodsDescription",
@@ -26,6 +31,7 @@ export default function AuthControl() {
       ],
     },
     {
+      id: "social-auth",
       title: t("socialAuthMethods", "Social Authentication Methods"),
       description: t(
         "socialAuthMethodsDescription",
@@ -40,6 +46,7 @@ export default function AuthControl() {
       ],
     },
     {
+      id: "device-auth",
       title: t("deviceAuthMethods", "Device Authentication Methods"),
       description: t(
         "deviceAuthMethodsDescription",
@@ -59,10 +66,19 @@ export default function AuthControl() {
         eyebrow={t("platform", "Platform")}
         title={t("pageTitle", "Authentication Control")}
       />
-      {formSections.map((section, sectionIndex) => (
+      <SettingsAnchorNav
+        items={formSections.map((section) => ({
+          id: section.id,
+          label: section.title,
+          count: section.forms.length,
+        }))}
+      />
+      {formSections.map((section) => (
         <SettingsSection
+          count={section.forms.length}
           description={section.description}
-          key={sectionIndex}
+          id={section.id}
+          key={section.id}
           title={section.title}
         >
           {section.forms.map((form, formIndex) => {

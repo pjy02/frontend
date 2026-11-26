@@ -284,23 +284,23 @@ export function SidebarLeft({
 
   return (
     <Sidebar className="admin-sidebar" collapsible="icon" {...props}>
-      <SidebarHeader className="border-sidebar-border border-b px-3 py-3">
+      <SidebarHeader className="border-sidebar-border border-b px-3 py-2.5">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="h-11 rounded-lg px-2 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
+              className="h-10 rounded-lg px-2 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
               size="lg"
               tooltip={site.site_name || "PPanel"}
             >
               <Link onClick={handleNavigate} to="/dashboard">
-                <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white ring-1 ring-sidebar-border dark:bg-white/10">
+                <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card shadow-xs ring-1 ring-border">
                   <img
                     alt=""
-                    className="size-7 object-contain"
-                    height={28}
+                    className="size-6 object-contain"
+                    height={24}
                     src={site.site_logo || "/favicon.svg"}
-                    width={28}
+                    width={24}
                   />
                 </div>
                 <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
@@ -364,7 +364,7 @@ export function SidebarLeft({
                     <SidebarMenuItem className="mb-1" key={groupKey}>
                       <SidebarMenuButton
                         asChild={Boolean(nav.url)}
-                        className="relative h-10 rounded-lg px-3"
+                        className="relative h-9 rounded-lg px-3 text-[13px]"
                         isActive={isGroupActive(nav)}
                         tooltip={nav.title}
                       >
@@ -396,7 +396,7 @@ export function SidebarLeft({
                       aria-controls={groupId}
                       aria-expanded={isOpen}
                       className={cn(
-                        "relative h-10 rounded-lg px-3",
+                        "relative h-9 rounded-lg px-3 text-[13px]",
                         isGroupActive(nav) &&
                           "font-semibold text-sidebar-accent-foreground"
                       )}
@@ -438,7 +438,7 @@ export function SidebarLeft({
                                 >
                                   <SidebarMenuSubButton
                                     asChild
-                                    className="relative h-9 rounded-lg"
+                                    className="relative h-8 rounded-lg text-[13px]"
                                     isActive={Boolean(
                                       item.url && isActiveUrl(item.url)
                                     )}

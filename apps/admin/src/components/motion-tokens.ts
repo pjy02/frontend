@@ -5,9 +5,9 @@ import type {
 } from "@workspace/ui/lib/motion-profile";
 
 const standard: MotionEase = [0.2, 0, 0, 1];
-const enter: MotionEase = [0.05, 0.7, 0.1, 1];
-const exit: MotionEase = [0.3, 0, 0.8, 0.15];
-const emphasized: MotionEase = [0.2, 0.8, 0.2, 1];
+const enter: MotionEase = [0.16, 1, 0.3, 1];
+const exit: MotionEase = [0.4, 0, 1, 1];
+const emphasized: MotionEase = [0.22, 1, 0.36, 1];
 // Recharts' public type only accepts named curves; keep its bridge centralized.
 export const adminChartEasing = "ease-out" as const;
 const state = (duration: number, ease = standard): MotionToken => ({
@@ -24,25 +24,25 @@ const spatial = (
 
 /** Single source for Admin CSS variables and Motion transitions. Durations: ms. */
 export const adminMotionProfile: MotionProfile = {
-  press: spatial(80, 0, 0.98),
-  state: state(120),
-  success: spatial(300, 0, 0.7, enter),
+  press: spatial(75, 0, 0.98),
+  state: state(110),
+  success: spatial(280, 0, 0.72, enter),
   // Retention after a successful request, not time allocated to the request.
   successHold: state(180),
   loading: state(720),
   loadingReveal: state(120),
-  menuEnter: spatial(160, 4, 0.98, enter),
-  menuExit: spatial(120, 2, 0.99, exit),
-  menuLevel: spatial(180, 20),
-  submenu: spatial(160, 6, 0.98, enter),
-  dialogEnter: spatial(300, 8, 0.985, enter),
-  dialogExit: spatial(200, 4, 0.99, exit),
-  overlayEnter: state(200, enter),
-  overlayExit: state(120, exit),
-  navigation: spatial(200, 4, 1, enter),
-  selection: spatial(220, 0, 1, emphasized),
-  expand: spatial(300, 3, 1, emphasized),
-  tab: spatial(200, 4, 1, enter),
+  menuEnter: spatial(150, 4, 0.985, enter),
+  menuExit: spatial(100, 2, 0.99, exit),
+  menuLevel: spatial(170, 18, 1, emphasized),
+  submenu: spatial(150, 6, 0.985, enter),
+  dialogEnter: spatial(220, 6, 0.985, enter),
+  dialogExit: spatial(150, 4, 0.99, exit),
+  overlayEnter: state(160, enter),
+  overlayExit: state(110, exit),
+  navigation: spatial(180, 4, 1, enter),
+  selection: spatial(200, 0, 1, emphasized),
+  expand: spatial(240, 3, 1, emphasized),
+  tab: spatial(180, 4, 1, enter),
   dataEnter: spatial(180, 3, 0.99),
   dataExit: spatial(120, 3, 0.99, exit),
   dataLayout: spatial(220, 0, 1, emphasized),

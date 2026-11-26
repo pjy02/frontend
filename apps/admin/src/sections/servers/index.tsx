@@ -53,7 +53,7 @@ function PctBar({ value, label }: { value: number; label: string }) {
     : null;
   return (
     <div className="min-w-20 space-y-1.5 sm:min-w-24">
-      <div className="text-xs leading-none">
+      <div className="font-medium text-muted-foreground text-xs tabular-nums leading-none">
         {percentage === null ? "—" : `${percentage.toFixed(2)}%`}
       </div>
       <Progress aria-label={label} className="h-1.5" value={percentage} />
@@ -85,7 +85,11 @@ function RegionIpCell({
 function ServerStatusChip({ status }: { status?: string }) {
   const { t } = useTranslation("servers");
   if (status === "online") {
-    return <StatusChip tone="success">{t("online", "Online")}</StatusChip>;
+    return (
+      <StatusChip pulse tone="success">
+        {t("online", "Online")}
+      </StatusChip>
+    );
   }
   return (
     <StatusChip>

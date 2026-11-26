@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
-import { SettingsItem, SettingsSection } from "@/components/settings-section";
+import {
+  SettingsAnchorNav,
+  SettingsItem,
+  SettingsSection,
+} from "@/components/settings-section";
 import CurrencyForm from "./basic-settings/currency-form";
 import PrivacyPolicyForm from "./basic-settings/privacy-policy-form";
 import SiteForm from "./basic-settings/site-form";
@@ -16,6 +20,7 @@ export default function System() {
 
   const formSections = [
     {
+      id: "basic-settings",
       title: t("basicSettings", "Basic Settings"),
       description: t(
         "basicSettingsDescription",
@@ -29,6 +34,7 @@ export default function System() {
       ],
     },
     {
+      id: "user-security",
       title: t("userSecuritySettings", "User & Security"),
       description: t(
         "userSecuritySettingsDescription",
@@ -42,6 +48,7 @@ export default function System() {
       ],
     },
     {
+      id: "log-settings",
       title: t("logSettings", "Log Settings"),
       description: t(
         "logSettingsDescription",
@@ -61,10 +68,19 @@ export default function System() {
         eyebrow={t("platform", "Platform")}
         title={t("pageTitle", "System Settings")}
       />
-      {formSections.map((section, sectionIndex) => (
+      <SettingsAnchorNav
+        items={formSections.map((section) => ({
+          id: section.id,
+          label: section.title,
+          count: section.forms.length,
+        }))}
+      />
+      {formSections.map((section) => (
         <SettingsSection
+          count={section.forms.length}
           description={section.description}
-          key={sectionIndex}
+          id={section.id}
+          key={section.id}
           title={section.title}
         >
           {section.forms.map((form, formIndex) => {
