@@ -1586,7 +1586,7 @@ html.admin-console [data-slot="table-container"] {
 html.admin-console [data-slot="data-toolbar"] {
   border: 0;
   border-radius: 0;
-  padding: 0.125rem 0;
+  padding: 0 0 0.5rem;
   background: transparent;
 }
 
@@ -1599,42 +1599,45 @@ html.admin-console [data-slot="table-header"] {
 }
 
 html.admin-console [data-slot="table-header"] [data-slot="table-row"] {
-  border-bottom-color: color-mix(in srgb, var(--border) 92%, transparent);
-  background: color-mix(in srgb, var(--muted) 78%, var(--card));
+  border-bottom-color: var(--border);
+  background: color-mix(in srgb, var(--muted) 48%, var(--card));
 }
 
 html.admin-console.dark [data-slot="table-header"] [data-slot="table-row"] {
-  background: color-mix(in srgb, var(--muted) 58%, var(--card));
+  background: color-mix(in srgb, var(--muted) 42%, var(--card));
 }
 
 html.admin-console [data-slot="table-head"] {
-  height: 2.5rem;
-  padding-inline: 0.875rem;
+  height: 2.125rem;
+  padding-inline: 0.75rem;
   color: var(--admin-text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 html.admin-console [data-slot="table-cell"] {
-  padding-inline: 0.875rem;
+  padding-block: 0.5rem;
+  padding-inline: 0.75rem;
+  font-size: var(--admin-type-body);
 }
 
 html.admin-console [data-slot="table-body"] [data-slot="table-row"] {
-  border-bottom-color: color-mix(in srgb, var(--border) 78%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 68%, transparent);
   transition:
     background-color var(--admin-motion-fast) var(--admin-motion-easing),
     box-shadow var(--admin-motion-fast) var(--admin-motion-easing);
 }
 
 html.admin-console [data-slot="table-body"] [data-slot="table-row"]:hover {
-  background: color-mix(in srgb, var(--admin-surface-hover) 58%, transparent);
+  background: color-mix(in srgb, var(--admin-surface-hover) 52%, transparent);
 }
 
 html.admin-console
   [data-slot="table-body"]
   [data-slot="table-row"][data-state="selected"] {
-  background: color-mix(in srgb, var(--admin-info-surface) 72%, transparent);
+  box-shadow: inset 2px 0 0 var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1642,7 +1645,7 @@ html.admin-console
     [data-slot="table-body"]
     [data-slot="table-row"]
     .admin-row-actions {
-    opacity: 0.72;
+    opacity: 0.55;
     transition: opacity var(--admin-motion-fast) var(--admin-motion-easing);
   }
 
@@ -1655,11 +1658,12 @@ html.admin-console
 }
 
 html.admin-console .admin-batch-actions {
-  border-color: color-mix(in srgb, var(--border) 92%, transparent);
-  background: color-mix(in srgb, var(--popover) 88%, transparent);
+  border-radius: 0.625rem;
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--popover) 90%, transparent);
   box-shadow:
-    0 10px 28px rgb(15 23 42 / 12%),
-    0 1px 2px rgb(15 23 42 / 6%);
+    0 10px 28px rgb(17 19 21 / 12%),
+    0 1px 2px rgb(17 19 21 / 6%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -1731,7 +1735,8 @@ html.admin-console
 }
 
 html.admin-console .admin-pro-table-card {
-  border-color: color-mix(in srgb, var(--border) 92%, transparent);
+  border-color: var(--border);
+  border-radius: 0.5rem;
   transition:
     border-color var(--admin-motion-fast) var(--admin-motion-easing),
     box-shadow var(--admin-motion-fast) var(--admin-motion-easing);
@@ -1902,12 +1907,8 @@ html.admin-console .admin-pro-table-card__footer {
 }
 
 .admin-log-nav {
-  border-color: color-mix(in srgb, var(--border) 92%, transparent);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
-}
-
-html.admin-console.dark .admin-log-nav {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
 }
 
 .admin-log-nav__trigger {
@@ -1917,8 +1918,9 @@ html.admin-console.dark .admin-log-nav {
 }
 
 .admin-log-nav__trigger[data-active="true"] {
-  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
-  background: color-mix(in srgb, var(--admin-info-surface) 78%, var(--card));
+  border-color: var(--input);
+  color: var(--foreground);
+  background: var(--secondary);
 }
 
 /* Shared detail links use inline-flex/nowrap for desktop tables. Inside cards

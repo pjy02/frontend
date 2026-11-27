@@ -57,22 +57,19 @@ export function LogNavigation() {
   const search = useSearch({ strict: false });
 
   return (
-    <div className="admin-log-nav flex flex-col gap-3 rounded-xl border bg-card p-3.5 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex items-center gap-2.5">
-        <div className="grid size-8 shrink-0 place-items-center rounded-lg border border-border/70 bg-muted/50 text-muted-foreground">
-          <ListFilter className="size-4" />
-        </div>
-        <div>
-          <div className="font-semibold text-[0.8125rem] tracking-[-0.01em]">
-            {t("navigation.title", "Log explorer")}
-          </div>
-          <div className="text-muted-foreground text-xs">
-            {t(
-              "navigation.description",
-              "Switch log sources without leaving the current investigation."
-            )}
-          </div>
-        </div>
+    <div className="admin-log-nav flex flex-wrap items-center justify-between gap-2.5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <ListFilter className="size-3.5 shrink-0" />
+        <span className="font-medium text-foreground text-xs">
+          {t("navigation.title", "Log explorer")}
+        </span>
+        <span className="hidden text-muted-foreground text-xs xl:inline">
+          ·{" "}
+          {t(
+            "navigation.description",
+            "Switch log sources without leaving the current investigation."
+          )}
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -86,7 +83,7 @@ export function LogNavigation() {
             <DropdownMenu key={group.key}>
               <DropdownMenuTrigger asChild>
                 <Button
-                  className="admin-log-nav__trigger h-8 gap-1.5 rounded-lg px-2.5 font-medium text-xs"
+                  className="admin-log-nav__trigger h-7 gap-1.5 rounded-md px-2.5 font-medium text-xs"
                   data-active={activeRoute ? "true" : undefined}
                   size="sm"
                   variant={activeRoute ? "secondary" : "outline"}
@@ -102,7 +99,7 @@ export function LogNavigation() {
                       ? `${groupLabel} · ${t(`navigation.item.${activeRoute.key}`, activeRoute.key)}`
                       : groupLabel}
                   </span>
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                  <ChevronDown className="size-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-56">

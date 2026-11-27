@@ -186,6 +186,20 @@ type MetricCardProps = {
   value: React.ReactNode;
 };
 
+const KPI_MODULE_IDS = new Set<DashboardModuleId>([
+  "income",
+  "newUsers",
+  "onlineUsers",
+  "monthTraffic",
+]);
+
+const KPI_GRID_COLS: Record<number, string> = {
+  1: "xl:grid-cols-1",
+  2: "xl:grid-cols-2",
+  3: "xl:grid-cols-3",
+  4: "xl:grid-cols-4",
+};
+
 function MetricCard({
   description,
   icon: MetricIcon,
@@ -194,28 +208,28 @@ function MetricCard({
   value,
 }: MetricCardProps) {
   return (
-    <Card className="dashboard-card dashboard-metric gap-0 py-0 shadow-none">
-      <CardContent className="dashboard-metric__content flex min-h-36 items-start justify-between gap-4 p-5">
-        <div className="dashboard-metric__body min-w-0 space-y-2">
-          <p className="font-medium text-muted-foreground text-xs tracking-[0.01em]">
+    <div className="dashboard-metric flex h-full flex-col justify-between gap-2.5 p-4 transition-colors">
+      <div className="dashboard-metric__body min-w-0 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate font-medium text-muted-foreground text-xs tracking-[0.01em]">
             {title}
           </p>
-          {loading ? (
-            <Skeleton className="h-9 w-32" />
-          ) : (
-            <div className="dashboard-metric__value truncate font-semibold text-2xl tabular-nums tracking-[-0.025em] sm:text-[1.75rem]">
-              {value}
-            </div>
-          )}
-          <div className="dashboard-metric__description min-h-5 text-muted-foreground text-xs">
-            {description}
+          <span className="dashboard-metric__icon shrink-0 text-muted-foreground/75">
+            <MetricIcon className="size-3.5" />
+          </span>
+        </div>
+        {loading ? (
+          <Skeleton className="h-7 w-28" />
+        ) : (
+          <div className="dashboard-metric__value truncate font-semibold text-2xl tabular-nums tracking-[-0.03em]">
+            {value}
           </div>
-        </div>
-        <div className="dashboard-metric__icon grid size-9 shrink-0 place-items-center rounded-lg border border-border/70 bg-muted/50 text-muted-foreground">
-          <MetricIcon className="size-[1.125rem]" />
-        </div>
-      </CardContent>
-    </Card>
+        )}
+      </div>
+      <div className="dashboard-metric__description min-h-4 text-muted-foreground text-xs">
+        {description}
+      </div>
+    </div>
   );
 }
 
@@ -227,8 +241,8 @@ function SectionHeading({
   title: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
-      <h2 className="font-semibold text-[0.9375rem] tracking-[-0.01em]">
+    <div className="min-w-0 space-y-0.5">
+      <h2 className="font-semibold text-[0.875rem] tracking-[-0.015em]">
         {title}
       </h2>
       <div className="text-muted-foreground text-xs">{description}</div>
@@ -627,8 +641,27 @@ export default function Statistics() {
     systemOperations: <SystemOperations />,
     projectSupport: <ProjectSupport />,
   };
+  const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id));
+  const layoutEntries: Array<
+    | { kind: "kpi-strip"; ids: DashboardModuleId[]; startIndex: number }
+    | { kind: "module"; id: DashboardModuleId; index: number }
+  > = [];
+  for (let i = 0; i < visibleIds.length; i++) {
+    const id = visibleIds[i]!;
+    if (KPI_MODULE_IDS.has(id)) {
+      const prev = layoutEntries.at(-1);
+      if (prev?.kind === "kpi-strip") {
+        prev.ids.push(id);
+      } else {
+        layoutEntries.push({ kind: "kpi-strip", ids: [id], startIndex: i });
+      }
+    } else {
+      layoutEntries.push({ kind: "module", id, index: i });
+    }
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         actions={
           <>
@@ -637,15 +670,15 @@ export default function Statistics() {
               onValueChange={(value) => setRange(value as DashboardRange)}
               value={range}
             >
-              <TabsList className="dashboard-range-tabs__list h-9">
+              <TabsList className="dashboard-range-tabs__list h-8">
                 <TabsTrigger
-                  className="dashboard-range-tabs__trigger"
+                  className="dashboard-range-tabs__trigger text-xs"
                   value="month"
                 >
                   {t("month", "Month")}
                 </TabsTrigger>
                 <TabsTrigger
-                  className="dashboard-range-tabs__trigger"
+                  className="dashboard-range-tabs__trigger text-xs"
                   value="total"
                 >
                   {t("total", "Total")}
@@ -693,41 +726,76 @@ export default function Statistics() {
       )}
 
       <div className="dashboard-module-grid grid grid-cols-2 gap-4 xl:grid-cols-12">
-        {layout.order
-          .filter((id) => !layout.hidden.includes(id))
-          .map((id, index) => (
+        {layoutEntries.map((entry) =>
+          entry.kind === "kpi-strip" ? (
+            <div
+              className="col-span-2 min-w-0 xl:col-span-12"
+              key={`kpi-strip-${entry.ids[0]}`}
+            >
+              <div
+                className={cn(
+                  "dashboard-kpi-strip grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-card",
+                  KPI_GRID_COLS[entry.ids.length] ?? "xl:grid-cols-4"
+                )}
+              >
+                {entry.ids.map((id, offset) => (
+                  <div
+                    className="dashboard-kpi-strip__cell flex min-w-0 flex-col justify-between"
+                    data-dashboard-module={id}
+                    key={id}
+                  >
+                    <DashboardCardEntrance index={entry.startIndex + offset}>
+                      {modules[id]}
+                      {moduleSources[id] && (
+                        <div className="space-y-1 px-4 pb-2.5">
+                          {moduleSources[id].map(
+                            ({ query, label }, sourceIndex) => (
+                              <DataFreshness
+                                key={label || sourceIndex}
+                                label={label}
+                                query={query}
+                              />
+                            )
+                          )}
+                        </div>
+                      )}
+                    </DashboardCardEntrance>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
             <div
               className={cn(
                 "min-w-0",
-                ["income", "newUsers", "onlineUsers", "monthTraffic"].includes(
-                  id
-                )
-                  ? "col-span-1 xl:col-span-3"
-                  : ["trafficRanking", "projectSupport"].includes(id)
-                    ? "col-span-2 xl:col-span-12"
-                    : ["systemHealth", "servers", "pending"].includes(id)
-                      ? "col-span-2 xl:col-span-4"
-                      : "col-span-2 xl:col-span-6"
+                ["trafficRanking", "projectSupport"].includes(entry.id)
+                  ? "col-span-2 xl:col-span-12"
+                  : ["systemHealth", "servers", "pending"].includes(entry.id)
+                    ? "col-span-2 xl:col-span-4"
+                    : "col-span-2 xl:col-span-6"
               )}
-              data-dashboard-module={id}
-              key={id}
+              data-dashboard-module={entry.id}
+              key={entry.id}
             >
-              <DashboardCardEntrance index={index}>
-                {modules[id]}
-                {moduleSources[id] && (
+              <DashboardCardEntrance index={entry.index}>
+                {modules[entry.id]}
+                {moduleSources[entry.id] && (
                   <div className="mt-2 space-y-1 px-1">
-                    {moduleSources[id].map(({ query, label }, sourceIndex) => (
-                      <DataFreshness
-                        key={label || sourceIndex}
-                        label={label}
-                        query={query}
-                      />
-                    ))}
+                    {moduleSources[entry.id].map(
+                      ({ query, label }, sourceIndex) => (
+                        <DataFreshness
+                          key={label || sourceIndex}
+                          label={label}
+                          query={query}
+                        />
+                      )
+                    )}
                   </div>
                 )}
               </DashboardCardEntrance>
             </div>
-          ))}
+          )
+        )}
       </div>
       {layout.hidden.length === layout.order.length && (
         <EmptyState
@@ -884,7 +952,7 @@ export function BusinessTrends({
     >
       {kind !== "users" && (
         <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
+          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-4 py-3">
             <SectionHeading
               description={t(
                 "overview.revenueTrendHint",
@@ -925,7 +993,7 @@ export function BusinessTrends({
 
       {kind !== "revenue" && (
         <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-5 py-4">
+          <CardHeader className="dashboard-trend-header flex-row items-start justify-between gap-4 border-b px-4 py-3">
             <SectionHeading
               description={t(
                 "overview.userTrendHint",
@@ -1052,7 +1120,7 @@ function RevenueTrendChart({
             <stop
               offset="5%"
               stopColor="var(--color-newPurchase)"
-              stopOpacity={0.2}
+              stopOpacity={0.14}
             />
             <stop
               offset="95%"
@@ -1064,7 +1132,7 @@ function RevenueTrendChart({
             <stop
               offset="5%"
               stopColor="var(--color-renewal)"
-              stopOpacity={0.12}
+              stopOpacity={0.08}
             />
             <stop
               offset="95%"
@@ -1075,8 +1143,8 @@ function RevenueTrendChart({
         </defs>
         <CartesianGrid
           stroke="var(--border)"
-          strokeDasharray="3 3"
-          strokeOpacity={0.7}
+          strokeDasharray="2 4"
+          strokeOpacity={0.6}
           vertical={false}
         />
         <XAxis
@@ -1093,7 +1161,7 @@ function RevenueTrendChart({
           isAnimationActive={false}
         />
         <Area
-          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
+          activeDot={{ r: 3.5, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="newPurchase"
@@ -1104,11 +1172,11 @@ function RevenueTrendChart({
             firstDraw.current = false;
           }}
           stroke="var(--color-newPurchase)"
-          strokeWidth={1.75}
+          strokeWidth={1.5}
           type="monotone"
         />
         <Area
-          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
+          activeDot={{ r: 3.5, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="renewal"
@@ -1116,7 +1184,7 @@ function RevenueTrendChart({
           hide={legend.hidden.includes("renewal")}
           isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-renewal)"
-          strokeWidth={1.75}
+          strokeWidth={1.5}
           type="monotone"
         />
         <ChartLegend
@@ -1176,8 +1244,8 @@ function UserTrendChart({
       <LineChart data={data} margin={{ left: 4, right: 12 }}>
         <CartesianGrid
           stroke="var(--border)"
-          strokeDasharray="3 3"
-          strokeOpacity={0.7}
+          strokeDasharray="2 4"
+          strokeOpacity={0.6}
           vertical={false}
         />
         <XAxis
@@ -1200,7 +1268,7 @@ function UserTrendChart({
           isAnimationActive={false}
         />
         <Line
-          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
+          activeDot={{ r: 3.5, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="register"
@@ -1211,11 +1279,11 @@ function UserTrendChart({
             firstDraw.current = false;
           }}
           stroke="var(--color-register)"
-          strokeWidth={1.75}
+          strokeWidth={1.5}
           type="monotone"
         />
         <Line
-          activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
+          activeDot={{ r: 3.5, stroke: "var(--card)", strokeWidth: 2 }}
           animationDuration={chartDuration}
           animationEasing={adminChartEasing}
           dataKey="paid"
@@ -1223,7 +1291,7 @@ function UserTrendChart({
           hide={legend.hidden.includes("paid")}
           isAnimationActive={!(reducedMotion || expanded)}
           stroke="var(--color-paid)"
-          strokeWidth={1.75}
+          strokeWidth={1.5}
           type="monotone"
         />
         <ChartLegend
@@ -1263,7 +1331,7 @@ function DashboardChartLegend({
         <Button
           aria-pressed={!hidden.includes(key)}
           className={cn(
-            "h-11 gap-2 px-2 text-xs sm:h-9",
+            "h-10 gap-1.5 rounded-md px-2 text-xs sm:h-7",
             hidden.includes(key) && "text-muted-foreground line-through"
           )}
           key={key}
@@ -1328,7 +1396,7 @@ function SystemHealthCard({
       className="dashboard-card dashboard-system-health gap-0 py-0 shadow-none"
       data-health-tone={tone}
     >
-      <CardHeader className="flex-row items-start justify-between border-b px-5 py-4">
+      <CardHeader className="flex-row items-start justify-between border-b px-4 py-3">
         <SectionHeading
           description={t(
             "overview.systemHealthHint",
@@ -1475,7 +1543,7 @@ function ServerSummaryCard({
 
   return (
     <Card className="dashboard-card gap-0 py-0 shadow-none">
-      <CardHeader className="flex-row items-start justify-between border-b px-5 py-4">
+      <CardHeader className="flex-row items-start justify-between border-b px-4 py-3">
         <SectionHeading
           description={t(
             "overview.serverSummaryHint",
@@ -1586,7 +1654,7 @@ function PendingCard({
 
   return (
     <Card className="dashboard-card gap-0 py-0 shadow-none">
-      <CardHeader className="border-b px-5 py-4">
+      <CardHeader className="border-b px-4 py-3">
         <SectionHeading
           description={t(
             "overview.pendingHint",
@@ -1740,7 +1808,7 @@ function TrafficRanking({
   return (
     <section className="dashboard-section">
       <Card className="dashboard-card gap-0 overflow-hidden py-0 shadow-none">
-        <CardHeader className="dashboard-traffic-header flex flex-col gap-4 border-b px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+        <CardHeader className="dashboard-traffic-header flex flex-col gap-3 border-b px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
           <SectionHeading
             description={t(
               "overview.trafficRankingHint",
@@ -1748,16 +1816,16 @@ function TrafficRanking({
             )}
             title={t("trafficRank", "Traffic ranking")}
           />
-          <div className="dashboard-traffic-controls grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <div className="dashboard-traffic-controls grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
             <Tabs
               className="dashboard-traffic-controls__tabs"
               onValueChange={(value) => onTypeChange(value as TrafficType)}
               value={requestedType}
             >
               <LayoutGroup id="dashboard-traffic-type-switcher">
-                <TabsList className="dashboard-traffic-controls__tabs-list dashboard-traffic-type-tabs-list">
+                <TabsList className="dashboard-traffic-controls__tabs-list dashboard-traffic-type-tabs-list h-8">
                   <TabsTrigger
-                    className="dashboard-traffic-type-trigger"
+                    className="dashboard-traffic-type-trigger text-xs"
                     value="nodes"
                   >
                     {requestedType === "nodes" ? (
@@ -1773,7 +1841,7 @@ function TrafficRanking({
                     </span>
                   </TabsTrigger>
                   <TabsTrigger
-                    className="dashboard-traffic-type-trigger"
+                    className="dashboard-traffic-type-trigger text-xs"
                     value="users"
                   >
                     {requestedType === "users" ? (
@@ -1796,9 +1864,11 @@ function TrafficRanking({
               onValueChange={(value) => onPeriodChange(value as TrafficPeriod)}
               value={requestedPeriod}
             >
-              <TabsList className="dashboard-traffic-controls__tabs-list">
-                <TabsTrigger value="today">{t("today", "Today")}</TabsTrigger>
-                <TabsTrigger value="yesterday">
+              <TabsList className="dashboard-traffic-controls__tabs-list h-8">
+                <TabsTrigger className="text-xs" value="today">
+                  {t("today", "Today")}
+                </TabsTrigger>
+                <TabsTrigger className="text-xs" value="yesterday">
                   {t("yesterday", "Yesterday")}
                 </TabsTrigger>
               </TabsList>
@@ -1811,7 +1881,7 @@ function TrafficRanking({
             >
               <SelectTrigger
                 aria-label={t("overview.rankingLimit", "Ranking size")}
-                className="dashboard-traffic-controls__limit h-9 w-full sm:w-28"
+                className="dashboard-traffic-controls__limit h-8 w-full text-xs sm:w-24"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -1827,7 +1897,7 @@ function TrafficRanking({
             </Select>
             <Button
               asChild
-              className="dashboard-traffic-controls__logs w-full sm:w-auto"
+              className="dashboard-traffic-controls__logs h-8 w-full text-xs sm:w-auto"
               size="sm"
               variant="outline"
             >
@@ -2273,7 +2343,7 @@ export function TrafficRankingRow({
   );
   return (
     <motion.li
-      className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-3 sm:px-5"
+      className="dashboard-traffic-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5"
       data-rank={index + 1}
       data-traffic-id={`${trafficType}-${item.id}`}
       layout={reducedMotion ? false : "position"}
@@ -2300,11 +2370,12 @@ export function TrafficRankingRow({
             ref={detailTrigger}
             type="button"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5">
               <span
                 className={cn(
-                  "grid size-7 shrink-0 place-items-center rounded-md border border-border/80 bg-muted/60 font-mono font-semibold text-muted-foreground text-xs tabular-nums",
-                  index < 3 && "border-primary/25 bg-primary/10 text-primary"
+                  "grid size-6 shrink-0 place-items-center rounded border border-border bg-muted/40 font-mono font-medium text-[11px] text-muted-foreground tabular-nums",
+                  index < 3 &&
+                    "border-foreground/20 bg-secondary font-semibold text-foreground"
                 )}
               >
                 {index + 1}
@@ -2364,7 +2435,7 @@ export function TrafficRankingRow({
                         share: rankingWidth.toFixed(0),
                       }
                     )}
-                    className="h-2 overflow-hidden rounded-full bg-muted/80"
+                    className="h-1.5 overflow-hidden rounded-full bg-muted"
                     role="img"
                   >
                     <motion.div
