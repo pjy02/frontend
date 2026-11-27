@@ -111,7 +111,8 @@ export function LogNavigation() {
                       <Link
                         className={cn(
                           "flex items-center justify-between",
-                          isActive && "bg-accent font-medium text-accent-foreground"
+                          isActive &&
+                            "bg-accent font-medium text-accent-foreground"
                         )}
                         search={{ ...search, page: undefined }}
                         to={route.url}

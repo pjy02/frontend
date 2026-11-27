@@ -748,7 +748,7 @@ export default function Statistics() {
                       {modules[id]}
                       {moduleSources[id] && (
                         <div className="space-y-1 px-4 pb-2.5">
-                          {moduleSources[id].map(
+                          {moduleSources[id]?.map(
                             ({ query, label }, sourceIndex) => (
                               <DataFreshness
                                 key={label || sourceIndex}
@@ -781,7 +781,7 @@ export default function Statistics() {
                 {modules[entry.id]}
                 {moduleSources[entry.id] && (
                   <div className="mt-2 space-y-1 px-1">
-                    {moduleSources[entry.id].map(
+                    {moduleSources[entry.id]?.map(
                       ({ query, label }, sourceIndex) => (
                         <DataFreshness
                           key={label || sourceIndex}
@@ -1128,7 +1128,13 @@ function RevenueTrendChart({
               stopOpacity={0}
             />
           </linearGradient>
-          <linearGradient id={`${gradientId}Renewal`} x1="0" x2="0" y1="0" y2="1">
+          <linearGradient
+            id={`${gradientId}Renewal`}
+            x1="0"
+            x2="0"
+            y1="0"
+            y2="1"
+          >
             <stop
               offset="5%"
               stopColor="var(--color-renewal)"
@@ -2373,7 +2379,7 @@ export function TrafficRankingRow({
             <div className="flex items-start gap-2.5">
               <span
                 className={cn(
-                  "grid size-6 shrink-0 place-items-center rounded border border-border bg-muted/40 font-mono font-medium text-[11px] text-muted-foreground tabular-nums",
+                  "grid size-6 shrink-0 place-items-center rounded border border-border bg-muted/40 font-medium font-mono text-[11px] text-muted-foreground tabular-nums",
                   index < 3 &&
                     "border-foreground/20 bg-secondary font-semibold text-foreground"
                 )}

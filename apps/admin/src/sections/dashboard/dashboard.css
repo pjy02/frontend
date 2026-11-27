@@ -52,7 +52,9 @@ html.admin-console .dashboard-range-tabs__trigger {
     border-top: 0;
   }
 
-  .dashboard-kpi-strip > .dashboard-kpi-strip__cell + .dashboard-kpi-strip__cell {
+  .dashboard-kpi-strip
+    > .dashboard-kpi-strip__cell
+    + .dashboard-kpi-strip__cell {
     border-left: 1px solid var(--border);
   }
 }

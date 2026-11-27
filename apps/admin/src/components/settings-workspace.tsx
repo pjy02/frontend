@@ -146,7 +146,7 @@ export function SettingsWorkspaceShell({
     async (nextId: string) => {
       if (!validIds.has(nextId) || nextId === activeIdRef.current) return;
       const closeHandler = activeCloseRef.current;
-      if (!closeHandler || !activeOpenRef.current) {
+      if (!(closeHandler && activeOpenRef.current)) {
         pendingSwitchRef.current = null;
         commitActiveId(nextId);
         return;
@@ -206,10 +206,7 @@ export function SettingsWorkspaceShell({
   return (
     <SettingsWorkspaceContext.Provider value={contextValue}>
       <div className={cn("admin-settings-workspace", className)}>
-        <nav
-          aria-label={directoryLabel}
-          className="admin-settings-sidebar"
-        >
+        <nav aria-label={directoryLabel} className="admin-settings-sidebar">
           {groups.map((group) => (
             <div className="admin-settings-sidebar__group" key={group.id}>
               <div className="admin-settings-sidebar__group-label">

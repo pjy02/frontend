@@ -3357,7 +3357,8 @@ html.admin-console .admin-pro-table[data-tablet-layout] {
 }
 
 .admin-settings-sidebar__item:hover .admin-settings-sidebar__icon,
-.admin-settings-sidebar__item[data-active="true"] .admin-settings-sidebar__icon {
+.admin-settings-sidebar__item[data-active="true"]
+  .admin-settings-sidebar__icon {
   color: var(--foreground);
 }
 
@@ -3404,12 +3405,16 @@ html.admin-console .admin-pro-table[data-tablet-layout] {
   overflow: visible !important;
 }
 
-.admin-settings-pane > [data-slot="scroll-area"] > [data-slot="scroll-area-viewport"] {
+.admin-settings-pane
+  > [data-slot="scroll-area"]
+  > [data-slot="scroll-area-viewport"] {
   overflow: visible !important;
   height: auto !important;
 }
 
-.admin-settings-pane > [data-slot="scroll-area"] > [data-slot="scroll-area-scrollbar"] {
+.admin-settings-pane
+  > [data-slot="scroll-area"]
+  > [data-slot="scroll-area-scrollbar"] {
   display: none;
 }
 
