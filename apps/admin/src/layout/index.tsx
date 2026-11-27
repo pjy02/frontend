@@ -71,8 +71,8 @@ export default function DashboardLayout() {
         open={open}
         style={
           {
-            "--sidebar-width": "16rem",
-            "--sidebar-width-icon": "4.25rem",
+            "--sidebar-width": "14rem",
+            "--sidebar-width-icon": "3.5rem",
           } as CSSProperties
         }
       >

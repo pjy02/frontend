@@ -29,14 +29,14 @@ export function Header() {
       <div className="admin-header__start flex min-w-0 items-center gap-2">
         <SidebarTrigger
           aria-label={t("accessibility.toggleSidebar", "Toggle sidebar")}
-          className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
+          className="size-7 rounded-md text-muted-foreground hover:text-foreground"
         />
         <Separator
-          className="mx-1 hidden h-4 sm:block"
+          className="mx-1 hidden h-3.5 sm:block"
           orientation="vertical"
         />
         <Breadcrumb className="hidden min-w-0 lg:block">
-          <BreadcrumbList className="flex-nowrap text-[13px]">
+          <BreadcrumbList className="flex-nowrap text-xs">
             {items.map((item, index) => (
               <Fragment key={`${item.title}-${item.url || index}`}>
                 {index !== items.length - 1 ? (
@@ -81,7 +81,7 @@ export function Header() {
         </div>
         <AdminThemeSwitch />
         <Separator
-          className="mx-1 hidden h-5 md:block"
+          className="mx-1 hidden h-4 md:block"
           orientation="vertical"
         />
         <UserNav />

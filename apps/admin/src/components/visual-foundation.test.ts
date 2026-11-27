@@ -123,10 +123,10 @@ describe("Admin visual foundation", () => {
   }
 
   it("retains brand and chart marks separately from readable text", () => {
-    expect(resolve(light, "--admin-brand")).toBe("#4285f4");
+    expect(resolve(light, "--admin-brand")).toBe("#5e6ad2");
     expect(
       [1, 2, 3, 4, 5].map((index) => resolve(light, `--chart-${index}`))
-    ).toEqual(["#4285f4", "#ea4335", "#fbbc04", "#34a853", "#6f42c1"]);
+    ).toEqual(["#5e6ad2", "#16a34a", "#d97706", "#0891b2", "#dc2626"]);
     expect(resolve(light, "--admin-action")).not.toBe(
       resolve(light, "--admin-brand")
     );
@@ -144,12 +144,12 @@ describe("Admin visual foundation", () => {
         "meta",
       ].map((role) => resolve(light, `--admin-type-${role}`))
     ).toEqual([
-      "1.5rem",
       "1.125rem",
       "1rem",
       "0.875rem",
-      "0.875rem",
       "0.8125rem",
+      "0.8125rem",
+      "0.75rem",
       "0.75rem",
     ]);
     for (const font of [

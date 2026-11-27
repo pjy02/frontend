@@ -204,12 +204,12 @@ export function SidebarLeft({
       return (
         <SidebarMenuButton
           asChild
-          className="mx-auto size-10 justify-center rounded-lg"
+          className="mx-auto size-8 justify-center rounded-md"
           isActive={isActiveUrl(nav.url)}
           tooltip={nav.title}
         >
           <Link onClick={handleNavigate} to={nav.url}>
-            {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+            {NavIcon ? <NavIcon className="size-[15px]" /> : null}
             <span className="sr-only">{nav.title}</span>
           </Link>
         </SidebarMenuButton>
@@ -227,10 +227,10 @@ export function SidebarLeft({
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton
             aria-label={nav.title}
-            className="mx-auto size-10 justify-center rounded-lg"
+            className="mx-auto size-8 justify-center rounded-md"
             isActive={isGroupActive(nav)}
           >
-            {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+            {NavIcon ? <NavIcon className="size-[15px]" /> : null}
             <span className="sr-only">{nav.title}</span>
           </SidebarMenuButton>
         </DropdownMenuTrigger>
@@ -284,32 +284,28 @@ export function SidebarLeft({
 
   return (
     <Sidebar className="admin-sidebar" collapsible="icon" {...props}>
-      <SidebarHeader className="border-sidebar-border border-b px-3 py-2.5">
+      <SidebarHeader className="px-2.5 pt-2.5 pb-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="h-10 rounded-lg px-2 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
+              className="h-9 rounded-md px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-1!"
               size="lg"
               tooltip={site.site_name || "PPanel"}
             >
               <Link onClick={handleNavigate} to="/dashboard">
-                <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card shadow-xs ring-1 ring-border">
+                <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-card shadow-2xs ring-1 ring-border">
                   <img
                     alt=""
-                    className="size-6 object-contain"
-                    height={24}
+                    className="size-4 object-contain"
+                    height={16}
                     src={site.site_logo || "/favicon.svg"}
-                    width={24}
+                    width={16}
                   />
                 </div>
                 <div className="min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-                  <div className="truncate font-semibold text-[13px]">
+                  <div className="truncate font-semibold text-[13px] tracking-[-0.01em]">
                     {site.site_name || "PPanel"}
-                  </div>
-                  <div className="mt-0.5 truncate text-sidebar-foreground/60 text-xs">
-                    {site.site_desc ||
-                      t("admin.consoleDescription", "Admin console")}
                   </div>
                 </div>
               </Link>
@@ -319,7 +315,7 @@ export function SidebarLeft({
       </SidebarHeader>
 
       <SidebarContent
-        className="admin-sidebar-scroll px-2 py-3"
+        className="admin-sidebar-scroll px-2 py-2"
         data-can-scroll-down={scrollEdges.down}
         data-can-scroll-up={scrollEdges.up}
         onScroll={updateScrollEdges}
@@ -361,24 +357,24 @@ export function SidebarLeft({
 
                 if (!hasChildren(nav)) {
                   return (
-                    <SidebarMenuItem className="mb-1" key={groupKey}>
+                    <SidebarMenuItem className="mb-0.5" key={groupKey}>
                       <SidebarMenuButton
                         asChild={Boolean(nav.url)}
-                        className="relative h-9 rounded-lg px-3 text-[13px]"
+                        className="relative h-8 rounded-md px-2.5 text-[13px]"
                         isActive={isGroupActive(nav)}
                         tooltip={nav.title}
                       >
                         {nav.url ? (
                           <Link onClick={handleNavigate} to={nav.url}>
                             {NavIcon ? (
-                              <NavIcon className="size-[18px]" />
+                              <NavIcon className="size-[15px] opacity-80" />
                             ) : null}
                             <span>{nav.title}</span>
                           </Link>
                         ) : (
                           <>
                             {NavIcon ? (
-                              <NavIcon className="size-[18px]" />
+                              <NavIcon className="size-[15px] opacity-80" />
                             ) : null}
                             <span>{nav.title}</span>
                           </>
@@ -391,14 +387,14 @@ export function SidebarLeft({
                 const isOpen = openGroups[groupKey] ?? false;
                 const groupId = `${groupIdPrefix}-${navs.indexOf(nav)}`;
                 return (
-                  <SidebarGroup className="p-0 pb-1" key={groupKey}>
+                  <SidebarGroup className="p-0 pb-0.5" key={groupKey}>
                     <SidebarMenuButton
                       aria-controls={groupId}
                       aria-expanded={isOpen}
                       className={cn(
-                        "relative h-9 rounded-lg px-3 text-[13px]",
+                        "relative h-8 rounded-md px-2.5 text-[13px]",
                         isGroupActive(nav) &&
-                          "font-semibold text-sidebar-accent-foreground"
+                          "font-medium text-sidebar-accent-foreground"
                       )}
                       isActive={false}
                       onClick={() =>
@@ -408,13 +404,15 @@ export function SidebarLeft({
                         }))
                       }
                     >
-                      {NavIcon ? <NavIcon className="size-[18px]" /> : null}
+                      {NavIcon ? (
+                        <NavIcon className="size-[15px] opacity-80" />
+                      ) : null}
                       <span className="min-w-0 flex-1 truncate">
                         {nav.title}
                       </span>
                       <ChevronDown
                         className={cn(
-                          "admin-sidebar-chevron size-4 text-sidebar-foreground/60",
+                          "admin-sidebar-chevron size-3.5 text-sidebar-foreground/50",
                           !isOpen && "-rotate-90"
                         )}
                       />
@@ -429,7 +427,7 @@ export function SidebarLeft({
                           aria-hidden={!isOpen}
                           inert={!isOpen}
                         >
-                          <SidebarMenuSub className="my-1 border-sidebar-border/70">
+                          <SidebarMenuSub className="my-0.5 border-sidebar-border/70">
                             {nav.items.map((item) => {
                               const ItemIcon = item.icon;
                               return (
@@ -438,7 +436,7 @@ export function SidebarLeft({
                                 >
                                   <SidebarMenuSubButton
                                     asChild
-                                    className="relative h-8 rounded-lg text-[13px]"
+                                    className="relative h-[30px] rounded-md text-[13px]"
                                     isActive={Boolean(
                                       item.url && isActiveUrl(item.url)
                                     )}
@@ -448,7 +446,7 @@ export function SidebarLeft({
                                       to={item.url || "/dashboard"}
                                     >
                                       {ItemIcon ? (
-                                        <ItemIcon className="size-4" />
+                                        <ItemIcon className="size-3.5 opacity-80" />
                                       ) : null}
                                       <span>{item.title}</span>
                                     </Link>
