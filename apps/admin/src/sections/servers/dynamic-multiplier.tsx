@@ -89,22 +89,19 @@ export default function DynamicMultiplier() {
         >
           <Card className="admin-server-shortcut h-full">
             <CardContent className="admin-server-shortcut__content">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon
-                      className="h-5 w-5 text-primary"
-                      icon="mdi:clock-time-eight"
-                    />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60 text-foreground">
+                    <Icon className="h-4 w-4" icon="mdi:clock-time-eight" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-[13px]">
                       {t(
                         "server_config.dynamic_multiplier",
                         "Dynamic multiplier"
                       )}
                     </p>
-                    <p className="truncate text-muted-foreground text-sm">
+                    <p className="truncate text-muted-foreground text-xs">
                       {t(
                         "server_config.dynamic_multiplier_desc",
                         "Define time slots and multipliers to adjust traffic accounting."
@@ -112,7 +109,10 @@ export default function DynamicMultiplier() {
                     </p>
                   </div>
                 </div>
-                <Icon className="size-6" icon="mdi:chevron-right" />
+                <Icon
+                  className="size-4 shrink-0 text-muted-foreground"
+                  icon="mdi:chevron-right"
+                />
               </div>
             </CardContent>
           </Card>

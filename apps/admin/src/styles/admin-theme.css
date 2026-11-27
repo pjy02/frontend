@@ -1948,21 +1948,20 @@ html.admin-console .admin-mobile-summary__value
 }
 
 .admin-server-shortcut {
-  border-color: color-mix(in srgb, var(--border) 92%, transparent);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  border-color: var(--border);
+  box-shadow: none;
   transition:
     border-color var(--admin-motion-fast) var(--admin-motion-easing),
-    background-color var(--admin-motion-fast) var(--admin-motion-easing),
-    box-shadow var(--admin-motion-fast) var(--admin-motion-easing);
+    background-color var(--admin-motion-fast) var(--admin-motion-easing);
 }
 
 html.admin-console.dark .admin-server-shortcut {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  box-shadow: none;
 }
 
 .admin-server-shortcut:hover {
-  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
-  background: color-mix(in srgb, var(--primary) 3%, var(--card));
+  border-color: color-mix(in srgb, var(--foreground) 18%, var(--border));
+  background: var(--admin-surface-hover);
 }
 
 .admin-server-shortcut__content svg:last-child {
@@ -2660,6 +2659,146 @@ html.admin-console
 
 .admin-protocol-groups > :first-child .admin-form-section {
   border-top: 0;
+}
+
+/* Linear Split-Pane 12-Protocol Studio (server-form.tsx) */
+.admin-protocol-studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+}
+
+.admin-protocol-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem;
+  background: color-mix(in srgb, var(--muted) 36%, var(--card));
+}
+
+.admin-protocol-rail__row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  height: 2.125rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  padding: 0 0.5rem 0 0.25rem;
+  transition:
+    background-color var(--admin-motion-fast) var(--admin-motion-easing),
+    border-color var(--admin-motion-fast) var(--admin-motion-easing);
+}
+
+.admin-protocol-rail__row:hover {
+  background: var(--admin-surface-hover);
+}
+
+.admin-protocol-rail__row[data-selected="true"] {
+  border-color: var(--border);
+  background: var(--card);
+}
+
+.admin-protocol-rail__select {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--admin-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 450;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.admin-protocol-rail__row[data-selected="true"] .admin-protocol-rail__select,
+.admin-protocol-rail__select:hover {
+  color: var(--foreground);
+}
+
+.admin-protocol-rail__row[data-selected="true"] .admin-protocol-rail__select {
+  font-weight: 500;
+}
+
+.admin-protocol-rail__select:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.admin-protocol-rail__dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--admin-text-tertiary);
+  background: transparent;
+}
+
+.admin-protocol-rail__dot[data-status="enabled"] {
+  border-color: var(--admin-status-success);
+  background: var(--admin-status-success);
+}
+
+.admin-protocol-rail__dot[data-status="error"] {
+  border-color: var(--destructive);
+  background: var(--destructive);
+}
+
+.admin-protocol-rail__port {
+  flex-shrink: 0;
+  color: var(--admin-text-tertiary);
+  font-family: var(--admin-font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-protocol-canvas {
+  min-width: 0;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--card);
+}
+
+.admin-protocol-canvas__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 480px) and (max-width: 1023px) {
+  .admin-protocol-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-protocol-studio {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .admin-protocol-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+    padding: 0.5rem;
+  }
 }
 
 .admin-protocol-card {

@@ -75,9 +75,16 @@ function RegionIpCell({
   const region =
     [country, city].filter(Boolean).join(" / ") || notAvailableText;
   return (
-    <div className="flex items-center gap-1">
-      <Badge variant="outline">{region}</Badge>
-      <Badge variant="secondary">{ip || notAvailableText}</Badge>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Badge className="font-normal text-[11px]" variant="outline">
+        {region}
+      </Badge>
+      <Badge
+        className="font-mono font-normal text-[11px] tabular-nums"
+        variant="secondary"
+      >
+        {ip || notAvailableText}
+      </Badge>
     </div>
   );
 }
@@ -151,7 +158,7 @@ export default function Servers({ actionRef }: ServersProps) {
         actions={{
           visibleCount: 2,
           render: (row) => [
-            <Button asChild key="edit">
+            <Button asChild key="edit" size="sm" variant="outline">
               <Link
                 params={{ serverId: String(row.id) }}
                 resetScroll={false}
@@ -243,10 +250,25 @@ export default function Servers({ actionRef }: ServersProps) {
                   {list.map((p, idx) => {
                     const ratio = Number(p.ratio ?? 1) || 1;
                     return (
-                      <div className="flex items-center gap-2" key={idx}>
-                        <Badge variant="outline">{ratio.toFixed(2)}x</Badge>
-                        <Badge variant="secondary">{p.type}</Badge>
-                        <Badge variant="secondary">{p.port}</Badge>
+                      <div className="flex items-center gap-1.5" key={idx}>
+                        <Badge
+                          className="font-mono text-[11px] tabular-nums"
+                          variant="outline"
+                        >
+                          {ratio.toFixed(2)}x
+                        </Badge>
+                        <Badge
+                          className="font-mono text-[11px] capitalize"
+                          variant="secondary"
+                        >
+                          {p.type}
+                        </Badge>
+                        <Badge
+                          className="font-mono text-[11px] tabular-nums"
+                          variant="secondary"
+                        >
+                          {p.port}
+                        </Badge>
                       </div>
                     );
                   })}

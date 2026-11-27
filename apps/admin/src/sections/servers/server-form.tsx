@@ -1,12 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@workspace/ui/components/accordion";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -531,7 +525,13 @@ export default function ServerForm(props: ServerFormProps) {
   } = props;
   const { t } = useTranslation("servers");
   const [internalOpen, setInternalOpen] = useState(false);
-  const [accordionValue, setAccordionValue] = useState("");
+  const [selectedProtocol, setSelectedProtocol] = useState<ProtocolType>(() => {
+    const firstEnabled = initialValues?.protocols?.find(
+      (protocol) =>
+        protocol?.enable && PROTOCOLS.includes(protocol.type as ProtocolType)
+    )?.type as ProtocolType | undefined;
+    return firstEnabled ?? PROTOCOLS[0];
+  });
   const formRef = useRef<HTMLFormElement>(null);
   const revealProtocolError = useRef(false);
   const open = controlledOpen ?? internalOpen;
@@ -688,7 +688,7 @@ export default function ServerForm(props: ServerFormProps) {
     }
 
     if (firstInvalidProtocol) {
-      setAccordionValue(firstInvalidProtocol);
+      setSelectedProtocol(firstInvalidProtocol);
       return false;
     }
 
@@ -806,11 +806,22 @@ export default function ServerForm(props: ServerFormProps) {
     if (firstDisabled) {
       event?.preventDefault();
       revealProtocolError.current = true;
-      setAccordionValue(firstDisabled);
+      setSelectedProtocol(firstDisabled as ProtocolType);
       return;
     }
     return safety.handleSubmit(handleSubmit)(event);
   }
+
+  const protocolErrors = (form.formState.errors as Record<string, any>)
+    ?.protocols;
+  const activeProtocolType = selectedProtocol;
+  const activeIndex = Math.max(0, PROTOCOLS.indexOf(activeProtocolType));
+  const activeData = (protocolsValues?.[activeIndex] || {}) as Record<
+    string,
+    any
+  >;
+  const activeFields = PROTOCOL_FIELDS[activeProtocolType] || [];
+  const activeEnabled = Boolean(activeData?.enable);
 
   return (
     <WorkspaceDialog onOpenChange={safety.requestOpenChange} open={open}>
@@ -869,7 +880,7 @@ export default function ServerForm(props: ServerFormProps) {
                   </Button>
                 </div>
               )}
-              <div className="admin-server-base-panel grid grid-cols-1 gap-4 rounded-xl border border-border/80 bg-muted/20 p-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="admin-server-base-panel grid grid-cols-1 gap-3.5 rounded-lg border border-border bg-muted/25 p-3.5 sm:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={control}
                   name="name"
@@ -974,179 +985,212 @@ export default function ServerForm(props: ServerFormProps) {
                   )}
                 </p>
               )}
-              <Accordion
-                className="w-full space-y-3"
-                collapsible
-                onValueChange={setAccordionValue}
-                type="single"
-                value={accordionValue}
-              >
-                {PROTOCOLS.map((type) => {
-                  const i = Math.max(0, PROTOCOLS.indexOf(type));
-                  const current = (protocolsValues[i] || {}) as Record<
-                    string,
-                    any
-                  >;
-                  const isEnabled = current?.enable;
-                  const fields = PROTOCOL_FIELDS[type] || [];
-                  return (
-                    <AccordionItem
-                      className="admin-protocol-card mb-2 rounded-xl border"
-                      data-enabled={isEnabled ? "true" : "false"}
-                      key={type}
-                      value={type}
-                    >
-                      <AccordionTrigger
-                        className="px-4 py-3 hover:no-underline"
-                        data-form-path={`protocols.${i}`}
-                        trailing={
-                          <Switch
-                            aria-invalid={
-                              !!form.getFieldState(`protocols.${i}.enable`)
-                                .error
-                            }
-                            aria-label={t(
-                              "protocol_enabled",
-                              "Enable {{protocol}}",
-                              { protocol: type }
-                            )}
-                            checked={!!isEnabled}
-                            data-form-field={`protocols.${i}.enable`}
-                            disabled={Boolean(
-                              serverId &&
-                                isEnabled &&
-                                defaultValues.protocols[i]?.enable &&
-                                (!nodeReferencesReady() ||
-                                  isProtocolUsedInNodes(serverId, type))
-                            )}
-                            onCheckedChange={(checked) => {
-                              form.setValue(`protocols.${i}.enable`, checked, {
-                                shouldDirty: true,
-                              });
-                              form.clearErrors(`protocols.${i}` as any);
-                              if (checked) setAccordionValue(type);
-                              else if (accordionValue === type)
-                                setAccordionValue("");
-                            }}
-                          />
-                        }
+              <div className="admin-protocol-studio mb-4">
+                <div
+                  aria-label={t(
+                    "protocol_configurations",
+                    "Protocol Configurations"
+                  )}
+                  className="admin-protocol-rail"
+                  role="region"
+                >
+                  {PROTOCOLS.map((type) => {
+                    const i = Math.max(0, PROTOCOLS.indexOf(type));
+                    const current = (protocolsValues?.[i] || {}) as Record<
+                      string,
+                      any
+                    >;
+                    const isEnabled = Boolean(current?.enable);
+                    const isSelected = selectedProtocol === type;
+                    const hasError = Boolean(
+                      Array.isArray(protocolErrors) &&
+                        protocolErrors[i] &&
+                        Object.keys(protocolErrors[i]).length > 0
+                    );
+                    const dotStatus = hasError
+                      ? "error"
+                      : isEnabled
+                        ? "enabled"
+                        : "disabled";
+                    return (
+                      <div
+                        className="admin-protocol-rail__row"
+                        data-enabled={isEnabled ? "true" : "false"}
+                        data-selected={isSelected ? "true" : "false"}
+                        key={type}
                       >
-                        <div className="flex w-full items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-sm capitalize tracking-[-0.01em]">
-                              {type}
+                        <button
+                          aria-current={isSelected ? "true" : undefined}
+                          className="admin-protocol-rail__select"
+                          data-form-path={`protocols.${i}`}
+                          data-state={isSelected ? "active" : "inactive"}
+                          onClick={() => setSelectedProtocol(type)}
+                          type="button"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="admin-protocol-rail__dot"
+                            data-status={dotStatus}
+                          />
+                          <span className="min-w-0 flex-1 truncate capitalize">
+                            {type}
+                          </span>
+                          {current.port ? (
+                            <span className="admin-protocol-rail__port">
+                              :{current.port}
                             </span>
-                            <StatusChip
-                              pulse={Boolean(isEnabled)}
-                              tone={isEnabled ? "success" : "neutral"}
-                            >
-                              {isEnabled
-                                ? t("enabled", "Enabled")
-                                : t("disabled", "Disabled")}
-                            </StatusChip>
-                            {current.transport && (
-                              <Badge
-                                className="font-mono text-[11px] tabular-nums"
-                                variant="secondary"
-                              >
-                                {current.transport.toUpperCase()}
-                              </Badge>
-                            )}
-                            {current.security &&
-                              current.security !== "none" && (
-                                <Badge
-                                  className="font-mono text-[11px] tabular-nums"
-                                  variant="outline"
-                                >
-                                  {current.security.toUpperCase()}
-                                </Badge>
-                              )}
-                            {current.port && (
-                              <Badge className="font-mono text-[11px] tabular-nums">
-                                {current.port}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pt-0 pb-4">
-                        {!isEnabled && (
-                          <p className="mb-3 text-muted-foreground text-sm">
-                            {t(
-                              "disabledProtocolHint",
-                              "This protocol is off. After configuring it, enable the switch beside its heading to save these changes."
-                            )}
-                          </p>
+                          ) : null}
+                        </button>
+                        <Switch
+                          aria-invalid={
+                            !!form.getFieldState(`protocols.${i}.enable`).error
+                          }
+                          aria-label={t(
+                            "protocol_enabled",
+                            "Enable {{protocol}}",
+                            { protocol: type }
+                          )}
+                          checked={isEnabled}
+                          data-form-field={`protocols.${i}.enable`}
+                          disabled={Boolean(
+                            serverId &&
+                              isEnabled &&
+                              defaultValues.protocols[i]?.enable &&
+                              (!nodeReferencesReady() ||
+                                isProtocolUsedInNodes(serverId, type))
+                          )}
+                          onCheckedChange={(checked) => {
+                            form.setValue(`protocols.${i}.enable`, checked, {
+                              shouldDirty: true,
+                            });
+                            form.clearErrors(`protocols.${i}` as any);
+                            if (checked) setSelectedProtocol(type);
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="admin-protocol-canvas">
+                  <div className="admin-protocol-canvas__header">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-semibold text-foreground text-sm capitalize tracking-[-0.01em]">
+                        {activeProtocolType}
+                      </h4>
+                      <StatusChip
+                        pulse={activeEnabled}
+                        tone={activeEnabled ? "success" : "neutral"}
+                      >
+                        {activeEnabled
+                          ? t("enabled", "Enabled")
+                          : t("disabled", "Disabled")}
+                      </StatusChip>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {activeData.transport ? (
+                        <Badge
+                          className="font-mono text-[11px] tabular-nums"
+                          variant="secondary"
+                        >
+                          {String(activeData.transport).toUpperCase()}
+                        </Badge>
+                      ) : null}
+                      {activeData.security &&
+                        activeData.security !== "none" && (
+                          <Badge
+                            className="font-mono text-[11px] tabular-nums"
+                            variant="outline"
+                          >
+                            {String(activeData.security).toUpperCase()}
+                          </Badge>
                         )}
-                        <div className="admin-protocol-groups space-y-5 border-t pt-4">
-                          {type === "nowhere" && (
-                            <p className="text-muted-foreground text-xs">
-                              {t(
-                                "nowhere_description",
-                                "NW3 · TLS 1.3 · ALPN nw3. Use an NW3 client with the same Morph setting."
-                              )}
-                            </p>
-                          )}
-                          {renderGroupCard(
-                            t("basic", "Basic Configuration"),
-                            fields,
-                            "basic",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                          {renderGroupCard(
-                            t("obfs", "Obfuscation"),
-                            fields,
-                            "obfs",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                          {renderGroupCard(
-                            t("transport", "Transport"),
-                            fields,
-                            "transport",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                          {renderGroupCard(
-                            t("security", "Security"),
-                            fields,
-                            "security",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                          {renderGroupCard(
-                            t("reality", "Reality"),
-                            fields,
-                            "reality",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                          {renderGroupCard(
-                            t("encryption", "Encryption"),
-                            fields,
-                            "encryption",
-                            control,
-                            form,
-                            i,
-                            current
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+                      {activeData.port ? (
+                        <Badge
+                          className="font-mono text-[11px] tabular-nums"
+                          variant="outline"
+                        >
+                          :{activeData.port}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {!activeEnabled && (
+                    <p className="mb-4 rounded-md border border-border bg-muted/35 px-3 py-2 text-muted-foreground text-xs">
+                      {t(
+                        "disabledProtocolHint",
+                        "This protocol is off. After configuring it, enable the switch beside its heading to save these changes."
+                      )}
+                    </p>
+                  )}
+
+                  <div className="admin-protocol-groups space-y-5">
+                    {activeProtocolType === "nowhere" && (
+                      <p className="text-muted-foreground text-xs">
+                        {t(
+                          "nowhere_description",
+                          "NW3 · TLS 1.3 · ALPN nw3. Use an NW3 client with the same Morph setting."
+                        )}
+                      </p>
+                    )}
+                    {renderGroupCard(
+                      t("basic", "Basic Configuration"),
+                      activeFields,
+                      "basic",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                    {renderGroupCard(
+                      t("obfs", "Obfuscation"),
+                      activeFields,
+                      "obfs",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                    {renderGroupCard(
+                      t("transport", "Transport"),
+                      activeFields,
+                      "transport",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                    {renderGroupCard(
+                      t("security", "Security"),
+                      activeFields,
+                      "security",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                    {renderGroupCard(
+                      t("reality", "Reality"),
+                      activeFields,
+                      "reality",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                    {renderGroupCard(
+                      t("encryption", "Encryption"),
+                      activeFields,
+                      "encryption",
+                      control,
+                      form,
+                      activeIndex,
+                      activeData
+                    )}
+                  </div>
+                </div>
+              </div>
             </form>
           </Form>
         </ScrollArea>
