@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import {
-  SettingsAnchorNav,
-  SettingsItem,
-  SettingsSection,
-} from "@/components/settings-section";
+  type SettingsWorkspaceGroup,
+  SettingsWorkspaceShell,
+} from "@/components/settings-workspace";
 import AppleForm from "./forms/apple-form";
 import DeviceForm from "./forms/device-form";
 import EmailSettingsForm from "./forms/email-settings-form";
@@ -17,7 +16,7 @@ import TelegramForm from "./forms/telegram-form";
 export default function AuthControl() {
   const { t } = useTranslation("auth-control");
 
-  const formSections = [
+  const groups: SettingsWorkspaceGroup[] = [
     {
       id: "communication-methods",
       title: t("communicationMethods", "Communication Methods"),
@@ -25,9 +24,27 @@ export default function AuthControl() {
         "communicationMethodsDescription",
         "Configure delivery providers used for email and SMS verification."
       ),
-      forms: [
-        { component: EmailSettingsForm },
-        { component: PhoneSettingsForm },
+      items: [
+        {
+          id: "email",
+          title: t("email.title", "Email Settings"),
+          description: t(
+            "email.description",
+            "Configure email authentication and templates"
+          ),
+          icon: "mdi:email-outline",
+          component: EmailSettingsForm,
+        },
+        {
+          id: "phone",
+          title: t("phone.title", "SMS Settings"),
+          description: t(
+            "phone.description",
+            "Configure phone number registration, login and SMS services"
+          ),
+          icon: "mdi:phone-settings",
+          component: PhoneSettingsForm,
+        },
       ],
     },
     {
@@ -37,12 +54,57 @@ export default function AuthControl() {
         "socialAuthMethodsDescription",
         "Manage OAuth providers and their client credentials."
       ),
-      forms: [
-        { component: AppleForm },
-        { component: GoogleForm },
-        { component: FacebookForm },
-        { component: GithubForm },
-        { component: TelegramForm },
+      items: [
+        {
+          id: "apple",
+          title: t("apple.title", "Apple Sign-In"),
+          description: t(
+            "apple.description",
+            "Configure Apple Sign-In authentication settings"
+          ),
+          icon: "mdi:apple",
+          component: AppleForm,
+        },
+        {
+          id: "google",
+          title: t("google.title", "Google Sign-In"),
+          description: t(
+            "google.description",
+            "Configure Google OAuth authentication settings"
+          ),
+          icon: "mdi:google",
+          component: GoogleForm,
+        },
+        {
+          id: "facebook",
+          title: t("facebook.title", "Facebook Sign-In"),
+          description: t(
+            "facebook.description",
+            "Configure Facebook OAuth authentication settings"
+          ),
+          icon: "mdi:facebook",
+          component: FacebookForm,
+        },
+        {
+          id: "github",
+          title: t("github.title", "GitHub Sign-In"),
+          description: t(
+            "github.description",
+            "Configure GitHub OAuth authentication settings"
+          ),
+          icon: "mdi:github",
+          component: GithubForm,
+        },
+        {
+          id: "telegram",
+          title: t("telegram.title", "Telegram Sign-In"),
+          description: t(
+            "telegram.description",
+            "Configure Telegram authentication settings"
+          ),
+          icon: "mdi:telegram",
+          component: TelegramForm,
+        },
       ],
     },
     {
@@ -52,7 +114,18 @@ export default function AuthControl() {
         "deviceAuthMethodsDescription",
         "Control device-level authentication and binding policies."
       ),
-      forms: [{ component: DeviceForm }],
+      items: [
+        {
+          id: "device",
+          title: t("device.title", "Device Sign-In"),
+          description: t(
+            "device.description",
+            "Configure device identifier authentication settings"
+          ),
+          icon: "mdi:devices",
+          component: DeviceForm,
+        },
+      ],
     },
   ];
 
@@ -66,31 +139,11 @@ export default function AuthControl() {
         eyebrow={t("platform", "Platform")}
         title={t("pageTitle", "Authentication Control")}
       />
-      <SettingsAnchorNav
-        items={formSections.map((section) => ({
-          id: section.id,
-          label: section.title,
-          count: section.forms.length,
-        }))}
+      <SettingsWorkspaceShell
+        defaultId="email"
+        directoryLabel={t("pageTitle", "Authentication Control")}
+        groups={groups}
       />
-      {formSections.map((section) => (
-        <SettingsSection
-          count={section.forms.length}
-          description={section.description}
-          id={section.id}
-          key={section.id}
-          title={section.title}
-        >
-          {section.forms.map((form, formIndex) => {
-            const FormComponent = form.component;
-            return (
-              <SettingsItem key={formIndex}>
-                <FormComponent />
-              </SettingsItem>
-            );
-          })}
-        </SettingsSection>
-      ))}
     </div>
   );
 }

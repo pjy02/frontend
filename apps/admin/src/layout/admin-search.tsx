@@ -108,6 +108,11 @@ export function AdminSearch() {
     navigate({ to: url as "/dashboard" });
   };
 
+  const goToSetting = (url: string, tab: string) => {
+    setOpen(false);
+    navigate({ to: url as "/dashboard", search: { tab } as never });
+  };
+
   const switchTheme = (next: "light" | "dark" | "system") => {
     setOpen(false);
     if (applyTheme) {
@@ -181,7 +186,7 @@ export function AdminSearch() {
               return (
                 <CommandItem
                   key={setting.id}
-                  onSelect={() => goTo(setting.url)}
+                  onSelect={() => goToSetting(setting.url, setting.id)}
                   value={`settings ${setting.id} ${setting.title}`}
                 >
                   <Icon className="size-4 text-muted-foreground" />

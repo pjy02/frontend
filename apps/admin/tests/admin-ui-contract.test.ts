@@ -117,7 +117,9 @@ describe("protected Admin UI contract", () => {
       "apps/admin/src/sections/servers/dynamic-multiplier.tsx",
     ].map(readProjectFile);
 
-    expect(workspaceAdapter).toContain("WorkspaceDialog as Sheet");
+    expect(workspaceAdapter).toContain("@/components/workspace-dialog");
+    expect(workspaceAdapter).toContain("<WorkspaceDialog");
+    expect(workspaceAdapter).not.toContain("@workspace/ui/components/sheet");
     expect(workspaceDialog).toContain(
       'className={cn(\n        "admin-workspace-dialog'
     );
